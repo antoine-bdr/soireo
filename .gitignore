@@ -69,9 +69,10 @@ testem.log
 .DS_Store
 Thumbs.db
 
-# Environnements Firebase
+# Firebase environment files (contiennent des clés sensibles)
 src/environments/environment.ts
-src/environments/environment.prod.ts
+src/environments/environment.development.ts
+
 
 # Fichiers sensibles
 firebase-config.json

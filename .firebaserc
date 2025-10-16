@@ -1,5 +1,7 @@
 {
   "projects": {
     "default": "soireo-87443"
-  }
+  },
+  "targets": {},
+  "etags": {}
 }
