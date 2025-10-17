@@ -1,6 +1,3 @@
-// src/app/features/events/event-detail/event-detail.page.ts
-// Page de détail d'un événement
-
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -42,8 +39,7 @@ import {
   shareOutline,
   heartOutline,
   heart,
-  timeOutline
-} from 'ionicons/icons';
+  timeOutline, ellipsisVertical, checkmarkCircleOutline } from 'ionicons/icons';
 
 import { EventsService } from '../../../core/services/events.service';
 import { AuthenticationService } from '../../../core/services/authentication.service';
@@ -94,20 +90,7 @@ export class EventDetailPage implements OnInit {
   currentUserId = signal<string>('');
 
   constructor() {
-    addIcons({
-      calendarOutline,
-      locationOutline,
-      peopleOutline,
-      personOutline,
-      exitOutline,
-      enterOutline,
-      createOutline,
-      trashOutline,
-      shareOutline,
-      heartOutline,
-      heart,
-      timeOutline
-    });
+    addIcons({shareOutline,ellipsisVertical,calendarOutline,locationOutline,peopleOutline,checkmarkCircleOutline,enterOutline,exitOutline,createOutline,trashOutline,personOutline,heartOutline,heart,timeOutline});
   }
 
   ngOnInit() {

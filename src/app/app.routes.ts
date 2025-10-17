@@ -101,5 +101,13 @@ export const routes: Routes = [
   {
     path: '**',
     redirectTo: 'login'
+  },
+  {
+    path: 'event-edit',
+    loadComponent: () => import('./app/features/events/event-edit/event-edit.page').then( m => m.EventEditPage)
+  },
+  {
+    path: 'events',
+    loadComponent: () => import('./app/features/events/events.page').then( m => m.EventsPage)
   }
 ];
