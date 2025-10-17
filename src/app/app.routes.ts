@@ -103,8 +103,9 @@ export const routes: Routes = [
     redirectTo: 'login'
   },
   {
-    path: 'event-edit',
-    loadComponent: () => import('./app/features/events/event-edit/event-edit.page').then( m => m.EventEditPage)
+    path: 'events/:id/edit',
+    loadComponent: () => import('./features/events/event-edit/event-edit.page').then(m => m.EventEditPage),
+    canActivate: [authGuard]
   },
   {
     path: 'events',

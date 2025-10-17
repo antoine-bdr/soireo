@@ -45,6 +45,7 @@ import {
 import { EventsService } from '../../../core/services/events.service';
 import { StorageService } from '../../../core/services/storage.service';
 import { Event, EventCategory, EventLocation } from '../../../core/models/event.model';
+import { Timestamp } from 'firebase/firestore';
 
 @Component({
   selector: 'app-event-edit',
@@ -74,7 +75,6 @@ import { Event, EventCategory, EventLocation } from '../../../core/models/event.
     IonIcon,
     IonToggle,
     IonText,
-    IonDatetimeButton,
     IonModal,
     IonDatetime,
     IonSpinner
@@ -359,7 +359,7 @@ export class EventEditPage implements OnInit {
       const updates = {
         title: formValue.title,
         description: formValue.description,
-        date: new Date(formValue.date),
+        date: Timestamp.fromDate(new Date(formValue.date)),
         location: location,
         maxParticipants: formValue.maxParticipants,
         category: formValue.category,

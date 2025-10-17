@@ -1,229 +1,155 @@
 <!-- src/app/features/events/event-detail/event-detail.page.html -->
 
-<ion-header [translucent]="true">
+<ion-header>
   <ion-toolbar color="primary">
     <ion-buttons slot="start">
       <ion-back-button defaultHref="/events"></ion-back-button>
     </ion-buttons>
-    <ion-title>Détails</ion-title>
-    <ion-buttons slot="end">
-      <ion-button (click)="shareEvent()">
-        <ion-icon name="share-outline" slot="icon-only"></ion-icon>
+    <ion-title>Détails de l'événement</ion-title>
+    
+    <!-- Boutons d'action (organisateur seulement) -->
+    <ion-buttons slot="end" *ngIf="isOrganizer">
+      <ion-button (click)="goToEdit()">
+        <ion-icon name="create-outline" slot="icon-only"></ion-icon>
       </ion-button>
-      <!-- Menu organisateur -->
-      <ion-button *ngIf="isOrganizer()" (click)="showOrganizerActions()">
-        <ion-icon name="ellipsis-vertical" slot="icon-only"></ion-icon>
+      <ion-button (click)="deleteEvent()" color="danger">
+        <ion-icon name="trash-outline" slot="icon-only"></ion-icon>
       </ion-button>
     </ion-buttons>
   </ion-toolbar>
 </ion-header>
 
-<ion-content [fullscreen]="true">
+<ion-content>
   
   <!-- Loader pendant le chargement -->
-  <div class="loading-container" *ngIf="isLoading()">
+  <div class="loading-container" *ngIf="isLoading">
     <ion-spinner name="crescent" color="primary"></ion-spinner>
     <p>Chargement...</p>
   </div>
 
   <!-- Contenu de l'événement -->
-  <div *ngIf="!isLoading() && event()" class="event-detail-container">
+  <div *ngIf="!isLoading && event" class="event-detail">
     
     <!-- Image de l'événement -->
-    <div class="event-image-header">
-      <img 
-        [src]="event()!.imageUrl || 'https://via.placeholder.com/800x400?text=Événement'" 
-        [alt]="event()!.title"
-        class="event-image" />
+    <div class="event-image" *ngIf="event.imageUrl">
+      <img [src]="event.imageUrl" [alt]="event.title" />
       
-      <!-- Badge "Complet" -->
-      <ion-badge 
-        class="full-badge" 
-        color="danger" 
-        *ngIf="isEventFull()">
-        Complet
-      </ion-badge>
-
-      <!-- Badge "Privé" -->
-      <ion-badge 
-        class="private-badge" 
-        color="dark" 
-        *ngIf="event()!.isPrivate">
-        🔒 Privé
-      </ion-badge>
-    </div>
-
-    <!-- En-tête de l'événement -->
-    <div class="event-header ion-padding">
-      <ion-chip [color]="getCategoryColor(event()!.category)">
-        <ion-label>{{ getCategoryLabel(event()!.category) }}</ion-label>
-      </ion-chip>
-      
-      <h1 class="event-title">{{ event()!.title }}</h1>
-      
-      <!-- Info organisateur -->
-      <div class="organizer-info">
-        <ion-avatar>
-          <img 
-            [src]="event()!.organizerPhoto || 'https://ionicframework.com/docs/img/demos/avatar.svg'" 
-            [alt]="event()!.organizerName" />
-        </ion-avatar>
-        <div class="organizer-details">
-          <p class="organizer-label">Organisé par</p>
-          <p class="organizer-name">{{ event()!.organizerName }}</p>
-        </div>
+      <!-- Badge organisateur -->
+      <div class="organizer-badge" *ngIf="isOrganizer">
+        <ion-chip color="primary">
+          <ion-icon name="person-outline"></ion-icon>
+          <span>Votre événement</span>
+        </ion-chip>
       </div>
     </div>
 
     <!-- Informations principales -->
-    <ion-card>
-      <ion-card-content>
-        
-        <!-- Date et heure -->
-        <div class="info-row">
-          <ion-icon name="calendar-outline" color="primary"></ion-icon>
-          <div class="info-content">
-            <strong>Date et heure</strong>
-            <p>{{ formatDate(event()!.date) }}</p>
-          </div>
-        </div>
+    <div class="event-content ion-padding">
+      
+      <!-- Titre et catégorie -->
+      <div class="header-section">
+        <h1>{{ event.title }}</h1>
+        <ion-chip color="secondary">
+          <span>{{ getCategoryIcon(event.category) }} {{ event.category }}</span>
+        </ion-chip>
+      </div>
 
-        <!-- Lieu -->
-        <div class="info-row">
-          <ion-icon name="location-outline" color="danger"></ion-icon>
-          <div class="info-content">
-            <strong>Lieu</strong>
-            <p>{{ event()!.location.address }}</p>
-            <p class="text-small">{{ event()!.location.city }}, {{ event()!.location.zipCode }}</p>
-          </div>
-        </div>
-
-        <!-- Participants -->
-        <div class="info-row">
-          <ion-icon name="people-outline" color="success"></ion-icon>
-          <div class="info-content">
-            <strong>Participants</strong>
-            <p>{{ event()!.currentParticipants }} / {{ event()!.maxParticipants }} personnes</p>
-            
-            <!-- Barre de progression -->
-            <div class="progress-bar">
-              <div 
-                class="progress-fill" 
-                [style.width.%]="(event()!.currentParticipants / event()!.maxParticipants) * 100">
-              </div>
+      <!-- Date et heure -->
+      <ion-card>
+        <ion-card-content>
+          <div class="info-row">
+            <ion-icon name="calendar-outline" color="primary"></ion-icon>
+            <div>
+              <p class="label">Date et heure</p>
+              <p class="value">{{ formatDate(event.date) }}</p>
             </div>
           </div>
-        </div>
+        </ion-card-content>
+      </ion-card>
 
-      </ion-card-content>
-    </ion-card>
+      <!-- Lieu -->
+      <ion-card>
+        <ion-card-content>
+          <div class="info-row">
+            <ion-icon name="location-outline" color="primary"></ion-icon>
+            <div>
+              <p class="label">Lieu</p>
+              <p class="value">{{ event.location.address }}</p>
+              <p class="value">{{ event.location.zipCode }} {{ event.location.city }}</p>
+            </div>
+          </div>
+        </ion-card-content>
+      </ion-card>
 
-    <!-- Description -->
-    <ion-card>
-      <ion-card-header>
-        <ion-card-title>Description</ion-card-title>
-      </ion-card-header>
-      <ion-card-content>
-        <p class="description">{{ event()!.description }}</p>
-      </ion-card-content>
-    </ion-card>
+      <!-- Participants -->
+      <ion-card>
+        <ion-card-content>
+          <div class="info-row">
+            <ion-icon name="people-outline" color="primary"></ion-icon>
+            <div>
+              <p class="label">Participants</p>
+              <p class="value">
+                {{ event.currentParticipants || 0 }} / {{ event.maxParticipants }}
+              </p>
+            </div>
+          </div>
+        </ion-card-content>
+      </ion-card>
 
-    <!-- Liste des participants -->
-    <ion-card *ngIf="event()!.participants.length > 0">
-      <ion-card-header>
-        <ion-card-title>
-          Participants ({{ event()!.participants.length }})
-        </ion-card-title>
-      </ion-card-header>
-      <ion-card-content>
-        <ion-list>
-          <ion-item *ngFor="let participantId of event()!.participants; let i = index" lines="none">
-            <ion-avatar slot="start">
-              <img src="https://ionicframework.com/docs/img/demos/avatar.svg" />
-            </ion-avatar>
-            <ion-label>
-              <h3 *ngIf="participantId === event()!.organizerId">
-                {{ event()!.organizerName }}
-                <ion-badge color="primary">Organisateur</ion-badge>
-              </h3>
-              <h3 *ngIf="participantId !== event()!.organizerId">Participant {{ i + 1 }}</h3>
-            </ion-label>
-            <ion-badge 
-              color="success" 
-              *ngIf="participantId === currentUserId()"
-              slot="end">
-              Toi
-            </ion-badge>
-          </ion-item>
-        </ion-list>
-      </ion-card-content>
-    </ion-card>
+      <!-- Description -->
+      <ion-card>
+        <ion-card-header>
+          <ion-card-title>Description</ion-card-title>
+        </ion-card-header>
+        <ion-card-content>
+          <p class="description">{{ event.description }}</p>
+        </ion-card-content>
+      </ion-card>
 
-    <!-- Informations supplémentaires -->
-    <ion-card *ngIf="event()!.requiresApproval">
-      <ion-card-content>
-        <div class="info-banner">
-          <ion-icon name="checkmark-circle-outline" color="warning"></ion-icon>
-          <p>Cet événement nécessite l'approbation de l'organisateur</p>
-        </div>
-      </ion-card-content>
-    </ion-card>
+      <!-- Options -->
+      <ion-card *ngIf="event.isPrivate || event.requiresApproval">
+        <ion-card-content>
+          <div class="options-list">
+            <div class="option-item" *ngIf="event.isPrivate">
+              <ion-icon name="lock-closed-outline" color="warning"></ion-icon>
+              <span>Événement privé</span>
+            </div>
+            <div class="option-item" *ngIf="event.requiresApproval">
+              <ion-icon name="checkmark-circle-outline" color="tertiary"></ion-icon>
+              <span>Approbation requise</span>
+            </div>
+          </div>
+        </ion-card-content>
+      </ion-card>
 
-    <!-- Espace pour les boutons flottants -->
-    <div class="bottom-spacer"></div>
+      <!-- Boutons d'action pour les participants -->
+      <div class="action-buttons" *ngIf="!isOrganizer">
+        <ion-button expand="block" size="large" color="primary">
+          <ion-icon name="person-add-outline" slot="start"></ion-icon>
+          Participer
+        </ion-button>
+      </div>
 
-  </div>
+      <!-- Boutons d'action pour l'organisateur -->
+      <div class="action-buttons" *ngIf="isOrganizer">
+        <ion-button 
+          expand="block" 
+          size="large" 
+          fill="outline"
+          [routerLink]="['/events', eventId, 'edit']">
+          <ion-icon name="create-outline" slot="start"></ion-icon>
+          Modifier l'événement
+        </ion-button>
+      </div>
 
-  <!-- Boutons d'action flottants -->
-  <div class="action-buttons" *ngIf="!isLoading() && event()">
-    
-    <!-- Bouton Rejoindre (si pas organisateur et pas participant) -->
-    <ion-button 
-      *ngIf="!isOrganizer() && !isParticipant()"
-      expand="block" 
-      size="large"
-      [disabled]="isEventFull()"
-      (click)="joinEvent()"
-      class="action-button join-button">
-      <ion-icon name="enter-outline" slot="start"></ion-icon>
-      {{ isEventFull() ? 'Événement complet' : 'Rejoindre l\'événement' }}
-    </ion-button>
-
-    <!-- Bouton Quitter (si participant mais pas organisateur) -->
-    <ion-button 
-      *ngIf="!isOrganizer() && isParticipant()"
-      expand="block" 
-      size="large"
-      color="danger"
-      fill="outline"
-      (click)="leaveEvent()"
-      class="action-button leave-button">
-      <ion-icon name="exit-outline" slot="start"></ion-icon>
-      Quitter l'événement
-    </ion-button>
-
-    <!-- Boutons Organisateur -->
-    <div *ngIf="isOrganizer()" class="organizer-buttons">
-      <ion-button 
-        expand="block" 
-        color="medium"
-        (click)="editEvent()"
-        class="action-button">
-        <ion-icon name="create-outline" slot="start"></ion-icon>
-        Modifier
-      </ion-button>
-      
-      <ion-button 
-        expand="block" 
-        color="danger"
-        fill="outline"
-        (click)="deleteEvent()"
-        class="action-button">
-        <ion-icon name="trash-outline" slot="start"></ion-icon>
-        Supprimer
-      </ion-button>
     </div>
-
   </div>
+
+  <!-- Bouton flottant de partage -->
+  <ion-fab vertical="bottom" horizontal="end" slot="fixed" *ngIf="!isLoading && event">
+    <ion-fab-button color="secondary" (click)="shareEvent()">
+      <ion-icon name="share-outline"></ion-icon>
+    </ion-fab-button>
+  </ion-fab>
 
 </ion-content>
