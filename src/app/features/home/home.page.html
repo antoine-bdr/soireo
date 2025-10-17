@@ -1,0 +1,79 @@
+<!-- src/app/features/home/home.page.html -->
+
+<ion-header>
+  <ion-toolbar color="primary">
+    <ion-title>🎉 Party Events</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="ion-padding">
+  
+  <div class="home-container">
+    
+    <!-- Carte de bienvenue -->
+    <ion-card class="welcome-card">
+      <ion-card-header>
+        <div class="user-avatar">
+          <ion-icon name="person-circle-outline" color="primary"></ion-icon>
+        </div>
+        <ion-card-title>Bienvenue {{ userName() }} !</ion-card-title>
+      </ion-card-header>
+      
+      <ion-card-content>
+        <ion-text color="medium">
+          <p>{{ userEmail() }}</p>
+        </ion-text>
+        
+        <div class="success-message">
+          <ion-text color="success">
+            <p>✅ Tu es maintenant connecté(e)</p>
+            <p>🎊 L'aventure Party Events commence ici !</p>
+          </ion-text>
+        </div>
+
+        <!-- Bouton Voir les événements -->
+        <ion-button 
+          expand="block" 
+          color="primary" 
+          (click)="goToEvents()"
+          class="ion-margin-top">
+          <ion-icon name="calendar-outline" slot="start"></ion-icon>
+          Voir les événements
+        </ion-button>
+        
+        <ion-button 
+          expand="block" 
+          color="danger" 
+          (click)="logout()"
+          fill="outline"
+          class="ion-margin-top">
+          <ion-icon name="log-out-outline" slot="start"></ion-icon>
+          Se déconnecter
+        </ion-button>
+      </ion-card-content>
+    </ion-card>
+
+    <!-- Carte informative -->
+    <ion-card>
+      <ion-card-header>
+        <ion-card-title>Prochaines étapes</ion-card-title>
+      </ion-card-header>
+      
+      <ion-card-content>
+        <ion-text>
+          <p>🚀 <strong>Sprint 1 terminé !</strong></p>
+          <p>On va maintenant développer :</p>
+          <ul>
+            <li>📋 Liste des événements</li>
+            <li>➕ Création d'événements</li>
+            <li>🗺️ Carte interactive</li>
+            <li>💬 Messagerie en temps réel</li>
+            <li>👤 Gestion du profil</li>
+          </ul>
+        </ion-text>
+      </ion-card-content>
+    </ion-card>
+
+  </div>
+
+</ion-content>

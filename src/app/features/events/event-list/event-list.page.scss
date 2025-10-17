@@ -1,0 +1,206 @@
+// src/app/features/events/event-list/event-list.page.scss
+
+// Container principal
+.events-container {
+    padding: 16px;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+  
+  // Loader
+  .loading-container {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    height: 60vh;
+    
+    ion-spinner {
+      transform: scale(1.5);
+      margin-bottom: 20px;
+    }
+    
+    p {
+      color: var(--ion-color-medium);
+      font-size: 1rem;
+    }
+  }
+  
+  // État vide
+  .empty-state {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    padding: 60px 20px;
+    min-height: 50vh;
+    
+    ion-icon {
+      font-size: 120px;
+      margin-bottom: 24px;
+    }
+    
+    h2 {
+      font-size: 1.5rem;
+      font-weight: 600;
+      margin-bottom: 12px;
+      color: var(--ion-color-dark);
+    }
+    
+    p {
+      color: var(--ion-color-medium);
+      margin-bottom: 24px;
+      font-size: 1rem;
+    }
+  }
+  
+  // Card événement
+  .event-card {
+    margin-bottom: 20px;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+    overflow: hidden;
+    
+    &:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+    }
+    
+    &:active {
+      transform: translateY(-2px);
+    }
+  }
+  
+  // Container image
+  .event-image-container {
+    position: relative;
+    width: 100%;
+    height: 200px;
+    overflow: hidden;
+    background: linear-gradient(135deg, var(--ion-color-primary-tint), var(--ion-color-secondary-tint));
+    
+    .event-image {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    
+    // Badge "Complet"
+    .full-badge {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      padding: 6px 12px;
+      font-weight: 600;
+      font-size: 0.85rem;
+    }
+    
+    // Badge "Privé"
+    .private-badge {
+      position: absolute;
+      top: 12px;
+      left: 12px;
+      padding: 6px 12px;
+      font-weight: 600;
+      font-size: 0.85rem;
+    }
+  }
+  
+  // Header de la card
+  ion-card-header {
+    padding-bottom: 8px;
+    
+    ion-chip {
+      margin: 0 0 8px 0;
+      font-size: 0.85rem;
+    }
+    
+    ion-card-title {
+      font-size: 1.3rem;
+      font-weight: 700;
+      margin-bottom: 4px;
+      color: var(--ion-color-dark);
+    }
+    
+    ion-card-subtitle {
+      font-size: 0.9rem;
+      color: var(--ion-color-medium);
+    }
+  }
+  
+  // Content de la card
+  ion-card-content {
+    padding-top: 12px;
+  }
+  
+  // Description
+  .event-description {
+    color: var(--ion-color-medium-shade);
+    line-height: 1.5;
+    margin-bottom: 16px;
+    font-size: 0.95rem;
+  }
+  
+  // Informations (date, lieu, participants)
+  .event-info {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 16px;
+    
+    .info-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      
+      ion-icon {
+        font-size: 20px;
+        flex-shrink: 0;
+      }
+      
+      ion-text {
+        font-size: 0.9rem;
+        color: var(--ion-color-dark);
+      }
+    }
+  }
+  
+  // Bouton dans la card
+  ion-card-content ion-button {
+    --border-radius: 8px;
+    font-weight: 600;
+    text-transform: none;
+    margin-top: 16px;
+  }
+  
+  // FAB button
+  ion-fab {
+    margin: 20px;
+    
+    ion-fab-button {
+      --background: var(--ion-color-primary);
+      --box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+    }
+  }
+  
+  // Responsive
+  @media (min-width: 768px) {
+    .events-container {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 20px;
+    }
+    
+    .empty-state {
+      grid-column: 1 / -1;
+    }
+  }
+  
+  @media (min-width: 1024px) {
+    .events-container {
+      grid-template-columns: repeat(3, 1fr);
+    }
+  }

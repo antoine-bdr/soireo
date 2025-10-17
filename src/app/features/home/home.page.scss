@@ -1,0 +1,59 @@
+// src/app/features/home/home.page.scss
+
+.home-container {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.welcome-card {
+  text-align: center;
+  
+  .user-avatar {
+    margin-bottom: 16px;
+    
+    ion-icon {
+      font-size: 80px;
+    }
+  }
+  
+  ion-card-title {
+    font-size: 1.8rem;
+    margin-bottom: 12px;
+  }
+  
+  .success-message {
+    margin: 20px 0;
+    padding: 16px;
+    background-color: var(--ion-color-success-tint);
+    border-radius: 8px;
+    
+    p {
+      margin: 8px 0;
+      font-size: 1rem;
+    }
+  }
+}
+
+ion-card {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+  border-radius: 12px;
+  
+  ul {
+    margin-left: 20px;
+    margin-top: 12px;
+    
+    li {
+      margin: 8px 0;
+      font-size: 0.95rem;
+    }
+  }
+}
+
+ion-button {
+  --border-radius: 8px;
+  font-weight: 600;
+  text-transform: none;
+}

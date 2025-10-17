@@ -1,0 +1,95 @@
+// src/app/features/auth/register/register.page.scss
+
+.register-container {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    min-height: 100%;
+    padding: 20px;
+  }
+  
+  .app-logo {
+    text-align: center;
+    margin-bottom: 30px;
+  
+    h1 {
+      font-size: 2.5rem;
+      font-weight: bold;
+      margin-bottom: 10px;
+      background: linear-gradient(45deg, var(--ion-color-primary), var(--ion-color-secondary));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+  
+    p {
+      color: var(--ion-color-medium);
+      font-size: 1rem;
+    }
+  }
+  
+  ion-card {
+    width: 100%;
+    max-width: 450px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+    border-radius: 12px;
+  
+    ion-card-title {
+      font-size: 1.5rem;
+      font-weight: 600;
+    }
+  }
+  
+  ion-item {
+    --border-radius: 8px;
+    --padding-start: 12px;
+    margin-bottom: 8px;
+  
+    ion-icon {
+      color: var(--ion-color-primary);
+      margin-right: 8px;
+    }
+  }
+  
+  .error-message {
+    padding-left: 16px;
+    margin-top: -8px;
+    margin-bottom: 12px;
+  
+    small {
+      font-size: 0.85rem;
+    }
+  }
+  
+  ion-button {
+    --border-radius: 8px;
+    font-weight: 600;
+    text-transform: none;
+    height: 48px;
+  }
+  
+  .login-link {
+    margin-top: 20px;
+    font-size: 0.95rem;
+  
+    .link {
+      color: var(--ion-color-primary);
+      font-weight: 600;
+      text-decoration: none;
+  
+      &:hover {
+        text-decoration: underline;
+      }
+    }
+  }
+  
+  @media (max-width: 576px) {
+    .app-logo h1 {
+      font-size: 2rem;
+    }
+  
+    ion-card {
+      margin: 0;
+    }
+  }

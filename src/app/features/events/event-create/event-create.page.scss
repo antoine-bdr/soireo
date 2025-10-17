@@ -1,0 +1,149 @@
+// src/app/features/events/event-create/event-create.page.scss
+
+// Formulaire
+form {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+// Cards
+ion-card {
+  margin-bottom: 20px;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+
+  ion-card-title {
+    font-size: 1.2rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    ion-icon {
+      font-size: 24px;
+      color: var(--ion-color-primary);
+    }
+  }
+}
+
+// Section upload d'image
+.image-preview-container {
+  position: relative;
+  width: 100%;
+  margin-bottom: 16px;
+
+  .image-preview {
+    width: 100%;
+    height: 250px;
+    object-fit: cover;
+    border-radius: 8px;
+  }
+
+  .remove-image-btn {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    --background: rgba(0, 0, 0, 0.6);
+    --border-radius: 50%;
+    width: 36px;
+    height: 36px;
+  }
+}
+
+.upload-container {
+  text-align: center;
+
+  .hint {
+    margin-top: 8px;
+    font-size: 0.85rem;
+    color: var(--ion-color-medium);
+  }
+}
+
+// Items du formulaire
+ion-item {
+  --border-radius: 8px;
+  --padding-start: 12px;
+  margin-bottom: 8px;
+
+  ion-icon {
+    margin-right: 12px;
+  }
+
+  // Item cliquable pour la date
+  &[button] {
+    cursor: pointer;
+    
+    ion-text {
+      font-weight: 500;
+    }
+  }
+}
+
+ion-label {
+  font-weight: 500;
+}
+
+// Messages d'erreur
+.error-message {
+  padding-left: 16px;
+  margin-top: -4px;
+  margin-bottom: 12px;
+
+  small {
+    font-size: 0.85rem;
+  }
+}
+
+// Textarea
+ion-textarea {
+  min-height: 100px;
+}
+
+// Select
+ion-select {
+  width: 100%;
+  max-width: 100%;
+}
+
+// Toggle
+ion-item ion-label {
+  h3 {
+    font-size: 1rem;
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+
+  p {
+    font-size: 0.85rem;
+    color: var(--ion-color-medium);
+    margin-top: 4px;
+  }
+}
+
+// Datetime button
+ion-datetime-button {
+  margin-left: auto;
+}
+
+// Bouton de création
+.create-btn {
+  margin-top: 32px;
+  margin-bottom: 32px;
+  --border-radius: 12px;
+  font-weight: 600;
+  text-transform: none;
+  height: 56px;
+}
+
+// Responsive
+@media (max-width: 576px) {
+  ion-card {
+    margin-left: 0;
+    margin-right: 0;
+  }
+
+  .image-preview-container .image-preview {
+    height: 200px;
+  }
+}

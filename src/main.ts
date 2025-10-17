@@ -102,20 +102,7 @@ bootstrapApplication(AppComponent, {
     }),
     
     // 4. Firebase Firestore (base de données)
-    provideFirestore(() => {
-      const firestore = initializeFirestore(getApp(), {
-        // Polling forcé en mode émulateur pour éviter les problèmes de connexion
-        experimentalForceLongPolling: useEmulators ? true : false,
-      });
-      
-      // Connexion à l'émulateur Firestore en développement local
-      if (useEmulators) {
-        connectFirestoreEmulator(firestore, 'localhost', 8080);
-        console.log('🔥 Firestore Emulator connecté sur localhost:8080');
-      }
-      
-      return firestore;
-    }),
+    provideFirestore(() => getFirestore()),
     
     // 5. Firebase Storage (stockage de fichiers/images)
     provideStorage(() => {
