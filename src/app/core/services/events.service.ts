@@ -1,13 +1,11 @@
 // src/app/core/services/events.service.ts
-// Service de gestion des événements avec Firestore
+// Service de gestion des événements avec Firestore (VERSION CORRIGÉE COMPLÈTE)
 
 import { Injectable, inject } from '@angular/core';
 import {
   Firestore,
   collection,
-  collectionData,
   doc,
-  docData,
   addDoc,
   updateDoc,
   deleteDoc,
@@ -15,7 +13,8 @@ import {
   where,
   orderBy,
   Timestamp,
-  QueryConstraint
+  onSnapshot,
+  DocumentSnapshot
 } from '@angular/fire/firestore';
 import { Observable, from, map, switchMap } from 'rxjs';
 import { AuthenticationService } from './authentication.service';
@@ -60,10 +59,10 @@ export class EventsService {
       location: eventData.location,
       organizerId: userId,
       organizerName: userName || userEmail || 'Organisateur',
-      organizerPhoto: '', // TODO: Ajouter la photo de profil plus tard
+      organizerPhoto: '',
       maxParticipants: eventData.maxParticipants,
-      currentParticipants: 1, // L'organisateur est le premier participant
-      participants: [userId], // L'organisateur rejoint automatiquement
+      currentParticipants: 1,
+      participants: [userId],
       category: eventData.category,
       imageUrl: eventData.imageUrl || '',
       images: [],
@@ -95,21 +94,34 @@ export class EventsService {
   getAllEvents(): Observable<Event[]> {
     const eventsRef = collection(this.firestore, this.eventsCollection);
     
-    // Query : événements publics, triés par date (plus récents en premier)
+    // Query : événements publics, triés par date
     const q = query(
       eventsRef,
       where('isPrivate', '==', false),
       orderBy('date', 'desc')
     );
 
-    // collectionData écoute les changements en temps réel
-    return collectionData(q, { idField: 'id' }).pipe(
-      map(events => events as Event[]),
-      map(events => {
-        console.log(`📋 ${events.length} événements chargés`);
-        return events;
-      })
-    );
+    // Utilisation de onSnapshot pour écoute en temps réel
+    return new Observable<Event[]>(subscriber => {
+      const unsubscribe = onSnapshot(q, 
+        (snapshot) => {
+          const events = snapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+          } as Event));
+          
+          console.log(`📋 ${events.length} événements chargés`);
+          subscriber.next(events);
+        },
+        (error) => {
+          console.error('❌ Erreur Firestore:', error);
+          subscriber.error(error);
+        }
+      );
+      
+      // Fonction de nettoyage appelée lors du unsubscribe
+      return () => unsubscribe();
+    });
   }
 
   /**
@@ -127,9 +139,25 @@ export class EventsService {
       orderBy('date', 'asc')
     );
 
-    return collectionData(q, { idField: 'id' }).pipe(
-      map(events => events as Event[])
-    );
+    return new Observable<Event[]>(subscriber => {
+      const unsubscribe = onSnapshot(q, 
+        (snapshot) => {
+          const events = snapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+          } as Event));
+          
+          console.log(`📅 ${events.length} événements à venir`);
+          subscriber.next(events);
+        },
+        (error) => {
+          console.error('❌ Erreur Firestore:', error);
+          subscriber.error(error);
+        }
+      );
+      
+      return () => unsubscribe();
+    });
   }
 
   /**
@@ -140,15 +168,29 @@ export class EventsService {
   getEventById(eventId: string): Observable<Event | null> {
     const eventDocRef = doc(this.firestore, `${this.eventsCollection}/${eventId}`);
     
-    return docData(eventDocRef, { idField: 'id' }).pipe(
-      map(event => {
-        if (event) {
-          console.log('📄 Événement chargé:', event['id']);
-          return event as Event;
+    return new Observable<Event | null>(subscriber => {
+      const unsubscribe = onSnapshot(eventDocRef,
+        (snapshot: DocumentSnapshot) => {
+          if (snapshot.exists()) {
+            const event = {
+              id: snapshot.id,
+              ...snapshot.data()
+            } as Event;
+            console.log('📄 Événement chargé:', event.id);
+            subscriber.next(event);
+          } else {
+            console.log('❌ Événement introuvable:', eventId);
+            subscriber.next(null);
+          }
+        },
+        (error) => {
+          console.error('❌ Erreur Firestore:', error);
+          subscriber.error(error);
         }
-        return null;
-      })
-    );
+      );
+      
+      return () => unsubscribe();
+    });
   }
 
   /**
@@ -165,9 +207,25 @@ export class EventsService {
       orderBy('createdAt', 'desc')
     );
 
-    return collectionData(q, { idField: 'id' }).pipe(
-      map(events => events as Event[])
-    );
+    return new Observable<Event[]>(subscriber => {
+      const unsubscribe = onSnapshot(q,
+        (snapshot) => {
+          const events = snapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+          } as Event));
+          
+          console.log(`👤 ${events.length} événements organisés par l'utilisateur`);
+          subscriber.next(events);
+        },
+        (error) => {
+          console.error('❌ Erreur Firestore:', error);
+          subscriber.error(error);
+        }
+      );
+      
+      return () => unsubscribe();
+    });
   }
 
   /**
@@ -184,22 +242,41 @@ export class EventsService {
       orderBy('date', 'asc')
     );
 
-    return collectionData(q, { idField: 'id' }).pipe(
-      map(events => events as Event[])
-    );
+    return new Observable<Event[]>(subscriber => {
+      const unsubscribe = onSnapshot(q,
+        (snapshot) => {
+          const events = snapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+          } as Event));
+          
+          console.log(`🎟️ ${events.length} événements rejoints par l'utilisateur`);
+          subscriber.next(events);
+        },
+        (error) => {
+          console.error('❌ Erreur Firestore:', error);
+          subscriber.error(error);
+        }
+      );
+      
+      return () => unsubscribe();
+    });
   }
 
   /**
-   * Recherche d'événements par titre
+   * Recherche d'événements par titre ou description
    * @param searchTerm Terme de recherche
    * @returns Observable avec les résultats
    */
   searchEvents(searchTerm: string): Observable<Event[]> {
+    // Firestore ne supporte pas les recherches textuelles avancées
+    // On récupère tous les événements et on filtre côté client
     return this.getAllEvents().pipe(
       map(events => 
         events.filter(event => 
           event.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          event.description.toLowerCase().includes(searchTerm.toLowerCase())
+          event.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          event.location.city.toLowerCase().includes(searchTerm.toLowerCase())
         )
       )
     );
