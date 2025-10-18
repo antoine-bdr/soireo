@@ -25,6 +25,7 @@ import {
   ParticipationStats 
 } from '../models/participant.model';
 import { Event } from '../models/event.model';
+import { UsersService } from './users.service';
 
 @Injectable({
   providedIn: 'root'
@@ -36,6 +37,8 @@ export class ParticipantsService {
   
   // Nom de la collection Firestore
   private readonly participantsCollection = 'participants';
+
+  private readonly usersService = inject(UsersService);
 
   constructor() {}
 
@@ -55,51 +58,58 @@ export class ParticipantsService {
     const userId = this.authService.getCurrentUserId();
     const userName = this.authService.getCurrentUserDisplayName();
     const userEmail = this.authService.getCurrentUserEmail();
-
+  
     if (!userId || !userEmail) {
       throw new Error('Utilisateur non connecté');
     }
-
+  
     console.log('🔵 joinEvent appelé pour eventId:', eventId, 'userId:', userId);
-
-    // Étape 1 : Vérifie que l'utilisateur ne participe pas déjà
-    return this.getParticipantDocumentOneTime(eventId, userId).pipe(
-      switchMap(existingParticipant => {
-        if (existingParticipant) {
-          console.log('⚠️ L\'utilisateur participe déjà');
-          throw new Error('Vous participez déjà à cet événement');
-        }
-
-        console.log('✅ L\'utilisateur ne participe pas encore, vérifications en cours...');
-
-        // Étape 2 : Vérifie que l'utilisateur peut rejoindre (une seule fois)
-        return this.canJoinEventOneTime(event).pipe(
-          switchMap(canJoin => {
-            if (!canJoin.allowed) {
-              console.log('⚠️ Impossible de rejoindre:', canJoin.reason);
-              throw new Error(canJoin.reason || 'Impossible de rejoindre cet événement');
+  
+    // ✅ MODIFIÉ : Récupère le profil utilisateur pour obtenir la photo
+    return this.usersService.getUserProfileOnce(userId).pipe(
+      switchMap(userProfile => {
+        const userPhoto = userProfile?.photoURL || '';
+        console.log('📸 Photo utilisateur:', userPhoto);
+  
+        // Étape 1 : Vérifie que l'utilisateur ne participe pas déjà
+        return this.getParticipantDocumentOneTime(eventId, userId).pipe(
+          switchMap(existingParticipant => {
+            if (existingParticipant) {
+              console.warn('⚠️ Utilisateur déjà participant');
+              throw new Error('Vous participez déjà à cet événement');
             }
-
-            console.log('✅ Toutes les vérifications sont passées, création du participant...');
-
-            // Étape 3 : Crée le document participant dans Firestore
-            const participantData: Omit<Participant, 'id'> = {
-              eventId,
-              userId,
-              userName: userName || userEmail,
-              userEmail,
-              userPhoto: '',
-              joinedAt: Timestamp.now(),
-              status: event.requiresApproval 
-                ? ParticipantStatus.PENDING 
-                : ParticipantStatus.APPROVED
-            };
-
-            const participantsRef = collection(this.firestore, this.participantsCollection);
-            return from(addDoc(participantsRef, participantData)).pipe(
-              map(() => {
-                console.log('✅ Participant créé avec succès !');
-                return void 0;
+  
+            // Étape 2 : Vérifie que l'événement n'est pas complet
+            return this.getParticipantCount(eventId).pipe(
+              take(1),
+              switchMap(count => {
+                console.log(`🔢 Participants actuels: ${count}/${event.maxParticipants}`);
+  
+                if (count >= event.maxParticipants) {
+                  console.warn('⚠️ Événement complet');
+                  throw new Error('Événement complet');
+                }
+  
+                // Étape 3 : Crée le document participant
+                const participantData: Omit<Participant, 'id'> = {
+                  eventId,
+                  userId,
+                  userName: userName || userEmail || 'Utilisateur',
+                  userEmail,
+                  userPhoto, // ✅ MODIFIÉ : Photo du profil
+                  joinedAt: Timestamp.now(),
+                  status: event.requiresApproval 
+                    ? ParticipantStatus.PENDING 
+                    : ParticipantStatus.APPROVED
+                };
+  
+                const participantsRef = collection(this.firestore, this.participantsCollection);
+  
+                return from(addDoc(participantsRef, participantData)).pipe(
+                  map(() => {
+                    console.log('✅ Participant ajouté');
+                  })
+                );
               })
             );
           })

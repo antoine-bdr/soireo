@@ -1,8 +1,16 @@
 <!-- src/app/features/home/home.page.html -->
+<!-- ✅ MODIFIÉ : Ajout bouton Profil dans le header -->
 
 <ion-header>
   <ion-toolbar color="primary">
     <ion-title>🎉 Party Events</ion-title>
+    
+    <!-- ✅ AJOUTÉ : Bouton Profil -->
+    <ion-buttons slot="end">
+      <ion-button [routerLink]="['/profile']">
+        <ion-icon name="person-circle-outline" slot="icon-only"></ion-icon>
+      </ion-button>
+    </ion-buttons>
   </ion-toolbar>
 </ion-header>
 
@@ -41,6 +49,17 @@
           Voir les événements
         </ion-button>
         
+        <!-- ✅ AJOUTÉ : Bouton Mon Profil -->
+        <ion-button 
+          expand="block" 
+          color="secondary" 
+          [routerLink]="['/profile']"
+          fill="outline"
+          class="ion-margin-top">
+          <ion-icon name="person-outline" slot="start"></ion-icon>
+          Mon Profil
+        </ion-button>
+        
         <ion-button 
           expand="block" 
           color="danger" 
@@ -61,14 +80,13 @@
       
       <ion-card-content>
         <ion-text>
-          <p>🚀 <strong>Sprint 1 terminé !</strong></p>
-          <p>On va maintenant développer :</p>
+          <p>🚀 <strong>Sprint 4 en cours !</strong></p>
+          <p>Fonctionnalités disponibles :</p>
           <ul>
-            <li>📋 Liste des événements</li>
-            <li>➕ Création d'événements</li>
-            <li>🗺️ Carte interactive</li>
-            <li>💬 Messagerie en temps réel</li>
-            <li>👤 Gestion du profil</li>
+            <li>✅ Authentification complète</li>
+            <li>✅ CRUD Événements</li>
+            <li>✅ Système de participation</li>
+            <li>✅ Profil utilisateur (NOUVEAU)</li>
           </ul>
         </ion-text>
       </ion-card-content>

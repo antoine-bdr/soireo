@@ -1,0 +1,260 @@
+// src/app/features/profile/profile.page.scss
+// Styles de la page profil utilisateur
+// 🎯 Sprint 4 - Profil Utilisateur
+
+// ========================================
+// LOADING STATE
+// ========================================
+.loading-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    padding: 2rem;
+  
+    ion-spinner {
+      width: 48px;
+      height: 48px;
+      margin-bottom: 1rem;
+    }
+  
+    p {
+      color: var(--ion-color-medium);
+      font-size: 0.9rem;
+    }
+  }
+  
+  // ========================================
+  // HEADER PROFIL
+  // ========================================
+  .profile-header {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 2rem 1rem 1rem;
+    background: linear-gradient(180deg, 
+      var(--ion-color-primary) 0%, 
+      var(--ion-color-primary-shade) 100%
+    );
+    color: white;
+    text-align: center;
+  
+    .profile-avatar-container {
+      position: relative;
+      margin-bottom: 1rem;
+  
+      .profile-avatar {
+        width: 120px;
+        height: 120px;
+        border: 4px solid white;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  
+        .default-avatar {
+          width: 100%;
+          height: 100%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: var(--ion-color-light);
+  
+          ion-icon {
+            font-size: 64px;
+            color: var(--ion-color-medium);
+          }
+        }
+      }
+  
+      .change-photo-btn {
+        position: absolute;
+        bottom: 0;
+        right: 0;
+        width: 40px;
+        height: 40px;
+        --padding-start: 0;
+        --padding-end: 0;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+      }
+    }
+  
+    .profile-name {
+      font-size: 1.5rem;
+      font-weight: 600;
+      margin: 0 0 0.25rem;
+    }
+  
+    .profile-email {
+      font-size: 0.9rem;
+      opacity: 0.9;
+      margin: 0;
+    }
+  }
+  
+  // ========================================
+  // CARTE STATISTIQUES
+  // ========================================
+  .stats-card {
+    margin: 1rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  
+    ion-card-content {
+      padding: 0.5rem;
+    }
+  
+    .stat-col {
+      text-align: center;
+      padding: 0.75rem 0;
+  
+      .stat-number {
+        font-size: 1.75rem;
+        font-weight: 700;
+        color: var(--ion-color-primary);
+        margin-bottom: 0.25rem;
+      }
+  
+      .stat-label {
+        font-size: 0.8rem;
+        color: var(--ion-color-medium);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+    }
+  }
+  
+  // ========================================
+  // CARTE INFORMATIONS
+  // ========================================
+  ion-card {
+    margin: 1rem;
+  
+    ion-card-header {
+      padding-bottom: 0.5rem;
+  
+      ion-card-title {
+        font-size: 1.1rem;
+        font-weight: 600;
+      }
+    }
+  
+    ion-card-content {
+      padding-top: 0;
+  
+      ion-item {
+        --padding-start: 0;
+        --inner-padding-end: 0;
+        margin-bottom: 0.75rem;
+  
+        ion-icon {
+          margin-right: 1rem;
+          font-size: 24px;
+        }
+  
+        ion-label {
+          h3 {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--ion-color-medium);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 0.25rem;
+          }
+  
+          p {
+            font-size: 1rem;
+            color: var(--ion-text-color);
+            margin: 0;
+  
+            &.bio-text {
+              white-space: pre-wrap;
+              line-height: 1.5;
+            }
+          }
+        }
+      }
+    }
+  }
+  
+  // ========================================
+  // FORMULAIRE ÉDITION
+  // ========================================
+  form {
+    ion-item {
+      --padding-start: 0;
+      --inner-padding-end: 0;
+      margin-bottom: 0.5rem;
+  
+      ion-input,
+      ion-textarea {
+        --padding-start: 0;
+      }
+    }
+  }
+  
+  .action-buttons {
+    display: flex;
+    gap: 0.75rem;
+    padding: 1rem;
+  
+    ion-button {
+      flex: 1;
+    }
+  }
+  
+  // ========================================
+  // ÉTAT VIDE
+  // ========================================
+  .empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    padding: 2rem;
+    text-align: center;
+  
+    ion-icon {
+      font-size: 80px;
+      margin-bottom: 1rem;
+    }
+  
+    h2 {
+      font-size: 1.5rem;
+      font-weight: 600;
+      margin: 0 0 0.5rem;
+    }
+  
+    p {
+      color: var(--ion-color-medium);
+      margin: 0 0 1.5rem;
+    }
+  }
+  
+  // ========================================
+  // RESPONSIVE
+  // ========================================
+  @media (min-width: 768px) {
+    .profile-header {
+      .profile-avatar-container {
+        .profile-avatar {
+          width: 150px;
+          height: 150px;
+        }
+      }
+  
+      .profile-name {
+        font-size: 2rem;
+      }
+    }
+  
+    ion-card {
+      max-width: 600px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+  
+    .action-buttons {
+      max-width: 600px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+  }

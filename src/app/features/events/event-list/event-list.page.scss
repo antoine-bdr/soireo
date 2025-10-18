@@ -1,278 +1,33 @@
 // src/app/features/events/event-list/event-list.page.scss
-// Styles avec BADGE PARTICIPANTS (ÉTAPE 6)
+// ✅ AJOUTÉ : Styles pour avatars organisateurs
 
-// Container principal
-.events-container {
-  padding: 16px;
-  max-width: 1200px;
-  margin: 0 auto;
-}
+// ... (garde tout ton CSS existant) ...
 
-// Loader
-.loading-container {
+// ✅ NOUVEAU : Styles pour l'organisateur avec avatar
+.organizer-info {
   display: flex;
-  flex-direction: column;
-  justify-content: center;
   align-items: center;
-  height: 60vh;
-  
-  ion-spinner {
-    transform: scale(1.5);
-    margin-bottom: 20px;
-  }
-  
-  p {
-    color: var(--ion-color-medium);
-    font-size: 1rem;
-  }
-}
+  gap: 0.5rem;
+  margin-top: 0.5rem;
 
-// État vide
-.empty-state {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  text-align: center;
-  padding: 60px 20px;
-  min-height: 50vh;
-  
-  ion-icon {
-    font-size: 120px;
-    margin-bottom: 24px;
-  }
-  
-  h2 {
-    font-size: 1.5rem;
-    font-weight: 600;
-    margin-bottom: 12px;
-    color: var(--ion-color-dark);
-  }
-  
-  p {
-    color: var(--ion-color-medium);
-    margin-bottom: 24px;
-    font-size: 1rem;
-  }
-}
+  .organizer-avatar {
+    width: 32px;
+    height: 32px;
+    border: 2px solid var(--ion-color-primary);
+    flex-shrink: 0;
 
-// Card événement
-.event-card {
-  margin-bottom: 20px;
-  border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  cursor: pointer;
-  transition: transform 0.2s, box-shadow 0.2s;
-  overflow: hidden;
-  
-  &:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
-  }
-  
-  &:active {
-    transform: translateY(-2px);
-  }
-}
-
-// Container image
-.event-image-container {
-  position: relative;
-  width: 100%;
-  height: 200px;
-  overflow: hidden;
-  background: linear-gradient(135deg, var(--ion-color-primary-tint), var(--ion-color-secondary-tint));
-  
-  .event-image {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-  }
-  
-  // Badge "Complet"
-  .full-badge {
-    position: absolute;
-    top: 12px;
-    right: 12px;
-    padding: 6px 12px;
-    font-weight: 700;
-    font-size: 0.85rem;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-    animation: pulse 2s infinite;
-  }
-  
-  // Badge "Privé"
-  .private-badge {
-    position: absolute;
-    top: 12px;
-    left: 12px;
-    padding: 6px 12px;
-    font-weight: 600;
-    font-size: 0.85rem;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-  }
-}
-
-// Animation pulse pour badge "Complet"
-@keyframes pulse {
-  0%, 100% {
-    opacity: 1;
-    transform: scale(1);
-  }
-  50% {
-    opacity: 0.8;
-    transform: scale(1.05);
-  }
-}
-
-// Header de la card
-ion-card-header {
-  padding-bottom: 8px;
-  
-  // 🆕 NOUVEAU : Container pour les badges (catégorie + participants)
-  .header-badges {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 8px;
-    margin-bottom: 8px;
-    flex-wrap: wrap;
-    
-    ion-chip {
-      margin: 0;
-      font-size: 0.85rem;
-      font-weight: 600;
-    }
-    
-    // 🆕 Badge participants spécifique
-    .participants-badge {
-      display: flex;
-      align-items: center;
-      gap: 4px;
-      padding: 4px 10px;
-      font-weight: 700;
-      
-      ion-icon {
-        font-size: 16px;
-      }
-      
-      ion-label {
-        font-size: 0.9rem;
-      }
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
     }
   }
-  
-  ion-card-title {
-    font-size: 1.3rem;
-    font-weight: 700;
-    margin-bottom: 4px;
-    color: var(--ion-color-dark);
-    line-height: 1.3;
-  }
-  
+
   ion-card-subtitle {
-    font-size: 0.9rem;
-    color: var(--ion-color-medium);
-  }
-}
-
-// Content de la card
-ion-card-content {
-  padding-top: 12px;
-  
-  // Description
-  .event-description {
-    color: var(--ion-color-medium-shade);
-    line-height: 1.5;
-    margin-bottom: 16px;
-    font-size: 0.95rem;
-  }
-  
-  // Informations (date, lieu)
-  .event-info {
+    margin: 0;
     display: flex;
-    flex-direction: column;
-    gap: 8px;
-    margin-top: 16px;
-    
-    .info-item {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      
-      ion-icon {
-        font-size: 20px;
-        flex-shrink: 0;
-      }
-      
-      ion-text {
-        font-size: 0.9rem;
-        color: var(--ion-color-dark);
-      }
-    }
-  }
-  
-  // Bouton dans la card
-  ion-button {
-    --border-radius: 8px;
-    font-weight: 600;
-    text-transform: none;
-    margin-top: 16px;
-  }
-}
-
-// FAB button
-ion-fab {
-  margin: 20px;
-  
-  ion-fab-button {
-    --background: var(--ion-color-primary);
-    --box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
-  }
-}
-
-// Responsive
-@media (min-width: 768px) {
-  .events-container {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 20px;
-  }
-  
-  .empty-state {
-    grid-column: 1 / -1;
-  }
-}
-
-@media (min-width: 1024px) {
-  .events-container {
-    grid-template-columns: repeat(3, 1fr);
-  }
-}
-
-// Dark mode
-@media (prefers-color-scheme: dark) {
-  .event-card {
-    box-shadow: 0 4px 12px rgba(255, 255, 255, 0.05);
-    
-    &:hover {
-      box-shadow: 0 6px 20px rgba(255, 255, 255, 0.1);
-    }
-  }
-  
-  .event-image-container {
-    .full-badge,
-    .private-badge {
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
-    }
-  }
-  
-  ion-card-title {
-    color: var(--ion-color-light) !important;
-  }
-  
-  .event-description,
-  .info-item ion-text {
-    color: var(--ion-color-light-shade) !important;
+    align-items: center;
+    color: var(--ion-color-medium);
+    font-size: 0.9rem;
   }
 }

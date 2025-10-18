@@ -27,7 +27,8 @@ import {
   IonRefresherContent,
   IonButtons,
   IonBackButton,
-  IonBadge
+  IonBadge,
+  IonAvatar
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import { 
@@ -75,7 +76,8 @@ import { of, Subscription } from 'rxjs';
     IonRefresherContent,
     IonButtons,
     IonBackButton,
-    RouterLink
+    RouterLink,
+    IonAvatar
   ]
 })
 export class MyEventsPage implements OnInit, OnDestroy {

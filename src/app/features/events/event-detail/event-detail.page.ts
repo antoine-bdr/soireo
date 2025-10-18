@@ -445,6 +445,20 @@ export class EventDetailPage implements OnInit, OnDestroy {
     await alert.present();
   }
 
+  goToOrganizerProfile() {
+    if (this.event && this.event.organizerId) {
+      console.log('🔗 Navigation vers profil:', this.event.organizerId);
+      
+      this.showToast(
+        `Fonctionnalité "Voir le profil" à venir prochainement !`, 
+        'success'
+      );
+      
+      // TODO : Créer page public-profile/:userId
+      // this.router.navigate(['/public-profile', this.event.organizerId]);
+    }
+  }
+
   /**
    * Formate la date pour l'affichage
    */

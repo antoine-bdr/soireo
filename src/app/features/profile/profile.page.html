@@ -1,0 +1,317 @@
+<!-- src/app/features/profile/profile.page.html -->
+<!-- Template page profil utilisateur -->
+<!-- 🎯 Sprint 4 - Profil Utilisateur -->
+
+<ion-header [translucent]="true">
+  <ion-toolbar color="primary">
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/home"></ion-back-button>
+    </ion-buttons>
+    <ion-title>Mon Profil</ion-title>
+    <ion-buttons slot="end">
+      @if (!isEditing) {
+        <ion-button (click)="enableEditing()">
+          <ion-icon name="create-outline" slot="icon-only"></ion-icon>
+        </ion-button>
+      }
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true">
+  <!-- Pull-to-refresh -->
+  <ion-refresher slot="fixed" (ionRefresh)="handleRefresh($event)">
+    <ion-refresher-content></ion-refresher-content>
+  </ion-refresher>
+
+  <!-- ========================================
+       LOADING STATE
+       ======================================== -->
+  @if (isLoading) {
+    <div class="loading-container">
+      <ion-spinner name="crescent" color="primary"></ion-spinner>
+      <p>Chargement du profil...</p>
+    </div>
+  }
+
+  <!-- ========================================
+       PROFIL CHARGÉ
+       ======================================== -->
+  @if (!isLoading && user) {
+    <!-- Header avec photo de profil -->
+    <div class="profile-header">
+      <div class="profile-avatar-container">
+        <ion-avatar class="profile-avatar">
+          @if (previewUrl) {
+            <!-- Prévisualisation nouvelle photo -->
+            <img [src]="previewUrl" alt="Nouvelle photo" />
+          } @else if (user.photoURL) {
+            <!-- Photo existante -->
+            <img [src]="user.photoURL" [alt]="user.displayName" />
+          } @else {
+            <!-- Avatar par défaut -->
+            <div class="default-avatar">
+              <ion-icon name="person-outline"></ion-icon>
+            </div>
+          }
+        </ion-avatar>
+
+        <!-- Bouton changement photo (mode édition uniquement) -->
+        @if (isEditing) {
+          <ion-button 
+            class="change-photo-btn" 
+            fill="solid" 
+            shape="round" 
+            size="small"
+            (click)="triggerFileInput()">
+            <ion-icon name="camera-outline" slot="icon-only"></ion-icon>
+          </ion-button>
+        }
+
+        <!-- Input file caché -->
+        <input 
+          type="file" 
+          id="fileInput" 
+          accept="image/*" 
+          (change)="onFileSelected($event)"
+          style="display: none;">
+      </div>
+
+      <h2 class="profile-name">{{ user.displayName }}</h2>
+      <p class="profile-email">{{ user.email }}</p>
+    </div>
+
+    <!-- ========================================
+         STATISTIQUES
+         ======================================== -->
+    <ion-card class="stats-card">
+      <ion-card-content>
+        <ion-grid>
+          <ion-row>
+            <ion-col size="4" class="stat-col">
+              <div class="stat-number">{{ user.eventsCreatedCount }}</div>
+              <div class="stat-label">Créés</div>
+            </ion-col>
+            <ion-col size="4" class="stat-col">
+              <div class="stat-number">{{ user.eventsJoinedCount }}</div>
+              <div class="stat-label">Participations</div>
+            </ion-col>
+            <ion-col size="4" class="stat-col">
+              <div class="stat-number">{{ getMemberSince() }}</div>
+              <div class="stat-label">Membre</div>
+            </ion-col>
+          </ion-row>
+        </ion-grid>
+      </ion-card-content>
+    </ion-card>
+
+    <!-- ========================================
+         MODE LECTURE (par défaut)
+         ======================================== -->
+    @if (!isEditing) {
+      <ion-card>
+        <ion-card-header>
+          <ion-card-title>Informations</ion-card-title>
+        </ion-card-header>
+        <ion-card-content>
+          <!-- Nom complet -->
+          <ion-item lines="none">
+            <ion-icon name="person-outline" slot="start" color="primary"></ion-icon>
+            <ion-label>
+              <h3>Nom complet</h3>
+              <p>{{ user.firstName }} {{ user.lastName }}</p>
+            </ion-label>
+          </ion-item>
+
+          <!-- Bio -->
+          @if (user.bio) {
+            <ion-item lines="none">
+              <ion-icon name="create-outline" slot="start" color="primary"></ion-icon>
+              <ion-label>
+                <h3>Biographie</h3>
+                <p class="bio-text">{{ user.bio }}</p>
+              </ion-label>
+            </ion-item>
+          }
+
+          <!-- Email -->
+          <ion-item lines="none">
+            <ion-icon name="mail-outline" slot="start" color="primary"></ion-icon>
+            <ion-label>
+              <h3>Email</h3>
+              <p>{{ user.email }}</p>
+            </ion-label>
+          </ion-item>
+
+          <!-- Téléphone -->
+          @if (user.phoneNumber) {
+            <ion-item lines="none">
+              <ion-icon name="call-outline" slot="start" color="primary"></ion-icon>
+              <ion-label>
+                <h3>Téléphone</h3>
+                <p>{{ user.phoneNumber }}</p>
+              </ion-label>
+            </ion-item>
+          }
+
+          <!-- Localisation -->
+          @if (user.city || user.country) {
+            <ion-item lines="none">
+              <ion-icon name="location-outline" slot="start" color="primary"></ion-icon>
+              <ion-label>
+                <h3>Localisation</h3>
+                <p>{{ user.city }}{{ user.city && user.country ? ', ' : '' }}{{ user.country }}</p>
+              </ion-label>
+            </ion-item>
+          }
+
+          <!-- Date de création -->
+          <ion-item lines="none">
+            <ion-icon name="calendar-outline" slot="start" color="primary"></ion-icon>
+            <ion-label>
+              <h3>Membre depuis</h3>
+              <p>{{ user.createdAt.toDate() | date: 'dd MMMM yyyy' }}</p>
+            </ion-label>
+          </ion-item>
+        </ion-card-content>
+      </ion-card>
+    }
+
+    <!-- ========================================
+         MODE ÉDITION
+         ======================================== -->
+    @if (isEditing) {
+      <form [formGroup]="profileForm" (ngSubmit)="saveProfile()">
+        <ion-card>
+          <ion-card-header>
+            <ion-card-title>Modifier le profil</ion-card-title>
+          </ion-card-header>
+          <ion-card-content>
+            <!-- Nom complet -->
+            <ion-item>
+              <ion-input
+                label="Nom complet"
+                labelPlacement="stacked"
+                formControlName="displayName"
+                placeholder="Jean Dupont"
+                [counter]="true"
+                maxlength="50"></ion-input>
+            </ion-item>
+
+            <!-- Prénom -->
+            <ion-item>
+              <ion-input
+                label="Prénom"
+                labelPlacement="stacked"
+                formControlName="firstName"
+                placeholder="Jean"></ion-input>
+            </ion-item>
+
+            <!-- Nom -->
+            <ion-item>
+              <ion-input
+                label="Nom"
+                labelPlacement="stacked"
+                formControlName="lastName"
+                placeholder="Dupont"></ion-input>
+            </ion-item>
+
+            <!-- Bio -->
+            <ion-item>
+              <ion-textarea
+                label="Biographie"
+                labelPlacement="stacked"
+                formControlName="bio"
+                placeholder="Parlez-nous de vous..."
+                [counter]="true"
+                maxlength="500"
+                rows="4"></ion-textarea>
+            </ion-item>
+
+            <!-- Téléphone -->
+            <ion-item>
+              <ion-input
+                label="Téléphone"
+                labelPlacement="stacked"
+                formControlName="phoneNumber"
+                type="tel"
+                placeholder="+33 6 12 34 56 78"></ion-input>
+            </ion-item>
+
+            <!-- Ville -->
+            <ion-item>
+              <ion-input
+                label="Ville"
+                labelPlacement="stacked"
+                formControlName="city"
+                placeholder="Paris"></ion-input>
+            </ion-item>
+
+            <!-- Pays -->
+            <ion-item>
+              <ion-input
+                label="Pays"
+                labelPlacement="stacked"
+                formControlName="country"
+                placeholder="France"></ion-input>
+            </ion-item>
+          </ion-card-content>
+        </ion-card>
+
+        <!-- Boutons d'action -->
+        <div class="action-buttons">
+          <ion-button 
+            expand="block" 
+            color="medium" 
+            (click)="cancelEditing()"
+            [disabled]="isSaving">
+            Annuler
+          </ion-button>
+          <ion-button 
+            expand="block" 
+            color="primary" 
+            type="submit"
+            [disabled]="profileForm.invalid || isSaving">
+            @if (isSaving) {
+              <ion-spinner name="crescent" slot="start"></ion-spinner>
+            } @else {
+              <ion-icon name="save-outline" slot="start"></ion-icon>
+            }
+            Enregistrer
+          </ion-button>
+        </div>
+      </form>
+    }
+
+    <!-- ========================================
+         BOUTON DÉCONNEXION
+         ======================================== -->
+    @if (!isEditing) {
+      <ion-card>
+        <ion-card-content>
+          <ion-button 
+            expand="block" 
+            color="danger" 
+            (click)="logout()">
+            <ion-icon name="log-out-outline" slot="start"></ion-icon>
+            Se déconnecter
+          </ion-button>
+        </ion-card-content>
+      </ion-card>
+    }
+  }
+
+  <!-- ========================================
+       ÉTAT VIDE (erreur)
+       ======================================== -->
+  @if (!isLoading && !user) {
+    <div class="empty-state">
+      <ion-icon name="person-outline" color="medium"></ion-icon>
+      <h2>Profil introuvable</h2>
+      <p>Impossible de charger votre profil</p>
+      <ion-button routerLink="/home" fill="outline">
+        Retour à l'accueil
+      </ion-button>
+    </div>
+  }
+</ion-content>

@@ -1,6 +1,3 @@
-// src/app/features/events/event-list/event-list.page.ts
-// Liste des événements - VERSION COMPLÈTE avec réactivité temps réel
-
 import { Component, OnInit, OnDestroy, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
@@ -30,9 +27,12 @@ import {
   IonSpinner,
   IonRefresher,
   IonRefresherContent,
-  IonButtons
+  IonButtons,
+  IonAvatar
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
+import { add } from 'ionicons/icons';
+
 import { 
   addOutline, 
   calendarOutline, 
@@ -40,8 +40,7 @@ import {
   peopleOutline,
   searchOutline,
   filterOutline,
-  personOutline
-} from 'ionicons/icons';
+  personOutline, personCircleOutline } from 'ionicons/icons';
 
 import { EventsService } from '../../../core/services/events.service';
 import { ParticipantsService } from '../../../core/services/participants.service';
@@ -81,7 +80,8 @@ import { map } from 'rxjs/operators';
     IonSpinner,
     IonRefresher,
     IonRefresherContent,
-    RouterLink
+    RouterLink,
+    IonAvatar
   ]
 })
 export class EventListPage implements OnInit, OnDestroy {
@@ -106,15 +106,7 @@ export class EventListPage implements OnInit, OnDestroy {
   private subscriptions: Subscription[] = [];
 
   constructor() {
-    addIcons({
-      personOutline,
-      calendarOutline,
-      addOutline,
-      peopleOutline,
-      locationOutline,
-      searchOutline,
-      filterOutline
-    });
+    addIcons({calendarOutline,personCircleOutline,addOutline,peopleOutline,locationOutline,add,personOutline,searchOutline,filterOutline});
   }
 
   ngOnInit() {

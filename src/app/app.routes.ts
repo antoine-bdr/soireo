@@ -52,6 +52,12 @@ export const routes: Routes = [
     canActivate: [authGuard]
   },
 
+  {
+    path: 'profile',
+    loadComponent: () => import('./features/profile/profile.page').then(m => m.ProfilePage),
+    canActivate: [authGuard]
+  },
+
   // ========================================
   // ROUTES ÉVÉNEMENTS (ordre CRITIQUE)
   // ========================================
@@ -99,11 +105,6 @@ export const routes: Routes = [
   // ROUTES FUTURES (commentées)
   // ========================================
   /*
-  {
-    path: 'profile',
-    loadComponent: () => import('./features/profile/profile.page').then(m => m.ProfilePage),
-    canActivate: [authGuard]
-  },
   {
     path: 'map',
     loadComponent: () => import('./features/map/map.page').then(m => m.MapPage),

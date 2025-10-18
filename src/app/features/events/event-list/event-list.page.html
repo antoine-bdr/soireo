@@ -1,12 +1,15 @@
 <!-- src/app/features/events/event-list/event-list.page.html -->
-<!-- Page liste avec BADGES PARTICIPANTS (ÉTAPE 6) -->
+<!-- ✅ MODIFIÉ : Ajout avatars organisateurs + lien profil -->
 
 <ion-header>
   <ion-toolbar color="primary">
     <ion-title>🎉 Événements</ion-title>
     <ion-buttons slot="end">
       <ion-button [routerLink]="['/my-events']">
-        <ion-icon name="person-outline" slot="icon-only"></ion-icon>
+        <ion-icon name="calendar-outline" slot="icon-only"></ion-icon>
+      </ion-button>
+      <ion-button [routerLink]="['/profile']">
+        <ion-icon name="person-circle-outline" slot="icon-only"></ion-icon>
       </ion-button>
     </ion-buttons>
   </ion-toolbar>
@@ -80,7 +83,7 @@
           [alt]="event.title"
           class="event-image" />
         
-        <!-- 🆕 Badge "Complet" si l'événement est plein -->
+        <!-- Badge "Complet" si l'événement est plein -->
         <ion-badge 
           class="full-badge" 
           color="danger" 
@@ -105,7 +108,7 @@
             <ion-label>{{ getCategoryLabel(event.category) }}</ion-label>
           </ion-chip>
 
-          <!-- 🆕 NOUVEAU : Badge compteur participants -->
+          <!-- Badge compteur participants -->
           <ion-chip [color]="getParticipantBadgeColor(event)" class="participants-badge">
             <ion-icon name="people-outline"></ion-icon>
             <ion-label>
@@ -117,10 +120,18 @@
         <!-- Titre -->
         <ion-card-title>{{ event.title }}</ion-card-title>
 
-        <!-- Organisateur -->
-        <ion-card-subtitle>
-          Par {{ event.organizerName }}
-        </ion-card-subtitle>
+        <!-- ✅ MODIFIÉ : Organisateur avec avatar -->
+        <div class="organizer-info">
+          <ion-avatar class="organizer-avatar">
+            <img 
+              [src]="event.organizerPhoto || 'assets/default-avatar.png'" 
+              [alt]="event.organizerName"
+            />
+          </ion-avatar>
+          <ion-card-subtitle>
+            Par {{ event.organizerName }}
+          </ion-card-subtitle>
+        </div>
       </ion-card-header>
 
       <ion-card-content>
@@ -156,13 +167,12 @@
         </ion-button>
       </ion-card-content>
     </ion-card>
-
   </div>
 
-  <!-- Bouton flottant pour créer un événement -->
+  <!-- Bouton FAB pour créer un événement -->
   <ion-fab vertical="bottom" horizontal="end" slot="fixed">
     <ion-fab-button (click)="goToCreateEvent()">
-      <ion-icon name="add-outline"></ion-icon>
+      <ion-icon name="add"></ion-icon>
     </ion-fab-button>
   </ion-fab>
 

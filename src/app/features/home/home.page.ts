@@ -1,26 +1,30 @@
 // src/app/features/home/home.page.ts
-// Page d'accueil (temporaire - on développera le contenu plus tard)
+// ✅ Vérifie que ces imports Ionic sont présents
 
-import { Component, inject, signal } from '@angular/core';
+import { Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Router } from '@angular/router';
+import { Router, RouterLink } from '@angular/router'; // ✅ IMPORTANT : RouterLink
 import {
+  IonContent,
   IonHeader,
   IonToolbar,
   IonTitle,
-  IonContent,
   IonCard,
   IonCardHeader,
   IonCardTitle,
   IonCardContent,
   IonButton,
+  IonButtons, // ✅ IMPORTANT : Pour le container de boutons
   IonIcon,
-  IonText,
-  ToastController
+  IonText
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
-import { logOutOutline, personCircleOutline, calendarOutline } from 'ionicons/icons';
-
+import { 
+  personCircleOutline, 
+  personOutline,    // ✅ IMPORTANT : Pour le bouton profil
+  calendarOutline, 
+  logOutOutline 
+} from 'ionicons/icons';
 import { AuthenticationService } from '../../core/services/authentication.service';
 
 @Component({
@@ -30,39 +34,46 @@ import { AuthenticationService } from '../../core/services/authentication.servic
   standalone: true,
   imports: [
     CommonModule,
+    RouterLink, // ✅ IMPORTANT : Pour [routerLink]
+    IonContent,
     IonHeader,
     IonToolbar,
     IonTitle,
-    IonContent,
     IonCard,
     IonCardHeader,
     IonCardTitle,
     IonCardContent,
     IonButton,
+    IonButtons, // ✅ IMPORTANT
     IonIcon,
     IonText
   ]
 })
-export class HomePage {
-  // Injection des services
+export class HomePage implements OnInit {
   private readonly authService = inject(AuthenticationService);
   private readonly router = inject(Router);
-  private readonly toastCtrl = inject(ToastController);
 
-  // Signal pour stocker les infos utilisateur
+  // Signals pour afficher les infos utilisateur
   userName = signal<string>('');
   userEmail = signal<string>('');
 
   constructor() {
-    addIcons({ logOutOutline, personCircleOutline });
-    
-    // Récupère les infos de l'utilisateur connecté
-    this.authService.getUser().subscribe(user => {
-      if (user) {
-        this.userName.set(user.displayName || 'Utilisateur');
-        this.userEmail.set(user.email || '');
-      }
+    // Enregistrement des icônes
+    addIcons({
+      personCircleOutline,
+      personOutline, // ✅ IMPORTANT
+      calendarOutline,
+      logOutOutline
     });
+  }
+
+  ngOnInit() {
+    // Récupère les infos utilisateur
+    const displayName = this.authService.getCurrentUserDisplayName();
+    const email = this.authService.getCurrentUserEmail();
+
+    this.userName.set(displayName || email || 'Utilisateur');
+    this.userEmail.set(email || '');
   }
 
   /**
@@ -75,29 +86,14 @@ export class HomePage {
   /**
    * Déconnexion
    */
-  async logout() {
+  logout() {
     this.authService.logout().subscribe({
-      next: async () => {
-        const toast = await this.toastCtrl.create({
-          message: 'Déconnexion réussie',
-          duration: 2000,
-          position: 'top',
-          color: 'success'
-        });
-        await toast.present();
-        
-        // Redirection vers login
+      next: () => {
+        console.log('👋 Déconnexion réussie');
         this.router.navigate(['/login']);
       },
-      error: async (error) => {
-        console.error('Erreur de déconnexion:', error);
-        const toast = await this.toastCtrl.create({
-          message: 'Erreur lors de la déconnexion',
-          duration: 2000,
-          position: 'top',
-          color: 'danger'
-        });
-        await toast.present();
+      error: (error) => {
+        console.error('❌ Erreur déconnexion:', error);
       }
     });
   }

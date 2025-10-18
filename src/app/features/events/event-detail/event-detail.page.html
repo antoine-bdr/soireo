@@ -158,7 +158,18 @@
             <ion-icon name="person-outline" color="tertiary"></ion-icon>
             <div class="detail-text">
               <strong>Organisateur</strong>
-              <p>{{ event.organizerName }}</p>
+              <div class="organizer-profile" (click)="goToOrganizerProfile()">
+                <ion-avatar class="organizer-avatar">
+                  <img 
+                    [src]="event.organizerPhoto || 'assets/default-avatar.png'" 
+                    [alt]="event.organizerName"
+                  />
+                </ion-avatar>
+                <div class="organizer-details">
+                  <p class="organizer-name">{{ event.organizerName }}</p>
+                  <p class="organizer-link">Voir le profil →</p>
+                </div>
+              </div>
             </div>
           </div>
 

@@ -1,5 +1,6 @@
 // src/app/core/services/authentication.service.ts
 // Service de gestion de l'authentification Firebase
+// ✅ MODIFIÉ : Intégration automatique profil Firestore (Sprint 4)
 
 import { Injectable, inject, signal } from '@angular/core';
 import {
@@ -17,14 +18,19 @@ import {
   onAuthStateChanged
 } from '@angular/fire/auth';
 import { from, Observable, BehaviorSubject } from 'rxjs';
-import { map, tap } from 'rxjs/operators';
+import { map, tap, switchMap } from 'rxjs/operators';
+import { UsersService } from './users.service'; // ✅ AJOUTÉ
+import { CreateUserDto } from '../models/user.model'; // ✅ AJOUTÉ
 
 @Injectable({
   providedIn: 'root'
 })
 export class AuthenticationService {
-  // Injection du service Auth de Firebase
+  // ========================================
+  // INJECTION DES DÉPENDANCES
+  // ========================================
   private readonly auth = inject(Auth);
+  private readonly usersService = inject(UsersService); // ✅ AJOUTÉ
   
   // Signal pour suivre l'utilisateur courant
   currentUser = signal<User | null>(null);
@@ -41,6 +47,10 @@ export class AuthenticationService {
     });
   }
   
+  // ========================================
+  // OBSERVABLES ÉTAT AUTHENTIFICATION
+  // ========================================
+
   /**
    * Observable qui émet à chaque changement d'état d'authentification
    */
@@ -57,53 +67,142 @@ export class AuthenticationService {
     );
   }
   
+  // ========================================
+  // ✅ INSCRIPTION (MODIFIÉE)
+  // ========================================
+
   /**
    * Inscription avec email et mot de passe
+   * ✅ MODIFIÉ : Crée automatiquement le profil Firestore après Firebase Auth
+   * 
    * @param email Email de l'utilisateur
    * @param password Mot de passe
-   * @param displayName Nom d'affichage
+   * @param displayName Nom d'affichage complet (ex: "Jean Dupont")
+   * @returns Observable<UserCredential>
    */
   signup(email: string, password: string, displayName: string): Observable<UserCredential> {
-    return from(
-      createUserWithEmailAndPassword(this.auth, email, password)
-    ).pipe(
+    console.log('📝 Inscription démarrée pour:', email);
+
+    return from(createUserWithEmailAndPassword(this.auth, email, password)).pipe(
+      // Étape 1 : Mise à jour du profil Firebase Auth
       tap(async (credential) => {
-        // Mise à jour du profil avec le nom d'affichage
         if (credential.user) {
           await updateProfile(credential.user, { displayName });
-          console.log('✅ Inscription réussie:', email);
+          console.log('✅ Profil Firebase Auth créé');
         }
+      }),
+      // Étape 2 : Création du profil Firestore
+      switchMap((credential) => {
+        // Extrait firstName et lastName du displayName
+        const { firstName, lastName } = this.parseDisplayName(displayName);
+
+        // Prépare les données pour Firestore
+        const userProfile: CreateUserDto = {
+          id: credential.user.uid,
+          email: email,
+          displayName: displayName,
+          firstName: firstName,
+          lastName: lastName,
+          photoURL: credential.user.photoURL || undefined,
+          isEmailVerified: credential.user.emailVerified
+        };
+
+        // Crée le profil Firestore
+        return this.usersService.createUserProfile(userProfile).pipe(
+          map(() => {
+            console.log('✅ Profil Firestore créé');
+            return credential; // Retourne le credential pour la page
+          })
+        );
+      })
+    );
+  }
+
+  // ========================================
+  // ✅ CONNEXION (MODIFIÉE)
+  // ========================================
+
+  /**
+   * Connexion avec email et mot de passe
+   * ✅ MODIFIÉ : Met à jour lastLoginAt dans Firestore
+   * 
+   * @param email Email de l'utilisateur
+   * @param password Mot de passe
+   * @returns Observable<UserCredential>
+   */
+  login(email: string, password: string): Observable<UserCredential> {
+    console.log('🔐 Connexion démarrée pour:', email);
+
+    return from(signInWithEmailAndPassword(this.auth, email, password)).pipe(
+      tap((credential) => {
+        console.log('✅ Connexion Firebase Auth réussie');
+        
+        // Met à jour la date de dernière connexion dans Firestore
+        this.usersService.updateLastLogin(credential.user.uid).subscribe({
+          next: () => console.log('✅ Dernière connexion mise à jour'),
+          error: (error) => console.error('⚠️ Erreur mise à jour lastLoginAt:', error)
+        });
       })
     );
   }
   
-  /**
-   * Connexion avec email et mot de passe
-   * @param email Email de l'utilisateur
-   * @param password Mot de passe
-   */
-  login(email: string, password: string): Observable<UserCredential> {
-    return from(signInWithEmailAndPassword(this.auth, email, password)).pipe(
-      tap(() => console.log('✅ Connexion réussie:', email))
-    );
-  }
-  
+  // ========================================
+  // CONNEXION GOOGLE
+  // ========================================
+
   /**
    * Connexion avec Google
+   * ✅ MODIFIÉ : Crée le profil Firestore si première connexion
    */
   signInWithGoogle(): Observable<UserCredential> {
     const provider = new GoogleAuthProvider();
-    // Demande l'accès au profil et email
     provider.addScope('profile');
     provider.addScope('email');
     
     return from(signInWithPopup(this.auth, provider)).pipe(
-      tap((credential) => {
+      switchMap((credential) => {
         console.log('✅ Connexion Google réussie:', credential.user.email);
+
+        // Vérifie si le profil Firestore existe déjà
+        return this.usersService.getUserProfileOnce(credential.user.uid).pipe(
+          switchMap((existingProfile) => {
+            // Si le profil n'existe pas, on le crée
+            if (!existingProfile) {
+              console.log('🆕 Première connexion Google, création du profil Firestore');
+              
+              const { firstName, lastName } = this.parseDisplayName(
+                credential.user.displayName || credential.user.email || 'Utilisateur'
+              );
+
+              const userProfile: CreateUserDto = {
+                id: credential.user.uid,
+                email: credential.user.email!,
+                displayName: credential.user.displayName || credential.user.email || 'Utilisateur',
+                firstName: firstName,
+                lastName: lastName,
+                photoURL: credential.user.photoURL || undefined,
+                isEmailVerified: credential.user.emailVerified
+              };
+
+              return this.usersService.createUserProfile(userProfile).pipe(
+                map(() => credential)
+              );
+            } else {
+              // Profil existant, mise à jour lastLoginAt
+              console.log('✅ Profil Firestore existant');
+              this.usersService.updateLastLogin(credential.user.uid).subscribe();
+              return from([credential]);
+            }
+          })
+        );
       })
     );
   }
   
+  // ========================================
+  // DÉCONNEXION
+  // ========================================
+
   /**
    * Déconnexion
    */
@@ -116,6 +215,10 @@ export class AuthenticationService {
     );
   }
   
+  // ========================================
+  // UTILITAIRES
+  // ========================================
+
   /**
    * Récupère l'ID de l'utilisateur courant
    */
@@ -143,27 +246,63 @@ export class AuthenticationService {
    */
   resetPassword(email: string): Observable<void> {
     return from(sendPasswordResetEmail(this.auth, email)).pipe(
-      tap(() => console.log('📧 Email de réinitialisation envoyé à:', email))
+      tap(() => console.log('📧 Email de réinitialisation envoyé à :', email))
     );
   }
   
   /**
-   * Met à jour le profil de l'utilisateur
+   * Met à jour le profil de l'utilisateur dans Firebase Auth
    * @param displayName Nouveau nom d'affichage
    * @param photoURL Nouvelle URL de photo
    */
   updateUserProfile(displayName?: string, photoURL?: string): Observable<void> {
-    if (!this.auth.currentUser) {
+    const currentUser = this.auth.currentUser;
+    if (!currentUser) {
       throw new Error('Aucun utilisateur connecté');
     }
-    
-    return from(
-      updateProfile(this.auth.currentUser, {
-        displayName: displayName || this.auth.currentUser.displayName,
-        photoURL: photoURL || this.auth.currentUser.photoURL
-      })
-    ).pipe(
-      tap(() => console.log('✅ Profil mis à jour'))
+
+    return from(updateProfile(currentUser, {
+      displayName: displayName || currentUser.displayName,
+      photoURL: photoURL || currentUser.photoURL
+    })).pipe(
+      tap(() => console.log('✅ Profil Firebase Auth mis à jour'))
     );
+  }
+
+  // ========================================
+  // ✅ HELPER FUNCTIONS (NOUVELLES)
+  // ========================================
+
+  /**
+   * Parse un displayName pour extraire firstName et lastName
+   * Exemples :
+   * - "Jean Dupont" → firstName: "Jean", lastName: "Dupont"
+   * - "Marie Claire Martin" → firstName: "Marie Claire", lastName: "Martin"
+   * - "Jean" → firstName: "Jean", lastName: ""
+   * 
+   * @param displayName Nom complet
+   * @returns { firstName: string, lastName: string }
+   */
+  private parseDisplayName(displayName: string): { firstName: string; lastName: string } {
+    const trimmed = displayName.trim();
+    
+    // Cas : nom vide
+    if (!trimmed) {
+      return { firstName: 'Utilisateur', lastName: '' };
+    }
+
+    // Sépare par espace
+    const parts = trimmed.split(' ');
+
+    // Cas : un seul mot (prénom uniquement)
+    if (parts.length === 1) {
+      return { firstName: parts[0], lastName: '' };
+    }
+
+    // Cas : plusieurs mots (prénom = tous sauf le dernier, nom = dernier)
+    const lastName = parts[parts.length - 1];
+    const firstName = parts.slice(0, -1).join(' ');
+
+    return { firstName, lastName };
   }
 }

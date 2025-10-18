@@ -101,9 +101,17 @@
           </div>
 
           <ion-card-title>{{ event.title }}</ion-card-title>
-          <ion-card-subtitle>
-            Par vous
-          </ion-card-subtitle>
+          <div class="organizer-info">
+            <ion-avatar class="organizer-avatar">
+              <img 
+                [src]="event.organizerPhoto || 'assets/default-avatar.png'" 
+                [alt]="event.organizerName"
+              />
+            </ion-avatar>
+            <ion-card-subtitle>
+              Par vous
+            </ion-card-subtitle>
+          </div>
         </ion-card-header>
 
         <ion-card-content>
