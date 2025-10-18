@@ -45,7 +45,7 @@ import {
 import { EventsService } from '../../../core/services/events.service';
 import { StorageService } from '../../../core/services/storage.service';
 import { Event, EventCategory, EventLocation } from '../../../core/models/event.model';
-import { Timestamp } from 'firebase/firestore';
+import { Timestamp } from '@angular/fire/firestore';
 
 @Component({
   selector: 'app-event-edit',

@@ -1,0 +1,239 @@
+<!-- src/app/features/events/my-events/my-events.page.html -->
+<!-- Page "Mes Événements" avec onglets -->
+
+<ion-header>
+  <ion-toolbar color="primary">
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/events"></ion-back-button>
+    </ion-buttons>
+    <ion-title>Mes Événements</ion-title>
+  </ion-toolbar>
+
+  <!-- Segments de filtrage -->
+  <ion-toolbar>
+    <ion-segment 
+      [value]="selectedSegment()" 
+      (ionChange)="onSegmentChange($event)">
+      <ion-segment-button value="created">
+        <ion-icon name="rocket-outline"></ion-icon>
+        <ion-label>Mes créations</ion-label>
+      </ion-segment-button>
+      <ion-segment-button value="joined">
+        <ion-icon name="person-outline"></ion-icon>
+        <ion-label>Mes participations</ion-label>
+      </ion-segment-button>
+    </ion-segment>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content>
+  
+  <!-- Pull-to-refresh -->
+  <ion-refresher slot="fixed" (ionRefresh)="handleRefresh($event)">
+    <ion-refresher-content></ion-refresher-content>
+  </ion-refresher>
+
+  <!-- Loader pendant le chargement -->
+  <div class="loading-container" *ngIf="isLoading()">
+    <ion-spinner name="crescent" color="primary"></ion-spinner>
+    <p>Chargement de vos événements...</p>
+  </div>
+
+  <!-- Contenu des onglets -->
+  <div class="events-container" *ngIf="!isLoading()">
+    
+    <!-- ==================== ONGLET : MES CRÉATIONS ==================== -->
+    <div *ngIf="selectedSegment() === 'created'">
+      
+      <!-- Message si aucun événement créé -->
+      <div class="empty-state" *ngIf="createdEvents().length === 0">
+        <ion-icon name="rocket-outline" color="medium"></ion-icon>
+        <h2>Aucun événement créé</h2>
+        <p>Vous n'avez pas encore créé d'événement.</p>
+        <p>Lancez-vous et créez votre première soirée !</p>
+        <ion-button (click)="goToCreateEvent()" color="primary">
+          <ion-icon name="add-outline" slot="start"></ion-icon>
+          Créer mon premier événement
+        </ion-button>
+      </div>
+
+      <!-- Liste des événements créés -->
+      <ion-card 
+        *ngFor="let event of createdEvents()" 
+        class="event-card"
+        (click)="goToEventDetail(event.id!)">
+        
+        <!-- Image de l'événement -->
+        <div class="event-image-container">
+          <img 
+            [src]="event.imageUrl || 'assets/placeholder-event.jpg'" 
+            [alt]="event.title"
+            class="event-image" />
+          
+          <!-- Badge organisateur -->
+          <ion-chip class="organizer-badge" color="success">
+            <ion-icon name="rocket-outline"></ion-icon>
+            <ion-label>Organisateur</ion-label>
+          </ion-chip>
+
+          <!-- Badge "Complet" -->
+          <ion-badge 
+            class="full-badge" 
+            color="danger" 
+            *ngIf="isEventFull(event)">
+            ⚠️ Complet
+          </ion-badge>
+        </div>
+
+        <ion-card-header>
+          <!-- Badges header -->
+          <div class="header-badges">
+            <ion-chip [color]="getCategoryColor(event.category)">
+              <ion-label>{{ getCategoryLabel(event.category) }}</ion-label>
+            </ion-chip>
+
+            <ion-chip [color]="getParticipantBadgeColor(event)" class="participants-badge">
+              <ion-icon name="people-outline"></ion-icon>
+              <ion-label>
+                {{ getParticipantCount(event.id!) }} / {{ event.maxParticipants }}
+              </ion-label>
+            </ion-chip>
+          </div>
+
+          <ion-card-title>{{ event.title }}</ion-card-title>
+          <ion-card-subtitle>
+            Par vous
+          </ion-card-subtitle>
+        </ion-card-header>
+
+        <ion-card-content>
+          <!-- Description -->
+          <p class="event-description">
+            {{ event.description.length > 100 
+               ? event.description.substring(0, 100) + '...' 
+               : event.description }}
+          </p>
+
+          <!-- Informations -->
+          <div class="event-info">
+            <div class="info-item">
+              <ion-icon name="calendar-outline" color="primary"></ion-icon>
+              <ion-text>{{ formatDate(event.date) }}</ion-text>
+            </div>
+
+            <div class="info-item">
+              <ion-icon name="location-outline" color="danger"></ion-icon>
+              <ion-text>{{ event.location.city }}</ion-text>
+            </div>
+          </div>
+
+          <ion-button 
+            expand="block" 
+            fill="outline" 
+            class="ion-margin-top"
+            (click)="goToEventDetail(event.id!); $event.stopPropagation()">
+            Gérer cet événement
+          </ion-button>
+        </ion-card-content>
+      </ion-card>
+    </div>
+
+    <!-- ==================== ONGLET : MES PARTICIPATIONS ==================== -->
+    <div *ngIf="selectedSegment() === 'joined'">
+      
+      <!-- Message si aucune participation -->
+      <div class="empty-state" *ngIf="joinedEvents().length === 0">
+        <ion-icon name="person-outline" color="medium"></ion-icon>
+        <h2>Aucune participation</h2>
+        <p>Vous n'avez rejoint aucun événement pour le moment.</p>
+        <p>Explorez les événements disponibles et participez !</p>
+        <ion-button [routerLink]="['/events']" color="primary">
+          <ion-icon name="calendar-outline" slot="start"></ion-icon>
+          Voir les événements
+        </ion-button>
+      </div>
+
+      <!-- Liste des événements rejoints -->
+      <ion-card 
+        *ngFor="let event of joinedEvents()" 
+        class="event-card"
+        (click)="goToEventDetail(event.id!)">
+        
+        <!-- Image de l'événement -->
+        <div class="event-image-container">
+          <img 
+            [src]="event.imageUrl || 'assets/placeholder-event.jpg'" 
+            [alt]="event.title"
+            class="event-image" />
+          
+          <!-- Badge participant -->
+          <ion-chip class="participant-badge" color="primary">
+            <ion-icon name="person-outline"></ion-icon>
+            <ion-label>Participant</ion-label>
+          </ion-chip>
+
+          <!-- Badge "Complet" -->
+          <ion-badge 
+            class="full-badge" 
+            color="danger" 
+            *ngIf="isEventFull(event)">
+            ⚠️ Complet
+          </ion-badge>
+        </div>
+
+        <ion-card-header>
+          <!-- Badges header -->
+          <div class="header-badges">
+            <ion-chip [color]="getCategoryColor(event.category)">
+              <ion-label>{{ getCategoryLabel(event.category) }}</ion-label>
+            </ion-chip>
+
+            <ion-chip [color]="getParticipantBadgeColor(event)" class="participants-badge">
+              <ion-icon name="people-outline"></ion-icon>
+              <ion-label>
+                {{ getParticipantCount(event.id!) }} / {{ event.maxParticipants }}
+              </ion-label>
+            </ion-chip>
+          </div>
+
+          <ion-card-title>{{ event.title }}</ion-card-title>
+          <ion-card-subtitle>
+            Par {{ event.organizerName }}
+          </ion-card-subtitle>
+        </ion-card-header>
+
+        <ion-card-content>
+          <!-- Description -->
+          <p class="event-description">
+            {{ event.description.length > 100 
+               ? event.description.substring(0, 100) + '...' 
+               : event.description }}
+          </p>
+
+          <!-- Informations -->
+          <div class="event-info">
+            <div class="info-item">
+              <ion-icon name="calendar-outline" color="primary"></ion-icon>
+              <ion-text>{{ formatDate(event.date) }}</ion-text>
+            </div>
+
+            <div class="info-item">
+              <ion-icon name="location-outline" color="danger"></ion-icon>
+              <ion-text>{{ event.location.city }}</ion-text>
+            </div>
+          </div>
+
+          <ion-button 
+            expand="block" 
+            fill="outline" 
+            class="ion-margin-top"
+            (click)="goToEventDetail(event.id!); $event.stopPropagation()">
+            Voir les détails
+          </ion-button>
+        </ion-card-content>
+      </ion-card>
+    </div>
+
+  </div>
+
+</ion-content>

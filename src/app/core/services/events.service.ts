@@ -1,5 +1,5 @@
 // src/app/core/services/events.service.ts
-// Service de gestion des événements avec Firestore (VERSION CORRIGÉE COMPLÈTE)
+// Service de gestion des événements - VERSION CORRIGÉE SPRINT 3
 
 import { Injectable, inject } from '@angular/core';
 import {
@@ -14,11 +14,12 @@ import {
   orderBy,
   Timestamp,
   onSnapshot,
-  DocumentSnapshot
+  getDoc
 } from '@angular/fire/firestore';
 import { Observable, from, map, switchMap } from 'rxjs';
 import { AuthenticationService } from './authentication.service';
 import { Event, CreateEventDto, EventCategory } from '../models/event.model';
+import { Participant, ParticipantStatus } from '../models/participant.model';
 
 @Injectable({
   providedIn: 'root'
@@ -28,8 +29,9 @@ export class EventsService {
   private readonly firestore = inject(Firestore);
   private readonly authService = inject(AuthenticationService);
   
-  // Nom de la collection Firestore
+  // Noms des collections Firestore
   private readonly eventsCollection = 'events';
+  private readonly participantsCollection = 'participants';
 
   constructor() {}
 
@@ -39,6 +41,7 @@ export class EventsService {
 
   /**
    * Crée un nouvel événement dans Firestore
+   * 🆕 AJOUT : Ajoute automatiquement l'organisateur comme premier participant
    * @param eventData Données de l'événement à créer
    * @returns Observable avec l'ID du document créé
    */
@@ -61,8 +64,8 @@ export class EventsService {
       organizerName: userName || userEmail || 'Organisateur',
       organizerPhoto: '',
       maxParticipants: eventData.maxParticipants,
-      currentParticipants: 1,
-      participants: [userId],
+      currentParticipants: 0, // 🔧 FIX : Commence à 0, sera incrémenté après
+      participants: [], // 🔧 FIX : Vide au début
       category: eventData.category,
       imageUrl: eventData.imageUrl || '',
       images: [],
@@ -73,12 +76,33 @@ export class EventsService {
       tags: eventData.tags || []
     };
 
-    // Ajoute le document à Firestore
     const eventsRef = collection(this.firestore, this.eventsCollection);
+    
+    // 🆕 AJOUT : Créer l'événement PUIS ajouter l'organisateur comme participant
     return from(addDoc(eventsRef, eventToCreate)).pipe(
-      map(docRef => {
-        console.log('✅ Événement créé avec ID:', docRef.id);
-        return docRef.id;
+      switchMap(docRef => {
+        const eventId = docRef.id;
+        console.log('✅ Événement créé:', eventId);
+
+        // Créer le document participant pour l'organisateur
+        const participantData: Omit<Participant, 'id'> = {
+          eventId,
+          userId,
+          userName: userName || userEmail || 'Organisateur',
+          userEmail: userEmail || '',
+          userPhoto: '',
+          joinedAt: Timestamp.now(),
+          status: ParticipantStatus.APPROVED // Organisateur toujours approuvé
+        };
+
+        const participantsRef = collection(this.firestore, this.participantsCollection);
+        
+        return from(addDoc(participantsRef, participantData)).pipe(
+          map(() => {
+            console.log('✅ Organisateur ajouté comme participant');
+            return eventId;
+          })
+        );
       })
     );
   }
@@ -88,74 +112,52 @@ export class EventsService {
   // ========================================
 
   /**
-   * Récupère tous les événements publics (écoute en temps réel)
-   * @returns Observable avec la liste des événements
+   * Récupère tous les événements (temps réel)
+   * @returns Observable<Event[]>
    */
   getAllEvents(): Observable<Event[]> {
-    const eventsRef = collection(this.firestore, this.eventsCollection);
-    
-    // Query : événements publics, triés par date
-    const q = query(
-      eventsRef,
-      where('isPrivate', '==', false),
-      orderBy('date', 'desc')
-    );
+    return new Observable(observer => {
+      const eventsRef = collection(this.firestore, this.eventsCollection);
+      const q = query(eventsRef, orderBy('date', 'asc'));
 
-    // Utilisation de onSnapshot pour écoute en temps réel
-    return new Observable<Event[]>(subscriber => {
-      const unsubscribe = onSnapshot(q, 
-        (snapshot) => {
-          const events = snapshot.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data()
-          } as Event));
-          
-          console.log(`📋 ${events.length} événements chargés`);
-          subscriber.next(events);
-        },
-        (error) => {
-          console.error('❌ Erreur Firestore:', error);
-          subscriber.error(error);
-        }
-      );
-      
-      // Fonction de nettoyage appelée lors du unsubscribe
+      const unsubscribe = onSnapshot(q, (snapshot) => {
+        const events = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        })) as Event[];
+        
+        observer.next(events);
+      }, (error) => {
+        observer.error(error);
+      });
+
       return () => unsubscribe();
     });
   }
 
   /**
-   * Récupère les événements à venir (date future uniquement)
-   * @returns Observable avec les événements futurs
+   * Récupère uniquement les événements à venir
+   * @returns Observable<Event[]>
    */
   getUpcomingEvents(): Observable<Event[]> {
-    const eventsRef = collection(this.firestore, this.eventsCollection);
-    const now = Timestamp.now();
-    
-    const q = query(
-      eventsRef,
-      where('isPrivate', '==', false),
-      where('date', '>=', now),
-      orderBy('date', 'asc')
-    );
-
-    return new Observable<Event[]>(subscriber => {
-      const unsubscribe = onSnapshot(q, 
-        (snapshot) => {
-          const events = snapshot.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data()
-          } as Event));
-          
-          console.log(`📅 ${events.length} événements à venir`);
-          subscriber.next(events);
-        },
-        (error) => {
-          console.error('❌ Erreur Firestore:', error);
-          subscriber.error(error);
-        }
+    return new Observable(observer => {
+      const eventsRef = collection(this.firestore, this.eventsCollection);
+      const now = Timestamp.now();
+      const q = query(
+        eventsRef,
+        where('date', '>=', now),
+        orderBy('date', 'asc')
       );
-      
+
+      const unsubscribe = onSnapshot(q, (snapshot) => {
+        const events = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        })) as Event[];
+        
+        observer.next(events);
+      });
+
       return () => unsubscribe();
     });
   }
@@ -163,265 +165,178 @@ export class EventsService {
   /**
    * Récupère un événement par son ID
    * @param eventId ID de l'événement
-   * @returns Observable avec l'événement
+   * @returns Observable<Event | null>
    */
   getEventById(eventId: string): Observable<Event | null> {
-    const eventDocRef = doc(this.firestore, `${this.eventsCollection}/${eventId}`);
-    
-    return new Observable<Event | null>(subscriber => {
-      const unsubscribe = onSnapshot(eventDocRef,
-        (snapshot: DocumentSnapshot) => {
-          if (snapshot.exists()) {
-            const event = {
-              id: snapshot.id,
-              ...snapshot.data()
-            } as Event;
-            console.log('📄 Événement chargé:', event.id);
-            subscriber.next(event);
-          } else {
-            console.log('❌ Événement introuvable:', eventId);
-            subscriber.next(null);
-          }
-        },
-        (error) => {
-          console.error('❌ Erreur Firestore:', error);
-          subscriber.error(error);
+    return new Observable(observer => {
+      const eventRef = doc(this.firestore, this.eventsCollection, eventId);
+
+      const unsubscribe = onSnapshot(eventRef, (snapshot) => {
+        if (!snapshot.exists()) {
+          observer.next(null);
+          return;
         }
-      );
-      
+
+        const event = {
+          id: snapshot.id,
+          ...snapshot.data()
+        } as Event;
+
+        observer.next(event);
+      }, (error) => {
+        observer.error(error);
+      });
+
       return () => unsubscribe();
     });
   }
 
   /**
-   * Récupère les événements organisés par un utilisateur
+   * Récupère les événements créés par un utilisateur
    * @param userId ID de l'utilisateur
-   * @returns Observable avec les événements de l'utilisateur
+   * @returns Observable<Event[]>
    */
   getEventsByOrganizer(userId: string): Observable<Event[]> {
-    const eventsRef = collection(this.firestore, this.eventsCollection);
-    
-    const q = query(
-      eventsRef,
-      where('organizerId', '==', userId),
-      orderBy('createdAt', 'desc')
-    );
-
-    return new Observable<Event[]>(subscriber => {
-      const unsubscribe = onSnapshot(q,
-        (snapshot) => {
-          const events = snapshot.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data()
-          } as Event));
-          
-          console.log(`👤 ${events.length} événements organisés par l'utilisateur`);
-          subscriber.next(events);
-        },
-        (error) => {
-          console.error('❌ Erreur Firestore:', error);
-          subscriber.error(error);
-        }
+    return new Observable(observer => {
+      const eventsRef = collection(this.firestore, this.eventsCollection);
+      const q = query(
+        eventsRef,
+        where('organizerId', '==', userId),
+        orderBy('date', 'desc')
       );
-      
+
+      const unsubscribe = onSnapshot(q, (snapshot) => {
+        const events = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        })) as Event[];
+        
+        observer.next(events);
+      });
+
       return () => unsubscribe();
     });
   }
 
-  /**
-   * Récupère les événements auxquels un utilisateur participe
-   * @param userId ID de l'utilisateur
-   * @returns Observable avec les événements
-   */
-  getEventsJoinedByUser(userId: string): Observable<Event[]> {
-    const eventsRef = collection(this.firestore, this.eventsCollection);
-    
-    const q = query(
-      eventsRef,
-      where('participants', 'array-contains', userId),
-      orderBy('date', 'asc')
-    );
-
-    return new Observable<Event[]>(subscriber => {
-      const unsubscribe = onSnapshot(q,
-        (snapshot) => {
-          const events = snapshot.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data()
-          } as Event));
-          
-          console.log(`🎟️ ${events.length} événements rejoints par l'utilisateur`);
-          subscriber.next(events);
-        },
-        (error) => {
-          console.error('❌ Erreur Firestore:', error);
-          subscriber.error(error);
-        }
-      );
-      
-      return () => unsubscribe();
-    });
-  }
+  // ========================================
+  // RECHERCHE ET FILTRAGE
+  // ========================================
 
   /**
-   * Recherche d'événements par titre ou description
+   * Recherche des événements par titre ou description
    * @param searchTerm Terme de recherche
-   * @returns Observable avec les résultats
+   * @returns Observable<Event[]>
    */
   searchEvents(searchTerm: string): Observable<Event[]> {
-    // Firestore ne supporte pas les recherches textuelles avancées
-    // On récupère tous les événements et on filtre côté client
     return this.getAllEvents().pipe(
       map(events => 
-        events.filter(event => 
+        events.filter(event =>
           event.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          event.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          event.location.city.toLowerCase().includes(searchTerm.toLowerCase())
+          event.description.toLowerCase().includes(searchTerm.toLowerCase())
         )
       )
     );
   }
 
+  /**
+   * Filtre les événements par catégorie
+   * @param category Catégorie à filtrer
+   * @returns Observable<Event[]>
+   */
+  filterEventsByCategory(category: EventCategory): Observable<Event[]> {
+    return new Observable(observer => {
+      const eventsRef = collection(this.firestore, this.eventsCollection);
+      const q = query(
+        eventsRef,
+        where('category', '==', category),
+        orderBy('date', 'asc')
+      );
+
+      const unsubscribe = onSnapshot(q, (snapshot) => {
+        const events = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        })) as Event[];
+        
+        observer.next(events);
+      });
+
+      return () => unsubscribe();
+    });
+  }
+
   // ========================================
-  // MODIFICATION D'ÉVÉNEMENTS
+  // MISE À JOUR ET SUPPRESSION
   // ========================================
 
   /**
    * Met à jour un événement existant
    * @param eventId ID de l'événement
-   * @param updates Données à mettre à jour
-   * @returns Observable de la mise à jour
+   * @param updates Champs à mettre à jour
+   * @returns Observable<void>
    */
   updateEvent(eventId: string, updates: Partial<Event>): Observable<void> {
-    const eventDocRef = doc(this.firestore, `${this.eventsCollection}/${eventId}`);
-    
-    // Ajoute la date de mise à jour
-    const dataToUpdate = {
+    const eventRef = doc(this.firestore, this.eventsCollection, eventId);
+    const updatedData = {
       ...updates,
       updatedAt: Timestamp.now()
     };
 
-    return from(updateDoc(eventDocRef, dataToUpdate)).pipe(
-      map(() => {
-        console.log('✅ Événement mis à jour:', eventId);
-      })
-    );
+    return from(updateDoc(eventRef, updatedData));
   }
-
-  // ========================================
-  // SUPPRESSION D'ÉVÉNEMENTS
-  // ========================================
 
   /**
    * Supprime un événement
-   * @param eventId ID de l'événement à supprimer
-   * @returns Observable de la suppression
+   * @param eventId ID de l'événement
+   * @returns Observable<void>
    */
   deleteEvent(eventId: string): Observable<void> {
-    const eventDocRef = doc(this.firestore, `${this.eventsCollection}/${eventId}`);
-    
-    return from(deleteDoc(eventDocRef)).pipe(
-      map(() => {
-        console.log('🗑️ Événement supprimé:', eventId);
-      })
-    );
+    const eventRef = doc(this.firestore, this.eventsCollection, eventId);
+    return from(deleteDoc(eventRef));
   }
 
   // ========================================
-  // GESTION DES PARTICIPANTS
+  // MÉTHODES UTILITAIRES
   // ========================================
 
   /**
-   * Ajoute un utilisateur aux participants d'un événement
-   * @param eventId ID de l'événement
-   * @param userId ID de l'utilisateur
-   * @returns Observable de l'ajout
+   * Retourne le label de la catégorie avec emoji
    */
-  joinEvent(eventId: string, userId: string): Observable<void> {
-    return this.getEventById(eventId).pipe(
-      switchMap(event => {
-        if (!event) {
-          throw new Error('Événement introuvable');
-        }
-
-        // Vérifie si l'utilisateur n'est pas déjà participant
-        if (event.participants.includes(userId)) {
-          throw new Error('Tu participes déjà à cet événement');
-        }
-
-        // Vérifie le nombre maximum de participants
-        if (event.currentParticipants >= event.maxParticipants) {
-          throw new Error('Événement complet');
-        }
-
-        // Met à jour l'événement
-        const eventDocRef = doc(this.firestore, `${this.eventsCollection}/${eventId}`);
-        return from(updateDoc(eventDocRef, {
-          participants: [...event.participants, userId],
-          currentParticipants: event.currentParticipants + 1,
-          updatedAt: Timestamp.now()
-        }));
-      })
-    );
+  getCategoryLabel(category: EventCategory): string {
+    const labels: Record<EventCategory, string> = {
+      [EventCategory.PARTY]: '🎉 Soirée',
+      [EventCategory.CONCERT]: '🎵 Concert',
+      [EventCategory.FESTIVAL]: '🎪 Festival',
+      [EventCategory.BAR]: '🍺 Bar',
+      [EventCategory.CLUB]: '💃 Club',
+      [EventCategory.OUTDOOR]: '🌳 Extérieur',
+      [EventCategory.PRIVATE]: '🔒 Privé',
+      [EventCategory.OTHER]: '📌 Autre'
+    };
+    return labels[category] || category;
   }
 
   /**
-   * Retire un utilisateur des participants d'un événement
-   * @param eventId ID de l'événement
-   * @param userId ID de l'utilisateur
-   * @returns Observable du retrait
+   * Retourne la couleur de la catégorie
    */
-  leaveEvent(eventId: string, userId: string): Observable<void> {
-    return this.getEventById(eventId).pipe(
-      switchMap(event => {
-        if (!event) {
-          throw new Error('Événement introuvable');
-        }
-
-        // Vérifie que l'utilisateur est bien participant
-        if (!event.participants.includes(userId)) {
-          throw new Error('Tu ne participes pas à cet événement');
-        }
-
-        // L'organisateur ne peut pas quitter son propre événement
-        if (event.organizerId === userId) {
-          throw new Error('L\'organisateur ne peut pas quitter son événement');
-        }
-
-        // Met à jour l'événement
-        const eventDocRef = doc(this.firestore, `${this.eventsCollection}/${eventId}`);
-        const updatedParticipants = event.participants.filter(id => id !== userId);
-        
-        return from(updateDoc(eventDocRef, {
-          participants: updatedParticipants,
-          currentParticipants: event.currentParticipants - 1,
-          updatedAt: Timestamp.now()
-        }));
-      })
-    );
-  }
-
-  // ========================================
-  // UTILITAIRES
-  // ========================================
-
-  /**
-   * Vérifie si l'utilisateur connecté est l'organisateur d'un événement
-   * @param event L'événement à vérifier
-   * @returns true si organisateur, false sinon
-   */
-  isOrganizer(event: Event): boolean {
-    const currentUserId = this.authService.getCurrentUserId();
-    return event.organizerId === currentUserId;
+  getCategoryColor(category: EventCategory): string {
+    const colors: Record<EventCategory, string> = {
+      [EventCategory.PARTY]: 'primary',
+      [EventCategory.CONCERT]: 'secondary',
+      [EventCategory.FESTIVAL]: 'tertiary',
+      [EventCategory.BAR]: 'warning',
+      [EventCategory.CLUB]: 'danger',
+      [EventCategory.OUTDOOR]: 'success',
+      [EventCategory.PRIVATE]: 'medium',
+      [EventCategory.OTHER]: 'dark'
+    };
+    return colors[category] || 'medium';
   }
 
   /**
-   * Vérifie si l'utilisateur connecté participe à un événement
-   * @param event L'événement à vérifier
-   * @returns true si participant, false sinon
+   * Vérifie si un événement est complet
    */
-  isParticipant(event: Event): boolean {
-    const currentUserId = this.authService.getCurrentUserId();
-    return event.participants.includes(currentUserId || '');
+  isEventFull(event: Event): boolean {
+    return event.currentParticipants >= event.maxParticipants;
   }
 }

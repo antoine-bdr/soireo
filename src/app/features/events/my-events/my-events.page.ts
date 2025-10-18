@@ -1,14 +1,12 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
-import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router'
+import { RouterLink } from '@angular/router';
 import {
   IonHeader,
   IonToolbar,
   IonTitle,
   IonContent,
-  IonSearchbar,
   IonSegment,
   IonSegmentButton,
   IonLabel,
@@ -19,42 +17,41 @@ import {
   IonCardContent,
   IonButton,
   IonIcon,
-  IonBadge,
-  IonText,
-  IonFab,
-  IonFabButton,
   IonChip,
   IonSpinner,
+  IonText,
   IonRefresher,
-  IonRefresherContent, IonButtons } from '@ionic/angular/standalone';
+  IonRefresherContent,
+  IonButtons,
+  IonBackButton, IonBadge } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import { 
-  addOutline, 
   calendarOutline, 
   locationOutline, 
   peopleOutline,
-  searchOutline,
-  filterOutline, personOutline } from 'ionicons/icons';
+  addOutline,
+  rocketOutline,
+  personOutline
+} from 'ionicons/icons';
 
 import { EventsService } from '../../../core/services/events.service';
 import { ParticipantsService } from '../../../core/services/participants.service';
+import { AuthenticationService } from '../../../core/services/authentication.service';
 import { Event, EventCategory } from '../../../core/models/event.model';
-import { Observable } from 'rxjs';
-import { map } from 'rxjs/operators';
+import { switchMap, map } from 'rxjs/operators';
+import { of } from 'rxjs';
 
 @Component({
-  selector: 'app-event-list',
-  templateUrl: './event-list.page.html',
-  styleUrls: ['./event-list.page.scss'],
+  selector: 'app-my-events',
+  templateUrl: './my-events.page.html',
+  styleUrls: ['./my-events.page.scss'],
   standalone: true,
-  imports: [IonButtons, 
+  imports: [IonBadge, 
     CommonModule,
-    FormsModule,
     IonHeader,
     IonToolbar,
     IonTitle,
     IonContent,
-    IonSearchbar,
     IonSegment,
     IonSegmentButton,
     IonLabel,
@@ -65,83 +62,124 @@ import { map } from 'rxjs/operators';
     IonCardContent,
     IonButton,
     IonIcon,
-    IonBadge,
-    IonText,
-    IonFab,
-    IonFabButton,
     IonChip,
     IonSpinner,
+    IonText,
     IonRefresher,
     IonRefresherContent,
-    IonToolbar,
-    IonHeader,
+    IonButtons,
+    IonBackButton,
     RouterLink
   ]
 })
-export class EventListPage implements OnInit {
+export class MyEventsPage implements OnInit {
   // Injection des services
   private readonly eventsService = inject(EventsService);
-  private readonly participantsService = inject(ParticipantsService); // 🆕 AJOUT
+  private readonly participantsService = inject(ParticipantsService);
+  private readonly authService = inject(AuthenticationService);
   private readonly router = inject(Router);
 
   // État de la page
-  events$ = signal<Observable<Event[]> | null>(null);
-  filteredEvents = signal<Event[]>([]);
+  selectedSegment = signal<'created' | 'joined'>('created');
   isLoading = signal(true);
   
-  // Filtres
-  searchTerm = signal('');
-  selectedSegment = signal<'all' | 'upcoming'>('upcoming');
-
-  // 🆕 AJOUT : Map pour stocker le nombre de participants par événement
+  // Listes d'événements
+  createdEvents = signal<Event[]>([]);
+  joinedEvents = signal<Event[]>([]);
+  
+  // Map pour les compteurs de participants
   participantCounts = new Map<string, number>();
 
   constructor() {
-    addIcons({personOutline,calendarOutline,addOutline,peopleOutline,locationOutline,searchOutline,filterOutline});
+    addIcons({ 
+      calendarOutline, 
+      locationOutline, 
+      peopleOutline,
+      addOutline,
+      rocketOutline,
+      personOutline
+    });
   }
 
   ngOnInit() {
-    this.loadEvents();
+    this.loadMyEvents();
   }
 
   /**
-   * Charge les événements depuis Firestore
+   * Charge les événements de l'utilisateur (créés + participations)
    */
-  loadEvents() {
+  loadMyEvents() {
     this.isLoading.set(true);
-    
-    // Choix entre tous les événements ou seulement les à venir
-    const eventsObservable = this.selectedSegment() === 'all' 
-      ? this.eventsService.getAllEvents()
-      : this.eventsService.getUpcomingEvents();
+    const userId = this.authService.getCurrentUserId();
 
-    // Subscribe pour mettre à jour filteredEvents
-    eventsObservable.subscribe({
+    if (!userId) {
+      console.error('Utilisateur non connecté');
+      this.isLoading.set(false);
+      return;
+    }
+
+    // Charge les événements créés par l'utilisateur
+    this.eventsService.getEventsByOrganizer(userId).subscribe({
       next: (events) => {
-        this.filteredEvents.set(events);
-        this.isLoading.set(false);
-        
-        // 🆕 AJOUT : Charge le nombre de participants pour chaque événement
+        this.createdEvents.set(events);
         this.loadParticipantCounts(events);
+        console.log(`✅ ${events.length} événements créés`);
         
-        console.log(`✅ ${events.length} événements chargés`);
+        // Charge les participations seulement après avoir les événements créés
+        this.loadJoinedEvents(userId);
       },
       error: (error) => {
-        console.error('❌ Erreur de chargement:', error);
+        console.error('Erreur chargement événements créés:', error);
         this.isLoading.set(false);
       }
     });
   }
 
-  // 🆕 NOUVELLE MÉTHODE : Charge le nombre de participants pour tous les événements
+  /**
+   * Charge les événements auxquels l'utilisateur participe
+   */
+  loadJoinedEvents(userId: string) {
+    // Récupère les participations de l'utilisateur
+    this.participantsService.getParticipationsByUser(userId).pipe(
+      // Pour chaque participation, récupère l'événement complet
+      switchMap(participations => {
+        if (participations.length === 0) {
+          return of([]);
+        }
+
+        // Récupère les IDs des événements
+        const eventIds = participations.map(p => p.eventId);
+        
+        // Charge tous les événements
+        return this.eventsService.getAllEvents().pipe(
+          map(allEvents => 
+            allEvents.filter(event => 
+              eventIds.includes(event.id!) && 
+              event.organizerId !== userId // Exclut les événements créés par l'utilisateur
+            )
+          )
+        );
+      })
+    ).subscribe({
+      next: (events) => {
+        this.joinedEvents.set(events);
+        this.loadParticipantCounts(events);
+        this.isLoading.set(false);
+        console.log(`✅ ${events.length} événements rejoints`);
+      },
+      error: (error) => {
+        console.error('Erreur chargement événements rejoints:', error);
+        this.isLoading.set(false);
+      }
+    });
+  }
+
   /**
    * Charge le nombre de participants pour chaque événement
-   * @param events Liste des événements
    */
   loadParticipantCounts(events: Event[]) {
     events.forEach(event => {
       if (event.id) {
-        // Souscrit au compteur en temps réel pour chaque événement
         this.participantsService.getParticipantCount(event.id).subscribe({
           next: (count) => {
             this.participantCounts.set(event.id!, count);
@@ -155,82 +193,27 @@ export class EventListPage implements OnInit {
     });
   }
 
-  // 🆕 NOUVELLE MÉTHODE : Récupère le nombre de participants pour un événement
   /**
-   * Retourne le nombre de participants pour un événement
-   * @param eventId ID de l'événement
-   * @returns Nombre de participants
+   * Retourne la liste d'événements selon l'onglet sélectionné
    */
-  getParticipantCount(eventId: string): number {
-    return this.participantCounts.get(eventId) || 0;
-  }
-
-  // 🆕 NOUVELLE MÉTHODE : Vérifie si un événement est complet
-  /**
-   * Vérifie si un événement est complet
-   * @param event Événement à vérifier
-   * @returns true si complet
-   */
-  isEventFull(event: Event): boolean {
-    const count = this.getParticipantCount(event.id!);
-    return count >= event.maxParticipants;
-  }
-
-  // 🆕 NOUVELLE MÉTHODE : Retourne la couleur du badge participants
-  /**
-   * Retourne la couleur du badge participants
-   * @param event Événement
-   * @returns Couleur Ionic
-   */
-  getParticipantBadgeColor(event: Event): string {
-    if (this.isEventFull(event)) {
-      return 'danger'; // Rouge si complet
-    }
-    
-    const count = this.getParticipantCount(event.id!);
-    const percentage = (count / event.maxParticipants) * 100;
-    
-    if (percentage >= 80) {
-      return 'warning'; // Orange si presque complet (80%+)
-    }
-    
-    return 'success'; // Vert si places disponibles
+  getCurrentEvents(): Event[] {
+    return this.selectedSegment() === 'created' 
+      ? this.createdEvents() 
+      : this.joinedEvents();
   }
 
   /**
-   * Recherche dans les événements
-   */
-  onSearchChange(event: any) {
-    const term = event.detail.value?.toLowerCase() || '';
-    this.searchTerm.set(term);
-
-    if (!term) {
-      // Si pas de recherche, recharge tous les événements
-      this.loadEvents();
-      return;
-    }
-
-    // Recherche dans les événements
-    this.eventsService.searchEvents(term).subscribe(events => {
-      this.filteredEvents.set(events);
-      // Recharge aussi les compteurs pour les résultats de recherche
-      this.loadParticipantCounts(events);
-    });
-  }
-
-  /**
-   * Change le filtre (tous / à venir)
+   * Change d'onglet
    */
   onSegmentChange(event: any) {
     this.selectedSegment.set(event.detail.value);
-    this.loadEvents();
   }
 
   /**
-   * Rafraîchir la liste (pull-to-refresh)
+   * Rafraîchit la liste
    */
   handleRefresh(event: any) {
-    this.loadEvents();
+    this.loadMyEvents();
     setTimeout(() => {
       event.target.complete();
     }, 1000);
@@ -248,6 +231,39 @@ export class EventListPage implements OnInit {
    */
   goToEventDetail(eventId: string) {
     this.router.navigate(['/events', eventId]);
+  }
+
+  /**
+   * Retourne le nombre de participants pour un événement
+   */
+  getParticipantCount(eventId: string): number {
+    return this.participantCounts.get(eventId) || 0;
+  }
+
+  /**
+   * Vérifie si un événement est complet
+   */
+  isEventFull(event: Event): boolean {
+    const count = this.getParticipantCount(event.id!);
+    return count >= event.maxParticipants;
+  }
+
+  /**
+   * Retourne la couleur du badge participants
+   */
+  getParticipantBadgeColor(event: Event): string {
+    if (this.isEventFull(event)) {
+      return 'danger';
+    }
+    
+    const count = this.getParticipantCount(event.id!);
+    const percentage = (count / event.maxParticipants) * 100;
+    
+    if (percentage >= 80) {
+      return 'warning';
+    }
+    
+    return 'success';
   }
 
   /**
