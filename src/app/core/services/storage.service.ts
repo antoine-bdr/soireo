@@ -1,5 +1,5 @@
 // src/app/core/services/storage.service.ts
-// Service de gestion des uploads Firebase Storage
+// Service de gestion des uploads Firebase Storage - VERSION CORRIGÉE
 
 import { Injectable, inject } from '@angular/core';
 import {
@@ -10,7 +10,7 @@ import {
   deleteObject,
   UploadTask
 } from '@angular/fire/storage';
-import { Observable, from, throwError } from 'rxjs';
+import { Observable, from, throwError, firstValueFrom } from 'rxjs';
 import { switchMap, catchError } from 'rxjs/operators';
 
 @Injectable({
@@ -22,19 +22,15 @@ export class StorageService {
   constructor() {}
 
   /**
-   * Upload une image et retourne son URL
+   * Upload une image et retourne son URL (Observable)
    * @param file Fichier à uploader
    * @param path Chemin dans Storage (ex: 'events/event-123.jpg')
    * @returns Observable avec l'URL de téléchargement
    */
   uploadImage(file: File, path: string): Observable<string> {
-    // Crée une référence vers le fichier dans Storage
     const storageRef = ref(this.storage, path);
-    
-    // Upload le fichier
     const uploadTask = uploadBytesResumable(storageRef, file);
 
-    // Retourne un Observable qui émet l'URL quand l'upload est terminé
     return new Observable(observer => {
       uploadTask.on('state_changed',
         // Progress
@@ -50,7 +46,6 @@ export class StorageService {
         // Complete
         async () => {
           try {
-            // Récupère l'URL de téléchargement
             const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
             console.log('✅ Image uploadée:', downloadURL);
             observer.next(downloadURL);
@@ -64,18 +59,56 @@ export class StorageService {
   }
 
   /**
-   * Upload une image avec un nom généré automatiquement
+   * ✅ NOUVELLE MÉTHODE : Upload une image et retourne son URL (Promise)
+   * Utilisé dans event-edit.page.ts avec async/await
+   * @param file Fichier à uploader
+   * @param path Chemin dans Storage
+   * @returns Promise avec l'URL de téléchargement
+   */
+  async uploadImagePromise(file: File, path: string): Promise<string> {
+    const storageRef = ref(this.storage, path);
+    
+    try {
+      console.log('📤 Début upload:', path);
+      
+      // Upload le fichier
+      const uploadResult = await uploadBytesResumable(storageRef, file);
+      
+      // Récupère l'URL de téléchargement
+      const downloadURL = await getDownloadURL(uploadResult.ref);
+      
+      console.log('✅ Image uploadée:', downloadURL);
+      return downloadURL;
+      
+    } catch (error) {
+      console.error('❌ Erreur upload:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Upload une image avec un nom généré automatiquement (Observable)
    * @param file Fichier à uploader
    * @param folder Dossier dans Storage (ex: 'events', 'profiles')
    * @returns Observable avec l'URL de téléchargement
    */
   uploadImageWithAutoName(file: File, folder: string): Observable<string> {
-    // Génère un nom unique basé sur le timestamp
     const timestamp = Date.now();
     const fileName = `${timestamp}_${file.name}`;
     const path = `${folder}/${fileName}`;
     
     return this.uploadImage(file, path);
+  }
+
+  /**
+   * ✅ NOUVELLE MÉTHODE : Upload avec nom auto (Promise)
+   */
+  async uploadImageWithAutoNamePromise(file: File, folder: string): Promise<string> {
+    const timestamp = Date.now();
+    const fileName = `${timestamp}_${file.name}`;
+    const path = `${folder}/${fileName}`;
+    
+    return this.uploadImagePromise(file, path);
   }
 
   /**
@@ -85,7 +118,6 @@ export class StorageService {
    */
   deleteImage(imageUrl: string): Observable<void> {
     try {
-      // Crée une référence depuis l'URL
       const imageRef = ref(this.storage, imageUrl);
       
       return from(deleteObject(imageRef)).pipe(
@@ -97,6 +129,20 @@ export class StorageService {
     } catch (error) {
       console.error('❌ URL invalide:', imageUrl);
       return throwError(() => error);
+    }
+  }
+
+  /**
+   * ✅ NOUVELLE MÉTHODE : Supprime une image (Promise)
+   */
+  async deleteImagePromise(imageUrl: string): Promise<void> {
+    try {
+      const imageRef = ref(this.storage, imageUrl);
+      await deleteObject(imageRef);
+      console.log('✅ Image supprimée:', imageUrl);
+    } catch (error) {
+      console.error('❌ Erreur suppression:', error);
+      throw error;
     }
   }
 

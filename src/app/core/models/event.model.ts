@@ -1,37 +1,24 @@
+// src/app/core/models/event.model.ts
+// Modèle Event - VERSION CORRIGÉE avec zipCode
+
 import { Timestamp } from '@angular/fire/firestore';
 
-export interface Event {
-  id?: string;                    // ID du document Firestore (auto-généré)
-  title: string;                  // Titre de la soirée
-  description: string;            // Description détaillée
-  date: Timestamp;                // Date et heure de l'événement
-  location: EventLocation;        // Localisation
-  organizerId: string;            // ID de l'organisateur
-  organizerName: string;          // Nom de l'organisateur (dénormalisé)
-  organizerPhoto: string;         // Photo de l'organisateur (dénormalisé)
-  maxParticipants: number;        // Nombre maximum de participants
-  currentParticipants: number;    // Nombre actuel de participants
-  participants: string[];         // Liste des IDs des participants
-  category: EventCategory;        // Catégorie de l'événement
-  imageUrl: string;               // URL de l'image principale
-  images: string[];               // URLs des images supplémentaires
-  isPrivate: boolean;             // Événement privé ou public
-  requiresApproval: boolean;      // Nécessite validation pour rejoindre
-  createdAt: Timestamp;           // Date de création
-  updatedAt: Timestamp;           // Dernière modification
-  tags: string[];                 // Tags pour recherche
-}
-
-// Localisation d'un événement
+/**
+ * Interface représentant une localisation
+ * ✅ FIX : Ajout de zipCode
+ */
 export interface EventLocation {
-  address: string;                // Adresse complète
-  city: string;                   // Ville
-  zipCode: string;                // Code postal
-  latitude: number;               // Coordonnées GPS
-  longitude: number;              // Coordonnées GPS
+  address: string;
+  city: string;
+  zipCode: string; // ✅ AJOUTÉ
+  latitude?: number;
+  longitude?: number;
+  country?: string;
 }
 
-// Catégories d'événements
+/**
+ * Énumération des catégories d'événements
+ */
 export enum EventCategory {
   PARTY = 'party',
   CONCERT = 'concert',
@@ -43,7 +30,50 @@ export enum EventCategory {
   OTHER = 'other'
 }
 
-// DTO pour la création d'un événement
+/**
+ * Interface Event principale
+ * ✅ Sans currentParticipants et participants[]
+ * Ces données viennent de la collection "participants"
+ */
+export interface Event {
+  id?: string;
+  
+  // Informations de base
+  title: string;
+  description: string;
+  date: Timestamp;
+  location: EventLocation;
+  
+  // Organisateur
+  organizerId: string;
+  organizerName: string;
+  organizerPhoto?: string;
+  
+  // Participants
+  maxParticipants: number;
+  // ✅ PAS de currentParticipants (calculé via ParticipantsService)
+  // ✅ PAS de participants[] (récupéré via ParticipantsService)
+  
+  // Catégorisation
+  category: EventCategory;
+  tags?: string[];
+  
+  // Médias
+  imageUrl: string;
+  images?: string[];
+  
+  // Configuration
+  isPrivate: boolean;
+  requiresApproval: boolean;
+  
+  // Métadonnées
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+}
+
+/**
+ * DTO pour la création d'un événement
+ */
 export interface CreateEventDto {
   title: string;
   description: string;
@@ -54,5 +84,21 @@ export interface CreateEventDto {
   imageUrl?: string;
   isPrivate: boolean;
   requiresApproval: boolean;
+  tags?: string[];
+}
+
+/**
+ * DTO pour la mise à jour d'un événement
+ */
+export interface UpdateEventDto {
+  title?: string;
+  description?: string;
+  date?: Date;
+  location?: EventLocation;
+  maxParticipants?: number;
+  category?: EventCategory;
+  imageUrl?: string;
+  isPrivate?: boolean;
+  requiresApproval?: boolean;
   tags?: string[];
 }

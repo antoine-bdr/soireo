@@ -1,4 +1,7 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+// src/app/features/events/my-events/my-events.page.ts
+// Page "Mes Événements" - VERSION CORRIGÉE avec cycle de vie Ionic
+
+import { Component, OnInit, OnDestroy, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { RouterLink } from '@angular/router';
@@ -23,7 +26,9 @@ import {
   IonRefresher,
   IonRefresherContent,
   IonButtons,
-  IonBackButton, IonBadge } from '@ionic/angular/standalone';
+  IonBackButton,
+  IonBadge
+} from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import { 
   calendarOutline, 
@@ -38,15 +43,16 @@ import { EventsService } from '../../../core/services/events.service';
 import { ParticipantsService } from '../../../core/services/participants.service';
 import { AuthenticationService } from '../../../core/services/authentication.service';
 import { Event, EventCategory } from '../../../core/models/event.model';
-import { switchMap, map } from 'rxjs/operators';
-import { of } from 'rxjs';
+import { switchMap, map, take } from 'rxjs/operators';
+import { of, Subscription } from 'rxjs';
 
 @Component({
   selector: 'app-my-events',
   templateUrl: './my-events.page.html',
   styleUrls: ['./my-events.page.scss'],
   standalone: true,
-  imports: [IonBadge, 
+  imports: [
+    IonBadge, 
     CommonModule,
     IonHeader,
     IonToolbar,
@@ -72,7 +78,7 @@ import { of } from 'rxjs';
     RouterLink
   ]
 })
-export class MyEventsPage implements OnInit {
+export class MyEventsPage implements OnInit, OnDestroy {
   // Injection des services
   private readonly eventsService = inject(EventsService);
   private readonly participantsService = inject(ParticipantsService);
@@ -90,6 +96,9 @@ export class MyEventsPage implements OnInit {
   // Map pour les compteurs de participants
   participantCounts = new Map<string, number>();
 
+  // 🆕 GESTION DES SUBSCRIPTIONS POUR CLEANUP
+  private subscriptions: Subscription[] = [];
+
   constructor() {
     addIcons({ 
       calendarOutline, 
@@ -102,62 +111,119 @@ export class MyEventsPage implements OnInit {
   }
 
   ngOnInit() {
+    // ⚠️ ngOnInit n'est appelé qu'UNE SEULE FOIS à la création de la page
+    console.log('🔵 ngOnInit - Première initialisation de MyEventsPage');
+    this.loadMyEvents();
+  }
+
+  // ========================================
+  // 🔄 IONIC LIFECYCLE HOOKS (CRITIQUE !)
+  // ========================================
+
+  /**
+   * 🚀 ionViewWillEnter : Appelé à CHAQUE fois que la page va apparaître
+   * 
+   * C'est ici qu'on recharge les données pour avoir toujours les infos à jour.
+   * Ce hook est appelé :
+   * - À la première visite de la page
+   * - Quand on revient sur cette page depuis une autre page
+   * - Même si la page est mise en cache par Ionic
+   * 
+   * ✅ Solution au problème : Les données sont rechargées à chaque retour sur la page
+   */
+  ionViewWillEnter() {
+    console.log('🟢 ionViewWillEnter - La page va apparaître, rechargement des données...');
+    
+    // 🧹 Nettoie les anciennes subscriptions avant d'en créer de nouvelles
+    this.cleanupSubscriptions();
+    
+    // 🔄 Recharge toutes les données (événements + participants)
     this.loadMyEvents();
   }
 
   /**
+   * 🚪 ionViewWillLeave : Appelé quand l'utilisateur quitte la page
+   * 
+   * On nettoie les subscriptions pour éviter les fuites mémoire.
+   * Les subscriptions continueraient d'écouter Firestore sinon !
+   */
+  ionViewWillLeave() {
+    console.log('🔴 ionViewWillLeave - L\'utilisateur quitte la page, nettoyage...');
+    this.cleanupSubscriptions();
+  }
+
+  /**
+   * 🧹 ngOnDestroy : Filet de sécurité pour le cleanup final
+   * 
+   * Appelé quand la page est détruite (rare en Ionic car mise en cache).
+   * On garde ce hook pour être sûr que tout est nettoyé.
+   */
+  ngOnDestroy() {
+    console.log('🗑️ ngOnDestroy - Destruction de MyEventsPage');
+    this.cleanupSubscriptions();
+  }
+
+  // ========================================
+  // 📊 CHARGEMENT DES DONNÉES
+  // ========================================
+
+  /**
    * Charge les événements de l'utilisateur (créés + participations)
+   * 🆕 VERSION RÉACTIVE avec stockage des subscriptions
    */
   loadMyEvents() {
     this.isLoading.set(true);
     const userId = this.authService.getCurrentUserId();
 
     if (!userId) {
-      console.error('Utilisateur non connecté');
+      console.error('❌ Utilisateur non connecté');
       this.isLoading.set(false);
       return;
     }
 
-    // Charge les événements créés par l'utilisateur
-    this.eventsService.getEventsByOrganizer(userId).subscribe({
+    console.log('📥 Chargement des événements pour userId:', userId);
+
+    // 📊 Charge les événements créés par l'utilisateur (temps réel)
+    const createdSub = this.eventsService.getEventsByOrganizer(userId).subscribe({
       next: (events) => {
         this.createdEvents.set(events);
         this.loadParticipantCounts(events);
-        console.log(`✅ ${events.length} événements créés`);
-        
-        // Charge les participations seulement après avoir les événements créés
-        this.loadJoinedEvents(userId);
+        console.log(`✅ ${events.length} événements créés chargés`);
       },
       error: (error) => {
-        console.error('Erreur chargement événements créés:', error);
+        console.error('❌ Erreur chargement événements créés:', error);
         this.isLoading.set(false);
       }
     });
-  }
+    this.subscriptions.push(createdSub);
 
-  /**
-   * Charge les événements auxquels l'utilisateur participe
-   */
-  loadJoinedEvents(userId: string) {
-    // Récupère les participations de l'utilisateur
-    this.participantsService.getParticipationsByUser(userId).pipe(
-      // Pour chaque participation, récupère l'événement complet
+    // 📊 Charge les événements rejoints (temps réel avec switchMap)
+    // 🔧 FIX : switchMap garantit qu'à chaque changement de participations,
+    // on récupère la liste d'événements à jour et on la filtre
+    const joinedSub = this.participantsService.getParticipationsByUser(userId).pipe(
       switchMap(participations => {
+        console.log(`📝 ${participations.length} participations trouvées`);
+        
+        // Si aucune participation, retourne un tableau vide immédiatement
         if (participations.length === 0) {
           return of([]);
         }
 
         // Récupère les IDs des événements
         const eventIds = participations.map(p => p.eventId);
+        console.log(`🔍 IDs des événements rejoints:`, eventIds);
         
-        // Charge tous les événements
+        // Pour chaque changement de participations, on récupère TOUS les événements
+        // et on filtre pour ne garder que ceux où l'utilisateur participe
         return this.eventsService.getAllEvents().pipe(
-          map(allEvents => 
-            allEvents.filter(event => 
+          map(allEvents => {
+            const joined = allEvents.filter(event => 
               eventIds.includes(event.id!) && 
-              event.organizerId !== userId // Exclut les événements créés par l'utilisateur
-            )
-          )
+              event.organizerId !== userId
+            );
+            console.log(`🎉 ${joined.length} événements rejoints filtrés sur ${allEvents.length} événements totaux`);
+            return joined;
+          })
         );
       })
     ).subscribe({
@@ -165,57 +231,83 @@ export class MyEventsPage implements OnInit {
         this.joinedEvents.set(events);
         this.loadParticipantCounts(events);
         this.isLoading.set(false);
-        console.log(`✅ ${events.length} événements rejoints`);
+        console.log(`✅ ${events.length} événements rejoints chargés`);
       },
       error: (error) => {
-        console.error('Erreur chargement événements rejoints:', error);
+        console.error('❌ Erreur chargement événements rejoints:', error);
         this.isLoading.set(false);
       }
     });
+    this.subscriptions.push(joinedSub);
   }
 
   /**
-   * Charge le nombre de participants pour chaque événement
+   * Charge le nombre de participants pour chaque événement (temps réel)
+   * 🆕 VERSION avec stockage des subscriptions
    */
   loadParticipantCounts(events: Event[]) {
     events.forEach(event => {
       if (event.id) {
-        this.participantsService.getParticipantCount(event.id).subscribe({
+        const countSub = this.participantsService.getParticipantCount(event.id).subscribe({
           next: (count) => {
             this.participantCounts.set(event.id!, count);
           },
           error: (error) => {
-            console.error(`Erreur compteur pour ${event.id}:`, error);
+            console.error(`❌ Erreur compteur pour ${event.id}:`, error);
             this.participantCounts.set(event.id!, 0);
           }
         });
+        this.subscriptions.push(countSub);
       }
     });
   }
 
   /**
-   * Retourne la liste d'événements selon l'onglet sélectionné
+   * 🧹 Nettoie toutes les subscriptions actives
+   * 
+   * CRITIQUE : Évite les fuites mémoire et les subscriptions multiples
    */
-  getCurrentEvents(): Event[] {
-    return this.selectedSegment() === 'created' 
-      ? this.createdEvents() 
-      : this.joinedEvents();
+  private cleanupSubscriptions() {
+    console.log(`🧹 Nettoyage de ${this.subscriptions.length} subscriptions...`);
+    
+    this.subscriptions.forEach(sub => {
+      if (sub && !sub.closed) {
+        sub.unsubscribe();
+      }
+    });
+    
+    this.subscriptions = [];
+    console.log('✅ Subscriptions nettoyées');
   }
+
+  // ========================================
+  // 🔄 ACTIONS UTILISATEUR
+  // ========================================
 
   /**
    * Change d'onglet
    */
   onSegmentChange(event: any) {
     this.selectedSegment.set(event.detail.value);
+    console.log('🔀 Changement d\'onglet:', event.detail.value);
   }
 
   /**
-   * Rafraîchit la liste
+   * Rafraîchit la liste (pull-to-refresh)
+   * 🆕 VERSION avec nettoyage des anciennes subscriptions
    */
   handleRefresh(event: any) {
+    console.log('🔄 Pull-to-refresh déclenché');
+    
+    // Nettoie les anciennes subscriptions
+    this.cleanupSubscriptions();
+    
+    // Recharge tout
     this.loadMyEvents();
+    
     setTimeout(() => {
       event.target.complete();
+      console.log('✅ Refresh terminé');
     }, 1000);
   }
 
@@ -232,6 +324,10 @@ export class MyEventsPage implements OnInit {
   goToEventDetail(eventId: string) {
     this.router.navigate(['/events', eventId]);
   }
+
+  // ========================================
+  // 🎨 HELPERS D'AFFICHAGE
+  // ========================================
 
   /**
    * Retourne le nombre de participants pour un événement
@@ -318,3 +414,75 @@ export class MyEventsPage implements OnInit {
     return colors[category] || 'medium';
   }
 }
+
+// ========================================
+// 📚 GUIDE : CYCLE DE VIE IONIC
+// ========================================
+
+/*
+🔄 ORDRE D'EXÉCUTION DES HOOKS IONIC :
+
+1️⃣ PREMIÈRE VISITE DE LA PAGE :
+   ngOnInit() 
+   → ionViewWillEnter() 
+   → ionViewDidEnter()
+
+2️⃣ NAVIGATION VERS UNE AUTRE PAGE :
+   ionViewWillLeave() 
+   → ionViewDidLeave()
+
+3️⃣ RETOUR SUR LA PAGE (depuis le cache) :
+   ionViewWillEnter() 
+   → ionViewDidEnter()
+   
+   ⚠️ ngOnInit() N'EST PAS RAPPELÉ !
+
+4️⃣ DESTRUCTION DE LA PAGE (rare) :
+   ngOnDestroy()
+
+📝 BONNES PRATIQUES :
+
+✅ Utiliser ionViewWillEnter() pour :
+   - Recharger les données à chaque visite
+   - Mettre à jour l'UI avec les dernières infos
+   - S'abonner aux Observables
+
+✅ Utiliser ionViewWillLeave() pour :
+   - Nettoyer les subscriptions
+   - Sauvegarder l'état si nécessaire
+   - Éviter les fuites mémoire
+
+✅ Utiliser ngOnDestroy() comme filet de sécurité :
+   - Cleanup final des ressources
+   - Rarement appelé en Ionic (mise en cache)
+
+❌ À ÉVITER :
+   - Ne PAS compter uniquement sur ngOnInit() pour charger les données
+   - Ne PAS oublier de nettoyer les subscriptions
+   - Ne PAS créer de nouvelles subscriptions sans nettoyer les anciennes
+
+🎯 RÉSULTAT :
+   Les données sont toujours à jour quand tu reviens sur la page !
+
+⚠️ SWITCHMAP VS COMBINELATEST :
+
+❌ combineLatestWith() - PROBLÈME :
+   - Émet seulement quand LES DEUX sources émettent ensemble
+   - Peut manquer des changements si une source émet seule
+   - Ne garantit pas la réactivité complète
+
+✅ switchMap() - SOLUTION :
+   - À chaque changement de participations, annule l'ancienne subscription
+   - Crée une NOUVELLE subscription aux événements
+   - Garantit que les données sont toujours fraîches
+   - Flux : participations changent → nouvelles requêtes événements → filtrage → UI mise à jou
+
+EXEMPLE DU FLUX AVEC SWITCHMAP :
+1. Tu quittes un événement
+2. Firestore supprime le document participant
+3. getParticipationsByUser() détecte le changement et émet la nouvelle liste
+4. switchMap() annule l'ancienne subscription à getAllEvents()
+5. switchMap() crée une nouvelle subscription à getAllEvents()
+6. Les événements sont filtrés avec les nouvelles participations
+7. L'UI est mise à jour automatiquement ! ✨
+*/

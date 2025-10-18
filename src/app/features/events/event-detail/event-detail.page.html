@@ -1,5 +1,5 @@
 <!-- src/app/features/events/event-detail/event-detail.page.html -->
-<!-- Page de détail avec système de participation (SPRINT 3) -->
+<!-- ✅ VERSION CORRIGÉE -->
 
 <ion-header [translucent]="true">
   <ion-toolbar>
@@ -43,13 +43,13 @@
         <ion-label>Votre événement</ion-label>
       </ion-chip>
 
-      <!-- 🆕 Badge événement complet -->
+      <!-- Badge événement complet -->
       <ion-chip *ngIf="isEventFull()" class="full-badge" color="danger">
         <ion-icon name="close-circle-outline"></ion-icon>
         <ion-label>Complet</ion-label>
       </ion-chip>
 
-      <!-- 🆕 Badge participation -->
+      <!-- Badge participation -->
       <ion-chip *ngIf="isParticipating && !isOrganizer" class="participating-badge" color="success">
         <ion-icon name="checkmark-circle-outline"></ion-icon>
         <ion-label>Vous participez</ion-label>
@@ -65,7 +65,7 @@
           <ion-chip [color]="getCategoryColor(event.category)">
             <ion-label>{{ getCategoryLabel(event.category) }}</ion-label>
           </ion-chip>
-          <!-- 🆕 Badge compteur participants -->
+          <!-- Badge compteur participants -->
           <ion-chip [color]="isEventFull() ? 'danger' : 'primary'">
             <ion-icon name="people-outline"></ion-icon>
             <ion-label>{{ participantCount }} / {{ event.maxParticipants }}</ion-label>
@@ -73,7 +73,7 @@
         </div>
       </div>
 
-      <!-- 🆕 BOUTON PARTICIPER (pour les non-organisateurs) -->
+      <!-- BOUTON PARTICIPER (pour les non-organisateurs) -->
       <div *ngIf="!isOrganizer" class="participation-section">
         <!-- Cas 1: Utilisateur participe déjà -->
         <ion-button 
@@ -131,13 +131,13 @@
             </div>
           </div>
 
-          <!-- Lieu -->
+          <!-- Lieu - ✅ CORRECTION : Affichage avec zipCode -->
           <div class="detail-item">
             <ion-icon name="location-outline" color="danger"></ion-icon>
             <div class="detail-text">
               <strong>Lieu</strong>
               <p>{{ event.location.address }}</p>
-              <p class="text-muted">{{ event.location.city }} - {{ event.location.zipCode }}</p>
+              <p class="text-muted">{{ event.location.zipCode }} {{ event.location.city }}</p>
             </div>
           </div>
 
@@ -189,7 +189,7 @@
         </ion-card-content>
       </ion-card>
 
-      <!-- 🆕 LISTE DES PARTICIPANTS (visible uniquement pour l'organisateur) -->
+      <!-- LISTE DES PARTICIPANTS (visible uniquement pour l'organisateur) -->
       <ion-card *ngIf="isOrganizer && participants.length > 0">
         <ion-card-header>
           <ion-card-title>

@@ -1,4 +1,7 @@
-import { Component, OnInit, inject } from '@angular/core';
+// src/app/features/events/event-edit/event-edit.page.ts
+// ✅ VERSION COMPLÈTE CORRIGÉE
+
+import { Component, OnInit, OnDestroy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -40,12 +43,16 @@ import {
   locationOutline,
   peopleOutline,
   lockClosedOutline,
-  checkmarkCircleOutline, warningOutline } from 'ionicons/icons';
+  checkmarkCircleOutline,
+  warningOutline
+} from 'ionicons/icons';
 
 import { EventsService } from '../../../core/services/events.service';
 import { StorageService } from '../../../core/services/storage.service';
+import { ParticipantsService } from '../../../core/services/participants.service';
 import { Event, EventCategory, EventLocation } from '../../../core/models/event.model';
 import { Timestamp } from '@angular/fire/firestore';
+import { Subscription } from 'rxjs';
 
 @Component({
   selector: 'app-event-edit',
@@ -80,13 +87,14 @@ import { Timestamp } from '@angular/fire/firestore';
     IonSpinner
   ]
 })
-export class EventEditPage implements OnInit {
+export class EventEditPage implements OnInit, OnDestroy {
   // Injection des services
   private readonly fb = inject(FormBuilder);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly eventsService = inject(EventsService);
   private readonly storageService = inject(StorageService);
+  private readonly participantsService = inject(ParticipantsService);
   private readonly loadingCtrl = inject(LoadingController);
   private readonly toastCtrl = inject(ToastController);
   private readonly alertCtrl = inject(AlertController);
@@ -107,6 +115,12 @@ export class EventEditPage implements OnInit {
   // Date minimale (aujourd'hui)
   minDate: string = new Date().toISOString();
 
+  // ✅ Compteur de participants actuel (via ParticipantsService)
+  currentParticipantCount = 0;
+
+  // Gestion des subscriptions
+  private subscriptions: Subscription[] = [];
+
   // Catégories disponibles
   categories = [
     { value: EventCategory.PARTY, label: '🎉 Soirée' },
@@ -120,11 +134,20 @@ export class EventEditPage implements OnInit {
   ];
 
   constructor() {
-    addIcons({cameraOutline,closeOutline,calendarOutline,locationOutline,peopleOutline,warningOutline,checkmarkCircleOutline,lockClosedOutline,saveOutline});
+    addIcons({
+      cameraOutline,
+      closeOutline,
+      saveOutline,
+      calendarOutline,
+      locationOutline,
+      peopleOutline,
+      warningOutline,
+      checkmarkCircleOutline,
+      lockClosedOutline
+    });
   }
 
   ngOnInit() {
-    // Récupère l'ID depuis l'URL
     this.eventId = this.route.snapshot.paramMap.get('id') || '';
     
     if (!this.eventId) {
@@ -136,13 +159,22 @@ export class EventEditPage implements OnInit {
     this.loadEvent();
   }
 
+  ngOnDestroy() {
+    this.subscriptions.forEach(sub => {
+      if (sub && !sub.closed) {
+        sub.unsubscribe();
+      }
+    });
+    console.log('🧹 EventEditPage destroyed - subscriptions cleaned');
+  }
+
   /**
    * Charge l'événement depuis Firestore
    */
   loadEvent() {
     this.isLoading = true;
 
-    this.eventsService.getEventById(this.eventId).subscribe({
+    const eventSub = this.eventsService.getEventById(this.eventId).subscribe({
       next: (event) => {
         if (!event) {
           this.showToast('Événement introuvable', 'danger');
@@ -153,6 +185,10 @@ export class EventEditPage implements OnInit {
         this.originalEvent = event;
         this.imagePreview = event.imageUrl || null;
         this.initForm(event);
+        
+        // Charge le compteur de participants actuel
+        this.loadCurrentParticipantCount();
+        
         this.isLoading = false;
       },
       error: (error) => {
@@ -161,6 +197,24 @@ export class EventEditPage implements OnInit {
         this.router.navigate(['/events']);
       }
     });
+    this.subscriptions.push(eventSub);
+  }
+
+  /**
+   * ✅ Charge le nombre actuel de participants via ParticipantsService
+   */
+  loadCurrentParticipantCount() {
+    const countSub = this.participantsService.getParticipantCount(this.eventId).subscribe({
+      next: (count) => {
+        this.currentParticipantCount = count;
+        console.log(`✅ Participants actuels: ${count}`);
+      },
+      error: (error) => {
+        console.error('❌ Erreur compteur participants:', error);
+        this.currentParticipantCount = 0;
+      }
+    });
+    this.subscriptions.push(countSub);
   }
 
   /**
@@ -175,7 +229,7 @@ export class EventEditPage implements OnInit {
       maxParticipants: [event.maxParticipants, [Validators.required, Validators.min(2), Validators.max(1000)]],
       isPrivate: [event.isPrivate],
       requiresApproval: [event.requiresApproval],
-      // Location
+      // Location - ✅ Avec zipCode
       address: [event.location.address, Validators.required],
       city: [event.location.city, Validators.required],
       zipCode: [event.location.zipCode, [Validators.required, Validators.pattern(/^\d{5}$/)]]
@@ -283,30 +337,31 @@ export class EventEditPage implements OnInit {
       return;
     }
 
-    // Vérifie si des modifications ont été faites
     if (!this.hasChanges()) {
       await this.showToast('Aucune modification détectée', 'warning');
       return;
     }
 
-    // Confirmation
     const alert = await this.alertCtrl.create({
       header: 'Confirmer les modifications',
       message: 'Voulez-vous enregistrer les modifications ?',
       buttons: [
         { text: 'Annuler', role: 'cancel' },
-        { text: 'Enregistrer', handler: () => this.submitUpdate() }
+        { 
+          text: 'Enregistrer', 
+          handler: () => this.saveChanges()
+        }
       ]
     });
     await alert.present();
   }
 
   /**
-   * Soumet la mise à jour à Firestore
+   * ✅ Enregistre les modifications (VERSION CORRIGÉE)
    */
-  private async submitUpdate() {
+  private async saveChanges() {
     const loading = await this.loadingCtrl.create({
-      message: 'Mise à jour en cours...',
+      message: 'Mise à jour...',
       spinner: 'crescent'
     });
     await loading.present();
@@ -314,68 +369,37 @@ export class EventEditPage implements OnInit {
     try {
       let imageUrl = this.originalEvent?.imageUrl || '';
 
-      // Upload de la nouvelle image si elle a changé
+      // ✅ FIX : Utilisation de uploadImagePromise
       if (this.selectedImage && this.hasImageChanged) {
-        loading.message = 'Upload de l\'image...';
-        
-        // Supprime l'ancienne image si elle existe
-        if (this.originalEvent?.imageUrl) {
-          try {
-            await this.storageService.deleteImage(this.originalEvent.imageUrl).toPromise();
-            console.log('🗑️ Ancienne image supprimée');
-          } catch (error) {
-            console.warn('⚠️ Impossible de supprimer l\'ancienne image:', error);
-          }
-        }
-
-        // Upload de la nouvelle image
-        imageUrl = await this.storageService
-          .uploadImageWithAutoName(this.selectedImage, 'events')
-          .toPromise() || '';
-      } else if (!this.imagePreview && this.hasImageChanged) {
-        // L'utilisateur a supprimé l'image
-        if (this.originalEvent?.imageUrl) {
-          try {
-            await this.storageService.deleteImage(this.originalEvent.imageUrl).toPromise();
-            console.log('🗑️ Image supprimée');
-          } catch (error) {
-            console.warn('⚠️ Impossible de supprimer l\'image:', error);
-          }
-        }
-        imageUrl = '';
+        const path = `events/${this.eventId}/${Date.now()}_${this.selectedImage.name}`;
+        imageUrl = await this.storageService.uploadImagePromise(this.selectedImage, path);
+        console.log('✅ Nouvelle image uploadée:', imageUrl);
       }
 
       // Prépare les données
       const formValue = this.eventForm.value;
-      
-      const location: EventLocation = {
-        address: formValue.address,
-        city: formValue.city,
-        zipCode: formValue.zipCode,
-        latitude: this.originalEvent?.location.latitude || 0,
-        longitude: this.originalEvent?.location.longitude || 0
-      };
-
-      const updates = {
+      const updates: Partial<Event> = {
         title: formValue.title,
         description: formValue.description,
         date: Timestamp.fromDate(new Date(formValue.date)),
-        location: location,
-        maxParticipants: formValue.maxParticipants,
         category: formValue.category,
-        imageUrl: imageUrl,
+        maxParticipants: formValue.maxParticipants,
         isPrivate: formValue.isPrivate,
-        requiresApproval: formValue.requiresApproval
+        requiresApproval: formValue.requiresApproval,
+        location: {
+          address: formValue.address,
+          city: formValue.city,
+          zipCode: formValue.zipCode // ✅ zipCode inclus
+        } as EventLocation,
+        imageUrl
       };
 
-      // Met à jour l'événement dans Firestore
-      loading.message = 'Enregistrement...';
+      // Met à jour dans Firestore
       await this.eventsService.updateEvent(this.eventId, updates).toPromise();
-
+      
       await loading.dismiss();
-      await this.showToast('✅ Événement mis à jour avec succès !', 'success');
+      await this.showToast('Événement mis à jour avec succès', 'success');
 
-      // Redirige vers le détail
       this.router.navigate(['/events', this.eventId]);
 
     } catch (error: any) {

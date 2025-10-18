@@ -1,5 +1,5 @@
 // src/app/core/services/events.service.ts
-// Service de gestion des événements - VERSION CORRIGÉE SPRINT 3
+// Service de gestion des événements - VERSION CORRIGÉE
 
 import { Injectable, inject } from '@angular/core';
 import {
@@ -13,8 +13,7 @@ import {
   where,
   orderBy,
   Timestamp,
-  onSnapshot,
-  getDoc
+  onSnapshot
 } from '@angular/fire/firestore';
 import { Observable, from, map, switchMap } from 'rxjs';
 import { AuthenticationService } from './authentication.service';
@@ -41,7 +40,9 @@ export class EventsService {
 
   /**
    * Crée un nouvel événement dans Firestore
-   * 🆕 AJOUT : Ajoute automatiquement l'organisateur comme premier participant
+   * 🔧 FIX : Ne crée PLUS les champs currentParticipants et participants[]
+   * Ces données sont maintenant gérées par la collection "participants"
+   * 
    * @param eventData Données de l'événement à créer
    * @returns Observable avec l'ID du document créé
    */
@@ -55,6 +56,7 @@ export class EventsService {
     }
 
     // Prépare les données pour Firestore
+    // 🔧 FIX : Suppression de currentParticipants et participants[]
     const eventToCreate: Omit<Event, 'id'> = {
       title: eventData.title,
       description: eventData.description,
@@ -64,8 +66,8 @@ export class EventsService {
       organizerName: userName || userEmail || 'Organisateur',
       organizerPhoto: '',
       maxParticipants: eventData.maxParticipants,
-      currentParticipants: 0, // 🔧 FIX : Commence à 0, sera incrémenté après
-      participants: [], // 🔧 FIX : Vide au début
+      // ✅ SUPPRIMÉ : currentParticipants
+      // ✅ SUPPRIMÉ : participants
       category: eventData.category,
       imageUrl: eventData.imageUrl || '',
       images: [],
@@ -78,13 +80,13 @@ export class EventsService {
 
     const eventsRef = collection(this.firestore, this.eventsCollection);
     
-    // 🆕 AJOUT : Créer l'événement PUIS ajouter l'organisateur comme participant
+    // Crée l'événement PUIS ajoute l'organisateur comme participant
     return from(addDoc(eventsRef, eventToCreate)).pipe(
       switchMap(docRef => {
         const eventId = docRef.id;
         console.log('✅ Événement créé:', eventId);
 
-        // Créer le document participant pour l'organisateur
+        // Crée le document participant pour l'organisateur
         const participantData: Omit<Participant, 'id'> = {
           eventId,
           userId,
@@ -334,9 +336,11 @@ export class EventsService {
   }
 
   /**
-   * Vérifie si un événement est complet
+   * 🔧 FIX : Cette méthode n'est plus nécessaire
+   * Utilise participantsService.getParticipantCount() à la place
+   * @deprecated Utiliser ParticipantsService.getParticipantCount()
    */
-  isEventFull(event: Event): boolean {
-    return event.currentParticipants >= event.maxParticipants;
+  isEventFull(event: Event, participantCount: number): boolean {
+    return participantCount >= event.maxParticipants;
   }
 }

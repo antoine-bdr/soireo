@@ -1,4 +1,5 @@
 <!-- src/app/features/events/event-edit/event-edit.page.html -->
+<!-- ✅ VERSION CORRIGÉE -->
 
 <ion-header>
   <ion-toolbar color="primary">
@@ -258,11 +259,11 @@
           </ion-text>
         </div>
 
-        <!-- Warning si on réduit en dessous du nombre actuel -->
-        <ion-text color="warning" *ngIf="originalEvent && maxParticipants?.value < originalEvent.currentParticipants">
+        <!-- ✅ FIX : Utilisation de currentParticipantCount au lieu de currentParticipants -->
+        <ion-text color="warning" *ngIf="maxParticipants?.value < currentParticipantCount">
           <p class="warning-text">
             <ion-icon name="warning-outline"></ion-icon>
-            Le nombre actuel de participants ({{ originalEvent.currentParticipants }}) 
+            Le nombre actuel de participants ({{ currentParticipantCount }}) 
             dépasse la nouvelle limite.
           </p>
         </ion-text>

@@ -1,8 +1,11 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+// src/app/features/events/event-list/event-list.page.ts
+// Liste des événements - VERSION COMPLÈTE avec réactivité temps réel
+
+import { Component, OnInit, OnDestroy, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router'
+import { RouterLink } from '@angular/router';
 import {
   IonHeader,
   IonToolbar,
@@ -26,7 +29,9 @@ import {
   IonChip,
   IonSpinner,
   IonRefresher,
-  IonRefresherContent, IonButtons } from '@ionic/angular/standalone';
+  IonRefresherContent,
+  IonButtons
+} from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import { 
   addOutline, 
@@ -34,12 +39,14 @@ import {
   locationOutline, 
   peopleOutline,
   searchOutline,
-  filterOutline, personOutline } from 'ionicons/icons';
+  filterOutline,
+  personOutline
+} from 'ionicons/icons';
 
 import { EventsService } from '../../../core/services/events.service';
 import { ParticipantsService } from '../../../core/services/participants.service';
 import { Event, EventCategory } from '../../../core/models/event.model';
-import { Observable } from 'rxjs';
+import { Observable, Subscription } from 'rxjs';
 import { map } from 'rxjs/operators';
 
 @Component({
@@ -47,7 +54,8 @@ import { map } from 'rxjs/operators';
   templateUrl: './event-list.page.html',
   styleUrls: ['./event-list.page.scss'],
   standalone: true,
-  imports: [IonButtons, 
+  imports: [
+    IonButtons, 
     CommonModule,
     FormsModule,
     IonHeader,
@@ -73,15 +81,13 @@ import { map } from 'rxjs/operators';
     IonSpinner,
     IonRefresher,
     IonRefresherContent,
-    IonToolbar,
-    IonHeader,
     RouterLink
   ]
 })
-export class EventListPage implements OnInit {
+export class EventListPage implements OnInit, OnDestroy {
   // Injection des services
   private readonly eventsService = inject(EventsService);
-  private readonly participantsService = inject(ParticipantsService); // 🆕 AJOUT
+  private readonly participantsService = inject(ParticipantsService);
   private readonly router = inject(Router);
 
   // État de la page
@@ -93,19 +99,41 @@ export class EventListPage implements OnInit {
   searchTerm = signal('');
   selectedSegment = signal<'all' | 'upcoming'>('upcoming');
 
-  // 🆕 AJOUT : Map pour stocker le nombre de participants par événement
+  // Map pour stocker le nombre de participants par événement
   participantCounts = new Map<string, number>();
 
+  // 🆕 GESTION DES SUBSCRIPTIONS POUR CLEANUP
+  private subscriptions: Subscription[] = [];
+
   constructor() {
-    addIcons({personOutline,calendarOutline,addOutline,peopleOutline,locationOutline,searchOutline,filterOutline});
+    addIcons({
+      personOutline,
+      calendarOutline,
+      addOutline,
+      peopleOutline,
+      locationOutline,
+      searchOutline,
+      filterOutline
+    });
   }
 
   ngOnInit() {
     this.loadEvents();
   }
 
+  // 🆕 CLEANUP DES SUBSCRIPTIONS
+  ngOnDestroy() {
+    this.subscriptions.forEach(sub => {
+      if (sub && !sub.closed) {
+        sub.unsubscribe();
+      }
+    });
+    console.log('🧹 EventListPage destroyed - subscriptions cleaned');
+  }
+
   /**
    * Charge les événements depuis Firestore
+   * 🆕 VERSION avec stockage des subscriptions
    */
   loadEvents() {
     this.isLoading.set(true);
@@ -116,12 +144,12 @@ export class EventListPage implements OnInit {
       : this.eventsService.getUpcomingEvents();
 
     // Subscribe pour mettre à jour filteredEvents
-    eventsObservable.subscribe({
+    const eventsSub = eventsObservable.subscribe({
       next: (events) => {
         this.filteredEvents.set(events);
         this.isLoading.set(false);
         
-        // 🆕 AJOUT : Charge le nombre de participants pour chaque événement
+        // Charge le nombre de participants pour chaque événement
         this.loadParticipantCounts(events);
         
         console.log(`✅ ${events.length} événements chargés`);
@@ -131,18 +159,25 @@ export class EventListPage implements OnInit {
         this.isLoading.set(false);
       }
     });
+    this.subscriptions.push(eventsSub);
   }
 
-  // 🆕 NOUVELLE MÉTHODE : Charge le nombre de participants pour tous les événements
   /**
-   * Charge le nombre de participants pour chaque événement
+   * Charge le nombre de participants pour tous les événements (temps réel)
+   * 🆕 VERSION avec gestion des subscriptions
    * @param events Liste des événements
    */
   loadParticipantCounts(events: Event[]) {
+    // Nettoie les anciennes subscriptions de compteurs (garde la première qui est pour les événements)
+    if (this.subscriptions.length > 1) {
+      this.subscriptions.slice(1).forEach(sub => sub.unsubscribe());
+      this.subscriptions = [this.subscriptions[0]];
+    }
+
     events.forEach(event => {
       if (event.id) {
         // Souscrit au compteur en temps réel pour chaque événement
-        this.participantsService.getParticipantCount(event.id).subscribe({
+        const countSub = this.participantsService.getParticipantCount(event.id).subscribe({
           next: (count) => {
             this.participantCounts.set(event.id!, count);
           },
@@ -151,13 +186,13 @@ export class EventListPage implements OnInit {
             this.participantCounts.set(event.id!, 0);
           }
         });
+        this.subscriptions.push(countSub);
       }
     });
   }
 
-  // 🆕 NOUVELLE MÉTHODE : Récupère le nombre de participants pour un événement
   /**
-   * Retourne le nombre de participants pour un événement
+   * Récupère le nombre de participants pour un événement
    * @param eventId ID de l'événement
    * @returns Nombre de participants
    */
@@ -165,7 +200,6 @@ export class EventListPage implements OnInit {
     return this.participantCounts.get(eventId) || 0;
   }
 
-  // 🆕 NOUVELLE MÉTHODE : Vérifie si un événement est complet
   /**
    * Vérifie si un événement est complet
    * @param event Événement à vérifier
@@ -176,7 +210,6 @@ export class EventListPage implements OnInit {
     return count >= event.maxParticipants;
   }
 
-  // 🆕 NOUVELLE MÉTHODE : Retourne la couleur du badge participants
   /**
    * Retourne la couleur du badge participants
    * @param event Événement
@@ -211,11 +244,17 @@ export class EventListPage implements OnInit {
     }
 
     // Recherche dans les événements
-    this.eventsService.searchEvents(term).subscribe(events => {
+    const searchSub = this.eventsService.searchEvents(term).subscribe(events => {
       this.filteredEvents.set(events);
       // Recharge aussi les compteurs pour les résultats de recherche
       this.loadParticipantCounts(events);
     });
+
+    // Remplace l'ancienne subscription de recherche
+    if (this.subscriptions.length > 0) {
+      this.subscriptions[0].unsubscribe();
+      this.subscriptions[0] = searchSub;
+    }
   }
 
   /**
@@ -223,14 +262,25 @@ export class EventListPage implements OnInit {
    */
   onSegmentChange(event: any) {
     this.selectedSegment.set(event.detail.value);
+    
+    // Nettoie et recharge
+    this.subscriptions.forEach(sub => sub.unsubscribe());
+    this.subscriptions = [];
+    
     this.loadEvents();
   }
 
   /**
    * Rafraîchir la liste (pull-to-refresh)
+   * 🆕 VERSION avec nettoyage des subscriptions
    */
   handleRefresh(event: any) {
+    // Nettoie et recharge
+    this.subscriptions.forEach(sub => sub.unsubscribe());
+    this.subscriptions = [];
+    
     this.loadEvents();
+    
     setTimeout(() => {
       event.target.complete();
     }, 1000);

@@ -1,7 +1,4 @@
-// src/app/features/events/event-detail/event-detail.page.ts
-// Page de détail d'un événement avec système de participation (SPRINT 3)
-
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import {
@@ -46,8 +43,7 @@ import {
   personAddOutline,
   ellipsisVertical,
   exitOutline,
-  closeCircleOutline
-} from 'ionicons/icons';
+  closeCircleOutline, warningOutline } from 'ionicons/icons';
 
 import { EventsService } from '../../../core/services/events.service';
 import { AuthenticationService } from '../../../core/services/authentication.service';
@@ -55,6 +51,7 @@ import { ParticipantsService } from '../../../core/services/participants.service
 import { Event } from '../../../core/models/event.model';
 import { Participant } from '../../../core/models/participant.model';
 import { take } from 'rxjs/operators';
+import { Subscription } from 'rxjs';
 
 @Component({
   selector: 'app-event-detail',
@@ -88,7 +85,7 @@ import { take } from 'rxjs/operators';
     IonLabel
   ]
 })
-export class EventDetailPage implements OnInit {
+export class EventDetailPage implements OnInit, OnDestroy {
   // Injection des services
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
@@ -105,39 +102,25 @@ export class EventDetailPage implements OnInit {
   isLoading = true;
   isOrganizer = false;
 
-  // 🆕 Sprint 3 : Participation
+  // Sprint 3 : Participation
   isParticipating = false;
   participantCount = 0;
   participants: Participant[] = [];
   canJoin = true;
   canJoinReason = '';
   
-  // 🔧 FIX : Protection contre les clics multiples
+  // Protection contre les clics multiples
   isJoining = false;
   isLeaving = false;
 
+  // 🆕 GESTION DES SUBSCRIPTIONS POUR CLEANUP
+  private subscriptions: Subscription[] = [];
+
   constructor() {
-    // Enregistrement des icônes
-    addIcons({
-      createOutline,
-      trashOutline,
-      personOutline,
-      calendarOutline,
-      locationOutline,
-      peopleOutline,
-      lockClosedOutline,
-      checkmarkCircleOutline,
-      personAddOutline,
-      shareOutline,
-      timeOutline,
-      ellipsisVertical,
-      exitOutline,
-      closeCircleOutline
-    });
+    addIcons({createOutline,trashOutline,checkmarkCircleOutline,closeCircleOutline,peopleOutline,exitOutline,personAddOutline,warningOutline,calendarOutline,locationOutline,personOutline,ellipsisVertical,shareOutline,lockClosedOutline,timeOutline});
   }
 
   ngOnInit() {
-    // Récupère l'ID de l'événement depuis l'URL
     this.eventId = this.route.snapshot.paramMap.get('id') || '';
     
     if (!this.eventId) {
@@ -149,13 +132,24 @@ export class EventDetailPage implements OnInit {
     this.loadEvent();
   }
 
+  // 🆕 CLEANUP DES SUBSCRIPTIONS
+  ngOnDestroy() {
+    this.subscriptions.forEach(sub => {
+      if (sub && !sub.closed) {
+        sub.unsubscribe();
+      }
+    });
+    console.log('🧹 EventDetailPage destroyed - subscriptions cleaned');
+  }
+
   /**
    * Charge l'événement depuis Firestore
+   * 🆕 VERSION avec stockage de la subscription
    */
   loadEvent() {
     this.isLoading = true;
 
-    this.eventsService.getEventById(this.eventId).subscribe({
+    const eventSub = this.eventsService.getEventById(this.eventId).subscribe({
       next: (event) => {
         if (!event) {
           this.showToast('Événement introuvable', 'danger');
@@ -165,10 +159,7 @@ export class EventDetailPage implements OnInit {
 
         this.event = event;
         this.checkIfOrganizer();
-        
-        // 🆕 Charge les informations de participation
         this.loadParticipationInfo();
-        
         this.isLoading = false;
       },
       error: (error) => {
@@ -178,6 +169,7 @@ export class EventDetailPage implements OnInit {
         this.router.navigate(['/events']);
       }
     });
+    this.subscriptions.push(eventSub);
   }
 
   /**
@@ -188,49 +180,44 @@ export class EventDetailPage implements OnInit {
     this.isOrganizer = this.event?.organizerId === currentUserId;
   }
 
-  // ========================================
-  // 🆕 SPRINT 3 : GESTION PARTICIPATION
-  // ========================================
-
   /**
    * Charge les informations de participation (compteur, statut utilisateur)
-   * 🔧 FIX : Utilise take(1) pour éviter les boucles infinies
+   * 🆕 VERSION avec stockage des subscriptions pour réactivité temps réel
    */
   loadParticipationInfo() {
     if (!this.event) return;
 
     console.log('🔍 Chargement des infos de participation...');
 
-    // Charge le nombre de participants (temps réel pour le compteur)
-    this.participantsService.getParticipantCount(this.eventId).subscribe({
+    // Compteur de participants (temps réel)
+    const countSub = this.participantsService.getParticipantCount(this.eventId).subscribe({
       next: (count) => {
         this.participantCount = count;
         console.log(`👥 Compteur participants: ${count}`);
       }
     });
+    this.subscriptions.push(countSub);
 
-    // Vérifie si l'utilisateur participe déjà (one-time)
-    this.participantsService.isUserParticipating(this.eventId).pipe(
-      take(1) // ← CORRECTION : Une seule vérification
-    ).subscribe({
+    // Statut participation utilisateur (temps réel)
+    const participatingSub = this.participantsService.isUserParticipating(this.eventId).subscribe({
       next: (isParticipating) => {
         this.isParticipating = isParticipating;
         console.log(`✅ isParticipating: ${isParticipating}`);
       }
     });
+    this.subscriptions.push(participatingSub);
 
-    // Vérifie si l'utilisateur peut rejoindre (one-time)
-    this.participantsService.canJoinEventObservable(this.event).pipe(
-      take(1) // ← CORRECTION : Une seule vérification
-    ).subscribe({
+    // Vérification possibilité de rejoindre (temps réel)
+    const canJoinSub = this.participantsService.canJoinEventReactive(this.event).subscribe({
       next: (result) => {
         this.canJoin = result.allowed;
         this.canJoinReason = result.reason || '';
         console.log(`✅ canJoin: ${result.allowed}, reason: ${result.reason || 'N/A'}`);
       }
     });
+    this.subscriptions.push(canJoinSub);
 
-    // Charge la liste des participants (pour l'organisateur)
+    // Liste participants (organisateur uniquement, temps réel)
     if (this.isOrganizer) {
       this.loadParticipants();
     }
@@ -238,9 +225,10 @@ export class EventDetailPage implements OnInit {
 
   /**
    * Charge la liste complète des participants (organisateur uniquement)
+   * 🆕 VERSION avec stockage de la subscription
    */
   loadParticipants() {
-    this.participantsService.getParticipants(this.eventId).subscribe({
+    const participantsSub = this.participantsService.getParticipants(this.eventId).subscribe({
       next: (participants) => {
         this.participants = participants;
       },
@@ -248,13 +236,14 @@ export class EventDetailPage implements OnInit {
         console.error('Erreur lors du chargement des participants:', error);
       }
     });
+    this.subscriptions.push(participantsSub);
   }
 
   /**
    * Permet à l'utilisateur de rejoindre l'événement
    */
   async joinEvent() {
-    // 🔧 FIX : Empêche les clics multiples
+    // Protection contre les clics multiples
     if (this.isJoining) {
       console.log('⚠️ Inscription déjà en cours, ignoré');
       return;
@@ -270,7 +259,7 @@ export class EventDetailPage implements OnInit {
       return;
     }
 
-    // 🔧 FIX : Active le flag de protection
+    // Active le flag de protection
     this.isJoining = true;
     console.log('🔵 Début inscription...');
 
@@ -284,7 +273,7 @@ export class EventDetailPage implements OnInit {
       next: async () => {
         await loading.dismiss();
         this.isParticipating = true;
-        this.isJoining = false; // 🔧 FIX : Libère le flag
+        this.isJoining = false;
         
         const message = this.event!.requiresApproval 
           ? 'Demande envoyée ! En attente d\'approbation de l\'organisateur.'
@@ -293,12 +282,11 @@ export class EventDetailPage implements OnInit {
         await this.showToast(message, 'success');
         console.log('✅ Inscription réussie');
         
-        // Recharge les infos de participation
-        this.loadParticipationInfo();
+        // 🆕 Plus besoin de recharger - les observables temps réel mettent à jour automatiquement !
       },
       error: async (error) => {
         await loading.dismiss();
-        this.isJoining = false; // 🔧 FIX : Libère le flag en cas d'erreur
+        this.isJoining = false;
         console.error('❌ Erreur lors de l\'inscription:', error);
         this.showToast(error.message || 'Erreur lors de l\'inscription', 'danger');
       }
@@ -309,7 +297,7 @@ export class EventDetailPage implements OnInit {
    * Permet à l'utilisateur d'annuler sa participation
    */
   async leaveEvent() {
-    // 🔧 FIX : Empêche les clics multiples
+    // Protection contre les clics multiples
     if (this.isLeaving) {
       console.log('⚠️ Annulation déjà en cours, ignoré');
       return;
@@ -319,7 +307,6 @@ export class EventDetailPage implements OnInit {
       return;
     }
 
-    // Demande confirmation
     const alert = await this.alertCtrl.create({
       header: 'Annuler votre participation',
       message: 'Êtes-vous sûr de vouloir annuler votre participation à cet événement ?',
@@ -330,9 +317,34 @@ export class EventDetailPage implements OnInit {
         },
         {
           text: 'Oui, annuler',
-          role: 'destructive',
-          handler: () => {
-            this.confirmLeaveEvent();
+          role: 'confirm',
+          handler: async () => {
+            this.isLeaving = true;
+            console.log('🔴 Début annulation...');
+
+            const loading = await this.loadingCtrl.create({
+              message: 'Annulation en cours...',
+              spinner: 'crescent'
+            });
+            await loading.present();
+
+            this.participantsService.leaveEvent(this.eventId).subscribe({
+              next: async () => {
+                await loading.dismiss();
+                this.isParticipating = false;
+                this.isLeaving = false;
+                await this.showToast('Participation annulée', 'success');
+                console.log('✅ Annulation réussie');
+                
+                // 🆕 Plus besoin de recharger - les observables temps réel mettent à jour automatiquement !
+              },
+              error: async (error) => {
+                await loading.dismiss();
+                this.isLeaving = false;
+                console.error('❌ Erreur lors de l\'annulation:', error);
+                this.showToast('Erreur lors de l\'annulation', 'danger');
+              }
+            });
           }
         }
       ]
@@ -342,50 +354,12 @@ export class EventDetailPage implements OnInit {
   }
 
   /**
-   * Confirme l'annulation de participation
-   */
-  async confirmLeaveEvent() {
-    // 🔧 FIX : Active le flag de protection
-    this.isLeaving = true;
-    console.log('🔵 Début annulation...');
-
-    const loading = await this.loadingCtrl.create({
-      message: 'Annulation en cours...',
-      spinner: 'crescent'
-    });
-    await loading.present();
-
-    this.participantsService.leaveEvent(this.eventId).subscribe({
-      next: async () => {
-        await loading.dismiss();
-        this.isParticipating = false;
-        this.isLeaving = false; // 🔧 FIX : Libère le flag
-        await this.showToast('Participation annulée', 'success');
-        console.log('✅ Annulation réussie');
-        
-        // Recharge les infos
-        this.loadParticipationInfo();
-      },
-      error: async (error) => {
-        await loading.dismiss();
-        this.isLeaving = false; // 🔧 FIX : Libère le flag en cas d'erreur
-        console.error('❌ Erreur lors de l\'annulation:', error);
-        this.showToast('Erreur lors de l\'annulation', 'danger');
-      }
-    });
-  }
-
-  /**
-   * Retire un participant (organisateur uniquement)
+   * Retirer un participant (organisateur uniquement)
    */
   async removeParticipant(participant: Participant) {
-    if (!this.isOrganizer) {
-      return;
-    }
-
     const alert = await this.alertCtrl.create({
       header: 'Retirer ce participant',
-      message: `Voulez-vous retirer ${participant.userName} de cet événement ?`,
+      message: `Êtes-vous sûr de vouloir retirer ${participant.userName} ?`,
       buttons: [
         {
           text: 'Annuler',
@@ -394,8 +368,26 @@ export class EventDetailPage implements OnInit {
         {
           text: 'Retirer',
           role: 'destructive',
-          handler: () => {
-            this.confirmRemoveParticipant(participant.id!);
+          handler: async () => {
+            const loading = await this.loadingCtrl.create({
+              message: 'Suppression en cours...',
+              spinner: 'crescent'
+            });
+            await loading.present();
+
+            this.participantsService.removeParticipant(participant.id!).subscribe({
+              next: async () => {
+                await loading.dismiss();
+                await this.showToast('Participant retiré', 'success');
+                
+                // 🆕 Plus besoin de recharger - l'observable temps réel met à jour la liste automatiquement !
+              },
+              error: async (error) => {
+                await loading.dismiss();
+                console.error('Erreur suppression participant:', error);
+                this.showToast('Erreur lors de la suppression', 'danger');
+              }
+            });
           }
         }
       ]
@@ -405,67 +397,46 @@ export class EventDetailPage implements OnInit {
   }
 
   /**
-   * Confirme le retrait d'un participant
-   */
-  async confirmRemoveParticipant(participantId: string) {
-    const loading = await this.loadingCtrl.create({
-      message: 'Retrait en cours...'
-    });
-    await loading.present();
-
-    this.participantsService.removeParticipant(participantId).subscribe({
-      next: async () => {
-        await loading.dismiss();
-        await this.showToast('Participant retiré', 'success');
-        // La liste se met à jour automatiquement via onSnapshot
-      },
-      error: async (error) => {
-        await loading.dismiss();
-        console.error('Erreur lors du retrait:', error);
-        this.showToast('Erreur lors du retrait', 'danger');
-      }
-    });
-  }
-
-  // ========================================
-  // ACTIONS ORGANISATEUR
-  // ========================================
-
-  /**
-   * Navigue vers la page d'édition
+   * Éditer l'événement (organisateur uniquement)
    */
   editEvent() {
-    if (!this.isOrganizer) {
-      this.showToast('Vous n\'êtes pas autorisé à modifier cet événement', 'danger');
-      return;
-    }
-    this.router.navigate(['/events/edit', this.eventId]);
+    this.router.navigate(['/events', this.eventId, 'edit']);
   }
 
   /**
-   * Supprime l'événement après confirmation
+   * Supprimer l'événement (organisateur uniquement)
    */
   async deleteEvent() {
-    if (!this.isOrganizer) {
-      this.showToast('Vous n\'êtes pas autorisé à supprimer cet événement', 'danger');
-      return;
-    }
-
     const alert = await this.alertCtrl.create({
-      header: 'Confirmer la suppression',
-      message: `Êtes-vous sûr de vouloir supprimer l'événement "${this.event?.title}" ? Cette action est irréversible.`,
+      header: 'Supprimer l\'événement',
+      message: 'Êtes-vous sûr de vouloir supprimer cet événement ? Cette action est irréversible.',
       buttons: [
         {
           text: 'Annuler',
-          role: 'cancel',
-          cssClass: 'secondary'
+          role: 'cancel'
         },
         {
           text: 'Supprimer',
           role: 'destructive',
-          cssClass: 'danger',
-          handler: () => {
-            this.confirmDelete();
+          handler: async () => {
+            const loading = await this.loadingCtrl.create({
+              message: 'Suppression en cours...',
+              spinner: 'crescent'
+            });
+            await loading.present();
+
+            this.eventsService.deleteEvent(this.eventId).subscribe({
+              next: async () => {
+                await loading.dismiss();
+                await this.showToast('Événement supprimé', 'success');
+                this.router.navigate(['/events']);
+              },
+              error: async (error) => {
+                await loading.dismiss();
+                console.error('Erreur lors de la suppression:', error);
+                this.showToast('Erreur lors de la suppression', 'danger');
+              }
+            });
           }
         }
       ]
@@ -475,36 +446,11 @@ export class EventDetailPage implements OnInit {
   }
 
   /**
-   * Exécute la suppression après confirmation
-   */
-  async confirmDelete() {
-    const loading = await this.loadingCtrl.create({
-      message: 'Suppression en cours...',
-      spinner: 'crescent'
-    });
-    await loading.present();
-
-    try {
-      await this.eventsService.deleteEvent(this.eventId).toPromise();
-      await loading.dismiss();
-      await this.showToast('Événement supprimé avec succès', 'success');
-      this.router.navigate(['/events'], { replaceUrl: true });
-    } catch (error) {
-      await loading.dismiss();
-      console.error('Erreur lors de la suppression:', error);
-      this.showToast('Erreur lors de la suppression de l\'événement', 'danger');
-    }
-  }
-
-  // ========================================
-  // MÉTHODES UTILITAIRES
-  // ========================================
-
-  /**
-   * Formate la date de l'événement
+   * Formate la date pour l'affichage
    */
   formatDate(timestamp: any): string {
     if (!timestamp) return '';
+    
     const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
     return new Intl.DateTimeFormat('fr-FR', {
       weekday: 'long',
