@@ -429,7 +429,7 @@ export class EventDetailPage implements OnInit, OnDestroy {
               next: async () => {
                 await loading.dismiss();
                 await this.showToast('Événement supprimé', 'success');
-                this.router.navigate(['/events']);
+                this.router.navigate(['/tabs/events']);
               },
               error: async (error) => {
                 await loading.dismiss();

@@ -77,7 +77,6 @@ import { CreateEventDto, EventCategory, EventLocation } from '../../../core/mode
     IonIcon,
     IonToggle,
     IonText,
-    IonDatetimeButton,
     IonModal,
     IonDatetime
   ]
@@ -294,7 +293,7 @@ export class EventCreatePage implements OnInit {
       await this.showToast('🎉 Événement créé avec succès !', 'success');
 
       // Redirige vers le détail de l'événement
-      this.router.navigate(['/events', eventId]);
+      this.router.navigate(['/tabs/events', eventId]);
 
     } catch (error: any) {
       await loading.dismiss();

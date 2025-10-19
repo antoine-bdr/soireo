@@ -4,14 +4,6 @@
 <ion-header>
   <ion-toolbar color="primary">
     <ion-title>🎉 Événements</ion-title>
-    <ion-buttons slot="end">
-      <ion-button [routerLink]="['/my-events']">
-        <ion-icon name="calendar-outline" slot="icon-only"></ion-icon>
-      </ion-button>
-      <ion-button [routerLink]="['/profile']">
-        <ion-icon name="person-circle-outline" slot="icon-only"></ion-icon>
-      </ion-button>
-    </ion-buttons>
   </ion-toolbar>
 
   <!-- Barre de recherche -->
@@ -168,12 +160,5 @@
       </ion-card-content>
     </ion-card>
   </div>
-
-  <!-- Bouton FAB pour créer un événement -->
-  <ion-fab vertical="bottom" horizontal="end" slot="fixed">
-    <ion-fab-button (click)="goToCreateEvent()">
-      <ion-icon name="add"></ion-icon>
-    </ion-fab-button>
-  </ion-fab>
 
 </ion-content>

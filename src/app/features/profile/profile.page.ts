@@ -79,7 +79,6 @@ import { User, UpdateUserDto } from '../../core/models/user.model';
     IonTextarea,
     IonButton,
     IonIcon,
-    IonBadge,
     IonGrid,
     IonRow,
     IonCol,

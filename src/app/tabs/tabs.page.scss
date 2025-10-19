@@ -1,0 +1,77 @@
+/**
+ * 🎨 Styles pour la navigation Tabs
+ */
+
+// Barre de navigation
+ion-tab-bar {
+    --background: var(--ion-background-color, #1a1a1a);
+    --border: 1px solid rgba(255, 255, 255, 0.1);
+    padding-bottom: env(safe-area-inset-bottom); // Support iPhone notch
+    height: 60px;
+  }
+  
+  // Boutons des tabs
+  ion-tab-button {
+    --color: rgba(255, 255, 255, 0.6);
+    --color-selected: var(--ion-color-primary, #6b9aff);
+    
+    // Icône
+    ion-icon {
+      font-size: 24px;
+      margin-bottom: 4px;
+    }
+    
+    // Label
+    ion-label {
+      font-size: 12px;
+      font-weight: 500;
+    }
+    
+    // État sélectionné
+    &.tab-selected {
+      ion-icon {
+        transform: scale(1.1);
+        transition: transform 0.2s ease;
+      }
+    }
+    
+    // Hover effect (desktop)
+    &:hover {
+      --color: rgba(255, 255, 255, 0.9);
+    }
+  }
+  
+  // FAB (Floating Action Button)
+  ion-fab {
+    margin-bottom: 70px; // Espace au-dessus de la tab bar
+    margin-right: 16px;
+    
+    ion-fab-button {
+      --background: var(--ion-color-primary, #6b9aff);
+      --box-shadow: 0 4px 12px rgba(107, 154, 255, 0.4);
+      width: 56px;
+      height: 56px;
+      
+      ion-icon {
+        font-size: 28px;
+      }
+      
+      // Animation au clic
+      &:active {
+        transform: scale(0.95);
+      }
+    }
+  }
+  
+  // Mode clair (override si nécessaire)
+  @media (prefers-color-scheme: light) {
+    ion-tab-bar {
+      --background: #ffffff;
+      --border: 1px solid rgba(0, 0, 0, 0.1);
+    }
+    
+    ion-tab-button {
+      --color: rgba(0, 0, 0, 0.6);
+      --color-selected: var(--ion-color-primary, #6b9aff);
+    }
+  }

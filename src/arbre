@@ -1,0 +1,22 @@
+App
+    Core
+        Guards
+        Models
+        Services
+    Features
+        Auth
+            Login
+            Register
+        Events
+            Event-create
+            Event-detail
+            Event-edit
+            Event-list
+            My-Events
+        Home
+        Profile
+    Shared
+        Components(vierge)
+            User-avatar
+        Event-card(vierge)
+    Tabs (vierge)
