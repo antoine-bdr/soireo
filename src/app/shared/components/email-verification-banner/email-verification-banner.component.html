@@ -1,0 +1,51 @@
+<!-- src/app/shared/components/email-verification-banner/email-verification-banner.component.html -->
+<!-- Banner de vérification d'email -->
+
+<div class="email-banner" *ngIf="showBanner">
+  <div class="banner-content">
+    <!-- Icône -->
+    <ion-icon name="mail-outline" class="banner-icon"></ion-icon>
+
+    <!-- Message -->
+    <div class="banner-message">
+      <p class="banner-title">Vérifiez votre email</p>
+      <p class="banner-subtitle">
+        Un email de vérification a été envoyé à <strong>{{ userEmail }}</strong>
+      </p>
+    </div>
+
+    <!-- Actions -->
+    <div class="banner-actions">
+      <!-- Bouton Renvoyer -->
+      <ion-button 
+        fill="clear" 
+        size="small"
+        (click)="resendVerificationEmail()"
+        [disabled]="isLoading"
+        class="banner-button">
+        <ion-icon slot="start" name="refresh-outline"></ion-icon>
+        {{ isLoading ? 'Envoi...' : 'Renvoyer' }}
+      </ion-button>
+
+      <!-- Bouton Rafraîchir -->
+      <ion-button 
+        fill="clear" 
+        size="small"
+        (click)="refreshVerificationStatus()"
+        [disabled]="isLoading"
+        class="banner-button">
+        <ion-icon slot="start" name="checkmark-circle-outline"></ion-icon>
+        J'ai vérifié
+      </ion-button>
+
+      <!-- Bouton Fermer -->
+      <ion-button 
+        fill="clear" 
+        size="small"
+        (click)="dismissBanner()"
+        class="banner-close">
+        <ion-icon slot="icon-only" name="close"></ion-icon>
+      </ion-button>
+    </div>
+  </div>
+</div>

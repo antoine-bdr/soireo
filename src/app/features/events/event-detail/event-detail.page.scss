@@ -1,381 +1,599 @@
-// src/app/features/events/event-detail/event-detail.page.scss
-// Styles pour la page de détail avec système de participation (SPRINT 3)
+// ========================================
+// 🎨 EVENT DETAIL - DARK PREMIUM GLASSMORPHISM
+// Adapté au design de event-list
+// ========================================
 
-// Container de chargement
+// ========================================
+// ⏳ LOADING STATE
+// ========================================
 .loading-container {
+  height: 100vh;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  height: 100%;
-  gap: 1rem;
-  
+  gap: 16px;
+
   ion-spinner {
-    width: 48px;
-    height: 48px;
+    --color: #FF2D55;
+    transform: scale(1.8);
+    filter: drop-shadow(0 0 16px rgba(255, 45, 85, 0.6));
   }
-  
+
   p {
-    color: var(--ion-color-medium);
-    font-size: 0.9rem;
+    font-size: 14px;
+    color: #CBD5E1;
+    font-weight: 500;
   }
 }
 
-// Image de l'événement
-.event-image-container {
+// ========================================
+// 🖼️ IMAGE HEADER FULL-WIDTH
+// ========================================
+.event-image-header {
   position: relative;
   width: 100%;
-  height: 250px;
+  height: 300px;
   overflow: hidden;
-  
-  .event-image {
+
+  .header-image {
     width: 100%;
     height: 100%;
     object-fit: cover;
   }
-  
-  // Badges superposés
-  .organizer-badge,
-  .full-badge,
-  .participating-badge {
+
+  // Gradient overlay
+  .image-overlay {
     position: absolute;
-    top: 1rem;
+    inset: 0;
+    background: linear-gradient(
+      180deg,
+      transparent 0%,
+      rgba(10, 14, 39, 0.4) 50%,
+      rgba(10, 14, 39, 0.95) 100%
+    );
+    z-index: 1;
+  }
+
+  // Bouton retour flottant
+  .back-button {
+    position: absolute;
+    top: 16px;
+    left: 16px;
     z-index: 10;
-    font-weight: 600;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    
+    --background: rgba(255, 255, 255, 0.15);
+    --background-hover: rgba(255, 255, 255, 0.25);
+    --background-activated: rgba(255, 255, 255, 0.3);
+    --color: #FFFFFF;
+    
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    backdrop-filter: blur(10px);
+    box-shadow: 
+      0 4px 16px rgba(0, 0, 0, 0.3),
+      inset 0 1px 0 rgba(255, 255, 255, 0.2);
+
+    ion-icon {
+      font-size: 24px;
+    }
+  }
+
+  // Badges flottants
+  .floating-badges {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    z-index: 10;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    align-items: flex-end;
+  }
+
+  .floating-badge {
+    font-size: 11px;
+    padding: 6px 12px;
+    border-radius: 10px;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+    backdrop-filter: blur(10px);
+    box-shadow: 
+      0 2px 8px rgba(0, 0, 0, 0.3),
+      inset 0 1px 0 rgba(255, 255, 255, 0.2);
   }
 
   .organizer-badge {
-    right: 1rem;
+    background: linear-gradient(
+      135deg,
+      rgba(245, 158, 11, 0.95) 0%,
+      rgba(217, 119, 6, 0.95) 100%
+    );
+    border: 1px solid rgba(255, 255, 255, 0.2);
   }
 
   .full-badge {
-    left: 1rem;
+    background: linear-gradient(
+      135deg,
+      rgba(239, 68, 68, 0.95) 0%,
+      rgba(220, 38, 38, 0.95) 100%
+    );
+    border: 1px solid rgba(255, 255, 255, 0.2);
   }
 
   .participating-badge {
-    right: 1rem;
+    background: linear-gradient(
+      135deg,
+      rgba(16, 185, 129, 0.95) 0%,
+      rgba(5, 150, 105, 0.95) 100%
+    );
+    border: 1px solid rgba(255, 255, 255, 0.2);
+  }
+
+  .private-badge {
+    background: linear-gradient(
+      135deg,
+      rgba(15, 23, 42, 0.95) 0%,
+      rgba(30, 41, 59, 0.95) 100%
+    );
+    border: 1px solid rgba(148, 163, 184, 0.3);
   }
 }
 
-// Contenu de l'événement
-.event-content {
-  padding: 1rem;
-  
-  // Header avec titre et catégorie
-  .event-header {
-    margin-bottom: 1.5rem;
+// ========================================
+// 📦 CONTENU PRINCIPAL
+// ========================================
+.detail-content {
+  padding: 20px 16px;
+  padding-bottom: 80px;
+}
+
+// ========================================
+// 🎴 GLASSMORPHISM BASE (réutilisable)
+// ========================================
+.glassmorphism {
+  background: linear-gradient(
+    135deg,
+    rgba(37, 40, 55, 0.95) 0%,
+    rgba(45, 49, 66, 0.95) 100%
+  ) !important;
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 20px;
+  box-shadow: 
+    0 8px 32px rgba(0, 0, 0, 0.3),
+    0 2px 8px rgba(0, 0, 0, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+
+  ion-card-content {
+    padding: 20px !important;
+  }
+}
+
+// ========================================
+// 📋 CARD INFO PRINCIPALE
+// ========================================
+.info-card {
+  margin-bottom: 20px;
+
+  .event-title {
+    font-size: 24px;
+    font-weight: 800;
+    line-height: 1.3;
+    margin-bottom: 16px;
+    color: #FFFFFF;
+    letter-spacing: -0.5px;
     
-    h1 {
-      font-size: 1.8rem;
-      font-weight: 700;
-      margin-bottom: 0.75rem;
-      color: var(--ion-color-dark);
-    }
-    
-    .chips-container {
-      display: flex;
-      gap: 0.5rem;
-      flex-wrap: wrap;
-      
-      ion-chip {
-        font-weight: 600;
-        margin: 0;
-      }
-    }
+    // Dégradé rose subtil
+    background: linear-gradient(
+    135deg,
+    #FFFFFF 0%,
+    #FFB3C6
+  );
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
   }
 
-  // 🆕 Section participation
-  .participation-section {
-    margin-bottom: 1.5rem;
-    
-    ion-button {
-      font-size: 1.1rem;
-      font-weight: 700;
-      --padding-top: 1rem;
-      --padding-bottom: 1rem;
-      text-transform: none;
-      
-      ion-icon {
-        font-size: 1.3rem;
-        margin-right: 0.5rem;
-      }
-    }
-
-    .cannot-join-message {
-      margin-top: 0.5rem;
-      
-      ion-chip {
-        width: 100%;
-        justify-content: center;
-        font-size: 0.9rem;
-      }
-    }
-  }
-  
-  // Items de détails
-  .detail-item {
+  // Badges inline
+  .inline-badges {
     display: flex;
-    align-items: flex-start;
-    gap: 1rem;
-    margin-bottom: 1.5rem;
-    
-    ion-icon {
-      font-size: 1.5rem;
-      margin-top: 0.2rem;
-      flex-shrink: 0;
-    }
-    
-    .detail-text {
-      flex: 1;
-      
-      strong {
-        display: block;
-        font-size: 0.95rem;
-        color: var(--ion-color-dark);
-        margin-bottom: 0.25rem;
-      }
-      
-      p {
-        margin: 0.25rem 0;
-        color: var(--ion-color-medium-shade);
-        font-size: 0.9rem;
-        line-height: 1.4;
-      }
-      
-      .text-muted {
-        color: var(--ion-color-medium);
-        font-size: 0.85rem;
-      }
+    gap: 8px;
+    margin-bottom: 20px;
 
-      .text-danger {
-        color: var(--ion-color-danger);
-        font-weight: 600;
-        font-size: 0.9rem;
-      }
-    }
-  }
-  
-  // Description
-  .description-text {
-    white-space: pre-line;
-    line-height: 1.6;
-    color: var(--ion-color-dark);
-    font-size: 0.95rem;
-  }
-
-  // 🆕 Liste des participants
-  ion-list {
-    background: transparent;
-    padding: 0;
-    
-    ion-item {
-      --background: transparent;
-      --padding-start: 0;
-      margin-bottom: 0.75rem;
+    ion-chip {
+      height: 24px;
+      font-size: 11px;
+      padding: 0 10px;
+      margin: 0;
       border-radius: 8px;
-      background: var(--ion-color-light);
-      
-      ion-avatar {
-        width: 48px;
-        height: 48px;
-      }
-      
-      ion-label {
-        h3 {
-          font-weight: 600;
-          font-size: 1rem;
-          color: var(--ion-color-dark);
-        }
-        
-        p {
-          font-size: 0.85rem;
-          color: var(--ion-color-medium);
-          margin-top: 0.2rem;
-        }
-
-        .text-muted {
-          font-size: 0.75rem;
-          color: var(--ion-color-medium-tint);
-          margin-top: 0.1rem;
-        }
-      }
-      
-      ion-button {
-        --padding-start: 0.5rem;
-        --padding-end: 0.5rem;
-      }
-    }
-  }
-
-  // Message vide participants
-  .empty-participants {
-    text-align: center;
-    padding: 2rem 1rem;
-    
-    ion-icon {
-      font-size: 3rem;
-      margin-bottom: 0.5rem;
-      opacity: 0.5;
-    }
-    
-    p {
-      color: var(--ion-color-medium);
-      font-size: 0.9rem;
-    }
-  }
-  
-  // Card des actions organisateur
-  .organizer-actions-card {
-    margin-top: 2rem;
-    border: 2px solid var(--ion-color-primary);
-    
-    ion-card-title {
-      color: var(--ion-color-primary);
-      font-size: 1.1rem;
       font-weight: 600;
+      letter-spacing: 0.3px;
+
+      ion-label {
+        color: #FFFFFF !important;
+        margin: 0;
+        font-size: 11px;
+      }
+
+      ion-icon {
+        font-size: 12px;
+        margin-right: 4px;
+        color: #FFFFFF !important;
+      }
     }
-    
-    .action-buttons {
+
+    .category-chip {
+      background: linear-gradient(
+        135deg,
+        rgba(255, 45, 85, 0.9) 0%,
+        rgba(255, 107, 157, 0.9) 100%
+      ) !important;
+      border: 1px solid rgba(255, 107, 157, 0.3);
+      box-shadow: 
+        0 2px 8px rgba(255, 45, 85, 0.3),
+        0 0 12px rgba(255, 45, 85, 0.2);
+    }
+
+    .participants-chip {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+
+      &[data-status="success"] {
+        background: linear-gradient(
+          135deg,
+          rgba(16, 185, 129, 0.15) 0%,
+          rgba(5, 150, 105, 0.15) 100%
+        );
+        border: 1px solid rgba(16, 185, 129, 0.4);
+        box-shadow: 0 0 12px rgba(16, 185, 129, 0.2);
+        
+        ion-label, ion-icon {
+          color: #34D399 !important;
+        }
+      }
+
+      &[data-status="warning"] {
+        background: linear-gradient(
+          135deg,
+          rgba(245, 158, 11, 0.15) 0%,
+          rgba(217, 119, 6, 0.15) 100%
+        );
+        border: 1px solid rgba(245, 158, 11, 0.4);
+        box-shadow: 0 0 12px rgba(245, 158, 11, 0.2);
+        
+        ion-label, ion-icon {
+          color: #FBBF24 !important;
+        }
+      }
+
+      &[data-status="danger"] {
+        background: linear-gradient(
+          135deg,
+          rgba(239, 68, 68, 0.15) 0%,
+          rgba(220, 38, 38, 0.15) 100%
+        );
+        border: 1px solid rgba(239, 68, 68, 0.4);
+        box-shadow: 0 0 12px rgba(239, 68, 68, 0.2);
+        
+        ion-label, ion-icon {
+          color: #F87171 !important;
+        }
+      }
+    }
+  }
+
+  // Metadata
+  .event-metadata {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 16px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    backdrop-filter: blur(10px);
+
+    .meta-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+
+      ion-icon {
+        font-size: 20px;
+        flex-shrink: 0;
+        color: #FF2D55;
+      }
+
+      .meta-text {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+
+        .meta-label {
+          font-size: 11px;
+          color: #94A3B8;
+          font-weight: 600;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+        }
+
+        .meta-value {
+          font-size: 15px;
+          color: #FFFFFF;
+          font-weight: 600;
+        }
+      }
+    }
+  }
+}
+
+// ========================================
+// 🎫 SECTION ACTION (PARTICIPATION)
+// ========================================
+.action-section {
+  margin-bottom: 20px;
+
+  .participate-button {
+    height: 56px;
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+    --background: linear-gradient(
+      135deg,
+      rgba(255, 45, 85, 0.9) 0%,
+      rgba(255, 107, 157, 0.9) 100%
+    );
+    --border-radius: 14px;
+    --box-shadow: 
+      0 8px 24px rgba(255, 45, 85, 0.3),
+      0 0 20px rgba(255, 45, 85, 0.2),
+      inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    border: 1px solid rgba(255, 107, 157, 0.3);
+    text-transform: none;
+
+    ion-icon {
+      font-size: 22px;
+    }
+  }
+
+  .leave-button {
+    height: 52px;
+    font-size: 15px;
+    font-weight: 600;
+    --border-radius: 14px;
+    --border-width: 2px;
+    text-transform: none;
+  }
+
+  .full-message {
+    padding: 16px;
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+
+    ion-icon {
+      font-size: 24px;
+      color: #EF4444;
+    }
+
+    p {
+      margin: 0;
+      color: #F87171;
+      font-weight: 600;
+      font-size: 14px;
+    }
+  }
+}
+
+// ========================================
+// 👤 CARD ORGANISATEUR
+// ========================================
+.organizer-card {
+  margin-bottom: 20px;
+
+  .organizer-info {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding-top: 12px;
+
+    .organizer-avatar {
+      width: 56px;
+      height: 56px;
+      border: 2px solid rgba(255, 45, 85, 0.3);
+      box-shadow: 0 0 16px rgba(255, 45, 85, 0.2);
+    }
+
+    .organizer-details {
+      flex: 1;
+
+      .organizer-name {
+        margin: 0 0 4px 0;
+        font-size: 17px;
+        font-weight: 700;
+        color: #FFFFFF;
+      }
+
+      .organizer-label {
+        margin: 0;
+        font-size: 13px;
+        color: #94A3B8;
+        font-weight: 500;
+      }
+    }
+  }
+}
+
+// ========================================
+// 📝 CARD DESCRIPTION
+// ========================================
+.description-card {
+  margin-bottom: 20px;
+
+  .description-text {
+    padding-top: 12px;
+    margin: 0;
+    font-size: 15px;
+    line-height: 1.7;
+    color: #CBD5E1;
+    white-space: pre-wrap;
+  }
+}
+
+// ========================================
+// 👥 CARD PARTICIPANTS
+// ========================================
+.participants-card {
+  margin-bottom: 20px;
+
+  .participants-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(70px, 1fr));
+    gap: 16px;
+    padding-top: 16px;
+
+    .participant-item {
       display: flex;
       flex-direction: column;
-      gap: 0.75rem;
-      
-      ion-button {
+      align-items: center;
+      gap: 8px;
+
+      .participant-avatar {
+        width: 48px;
+        height: 48px;
+        border: 2px solid rgba(91, 127, 255, 0.3);
+        box-shadow: 0 0 12px rgba(91, 127, 255, 0.2);
+      }
+
+      .participant-name {
         margin: 0;
+        font-size: 11px;
         font-weight: 600;
-        
-        ion-icon {
-          margin-right: 0.5rem;
-        }
+        color: #CBD5E1;
+        text-align: center;
+        line-height: 1.3;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
       }
     }
   }
 }
 
-// Animations pour les boutons de participation
-@keyframes pulse {
-  0% {
-    transform: scale(1);
-  }
-  50% {
-    transform: scale(1.02);
-  }
-  100% {
-    transform: scale(1);
-  }
-}
-
-.participation-section ion-button:not([disabled]):hover {
-  animation: pulse 0.3s ease-in-out;
-}
-
-// Responsive adjustments
-@media (min-width: 768px) {
-  .event-image-container {
-    height: 350px;
-  }
-  
-  .event-content {
-    max-width: 800px;
-    margin: 0 auto;
-    padding: 2rem;
-    
-    .event-header h1 {
-      font-size: 2.2rem;
-    }
-
-    .participation-section {
-      max-width: 500px;
-      margin-left: auto;
-      margin-right: auto;
-    }
-  }
-}
-
-// Dark mode adjustments
-@media (prefers-color-scheme: dark) {
-  .event-image-container {
-    .organizer-badge,
-    .full-badge,
-    .participating-badge {
-      box-shadow: 0 2px 8px rgba(255, 255, 255, 0.1);
-    }
-  }
-  
-  .event-content {
-    .event-header h1 {
-      color: var(--ion-color-light);
-    }
-    
-    .detail-text {
-      strong {
-        color: var(--ion-color-light);
-      }
-    }
-    
-    .description-text {
-      color: var(--ion-color-light-shade);
-    }
-
-    ion-list ion-item {
-      background: var(--ion-color-dark);
-      
-      ion-label h3 {
-        color: var(--ion-color-light);
-      }
-    }
-  }
-}
-
-.organizer-profile {
+// ========================================
+// 🔧 SECTION TITRE (réutilisable)
+// ========================================
+.section-title {
+  margin: 0 0 4px 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: #FFFFFF;
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  padding: 0.75rem;
-  margin-top: 0.5rem;
-  background: var(--ion-color-light);
-  border-radius: 12px;
-  cursor: pointer;
-  transition: all 0.2s ease;
+  gap: 8px;
+  letter-spacing: 0.3px;
 
-  &:hover {
-    background: var(--ion-color-light-shade);
-    transform: translateX(4px);
+  ion-icon {
+    font-size: 20px;
+    color: #FF2D55;
   }
+}
 
-  &:active {
-    transform: translateX(2px);
-  }
+// ========================================
+// ⚙️ ACTIONS ORGANISATEUR
+// ========================================
+// ========================================
+// ⚙️ ACTIONS ORGANISATEUR
+// ========================================
+.organizer-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 20px;
 
-  .organizer-avatar {
-    width: 48px;
-    height: 48px;
-    border: 2px solid var(--ion-color-primary);
-    flex-shrink: 0;
+  // 🎨 Bouton Modifier - Style violet cohérent
+  .edit-button {
+    height: 56px;
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+    --background: linear-gradient(
+      135deg,
+      rgba(255, 45, 85, 0.9) 0%,
+      rgba(255, 107, 157, 0.9) 100%
+    );
+    --border-radius: 14px;
+    --box-shadow: 
+      0 8px 24px rgba(255, 45, 85, 0.3),
+      0 0 20px rgba(255, 45, 85, 0.2),
+      inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    border: 1px solid rgba(255, 107, 157, 0.3);
+    text-transform: none;
 
-    img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
+    ion-icon {
+      font-size: 22px;
+    }
+
+    // Effet hover
+    &:hover:not([disabled]) {
+      --box-shadow: 
+        0 12px 32px rgba(255, 45, 85, 0.4),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2);
+      transform: translateY(-2px);
+    }
+
+    // Effet active
+    &:active:not([disabled]) {
+      transform: scale(0.98) translateY(0);
     }
   }
 
-  .organizer-details {
-    flex: 1;
-
-    .organizer-name {
-      margin: 0;
-      font-weight: 600;
-      color: var(--ion-color-dark);
-      font-size: 1rem;
-    }
-
-    .organizer-link {
-      margin: 0;
-      font-size: 0.85rem;
-      color: var(--ion-color-primary);
-      font-weight: 500;
-    }
+  // 🗑️ Bouton Supprimer - Style outline danger
+  .delete-button {
+    height: 52px;
+    font-size: 15px;
+    font-weight: 600;
+    --border-radius: 14px;
+    --border-width: 2px;
+    text-transform: none;
   }
+}
+// ========================================
+// 📏 SPACING
+// ========================================
+.bottom-spacing {
+  height: 40px;
+}
+
+// ========================================
+// ✨ ANIMATIONS
+// ========================================
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.info-card,
+.organizer-card,
+.description-card,
+.participants-card {
+  animation: fadeInUp 0.4s cubic-bezier(0.4, 0, 0.2, 1) backwards;
+
+  &:nth-child(1) { animation-delay: 0.05s; }
+  &:nth-child(2) { animation-delay: 0.1s; }
+  &:nth-child(3) { animation-delay: 0.15s; }
+  &:nth-child(4) { animation-delay: 0.2s; }
 }

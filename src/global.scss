@@ -35,3 +35,259 @@
 /* @import "@ionic/angular/css/palettes/dark.always.css"; */
 /* @import "@ionic/angular/css/palettes/dark.class.css"; */
 @import '@ionic/angular/css/palettes/dark.system.css';
+
+// ========================================
+// 🎨 IMPORT CUSTOM VARIABLES
+// ========================================
+// ⚠️ IMPORTANT : Cet import DOIT être APRÈS les imports Ionic
+@import './theme/variables.scss';
+
+// ========================================
+// 🌍 GLOBAL STYLES
+// ========================================
+
+// Smooth scrolling
+* {
+  -webkit-overflow-scrolling: touch;
+}
+
+// Remove default margins
+body {
+  margin: 0;
+  padding: 0;
+}
+
+// Typography improvements
+h1, h2, h3, h4, h5, h6 {
+  margin: 0;
+  font-weight: var(--font-weight-bold, 700);
+}
+
+p {
+  margin: 0;
+  line-height: 1.6;
+}
+
+// Smooth transitions globales
+* {
+  transition: background-color var(--transition-base, 0.3s ease), 
+              color var(--transition-base, 0.3s ease);
+}
+
+// Fix pour éviter le flicker sur iOS
+ion-app {
+  -webkit-tap-highlight-color: transparent;
+}
+
+// Amélioration scrollbar (desktop uniquement)
+@media (min-width: 768px) {
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: var(--custom-dark-bg, #1A1D29);
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: var(--custom-card-bg, #252837);
+    border-radius: 4px;
+    
+    &:hover {
+      background: var(--custom-card-elevated, #2D3142);
+    }
+  }
+}
+
+// Loader personnalisé
+.custom-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+
+  ion-spinner {
+    transform: scale(1.5);
+  }
+}
+
+// Toast personnalisé
+ion-toast {
+  --border-radius: 12px;
+  --box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+}
+
+// Modal amélioré
+ion-modal {
+  --border-radius: 20px 20px 0 0;
+  --box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.3);
+}
+
+// Fab button amélioré
+ion-fab-button {
+  --box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+  --transition: all 0.3s ease;
+  
+  &:hover {
+    transform: scale(1.1);
+  }
+  
+  &:active {
+    transform: scale(0.95);
+  }
+}
+
+// Fix pour les safe areas (notch iPhone)
+ion-content {
+  --padding-top: env(safe-area-inset-top);
+  --padding-bottom: env(safe-area-inset-bottom);
+  --padding-start: env(safe-area-inset-left);
+  --padding-end: env(safe-area-inset-right);
+}
+
+// Animations globales
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.fade-in {
+  animation: fadeIn 0.3s ease-out;
+}
+
+.slide-up {
+  animation: slideUp 0.4s ease-out;
+}
+
+// ========================================
+// 🎴 ION-CARD - FIX COMPLET POUR TEXTE INVISIBLE
+// ========================================
+// À ajouter dans global.scss après les autres overrides Ionic
+
+ion-card {
+    --background: var(--color-bg-tertiary) !important;
+  --color: var(--color-text-primary) !important;
+    background: var(--color-bg-tertiary) !important;
+    color: #FFFFFF !important;
+    
+    // Force pour le header
+    ion-card-header {
+      background: transparent !important;
+      color: #FFFFFF !important;
+      
+      ion-card-title {
+        color: #FFFFFF !important;
+        font-weight: 700 !important;
+      }
+      
+      ion-card-subtitle {
+        color: #A0AEC0 !important;
+      }
+    }
+    
+    // Force pour le content
+    ion-card-content {
+      background: transparent !important;
+      color: #FFFFFF !important;
+      
+      p {
+        color: #A0AEC0 !important;
+      }
+      
+      ion-text {
+        color: #FFFFFF !important;
+      }
+      
+      ion-label {
+        color: #FFFFFF !important;
+      }
+    }
+    
+    // Force pour tous les enfants
+    * {
+      color: inherit;
+    }
+  }
+  
+  // Override spécifique pour ion-label dans les cards
+  ion-card ion-label {
+    --color: #FFFFFF !important;
+    color: #FFFFFF !important;
+  }
+  
+  // Override spécifique pour ion-text dans les cards
+  ion-card ion-text {
+    --color: #FFFFFF !important;
+    color: #FFFFFF !important;
+  }
+  
+  // Override pour les chips dans les cards
+  ion-card ion-chip {
+    ion-label {
+      color: #FFFFFF !important;
+    }
+    
+    ion-icon {
+      color: #FFFFFF !important;
+    }
+  }
+
+  // ========================================
+// 🔴 FIX AUTOFILL GOOGLE CHROME/SAFARI
+// Force la couleur grise pour tous les inputs en autocomplétion
+// ========================================
+::ng-deep ion-input input {
+  color: #A0AEC0 !important;
+  -webkit-text-fill-color: #A0AEC0 !important;
+}
+
+::ng-deep ion-input input:-webkit-autofill,
+::ng-deep ion-input input:-webkit-autofill:hover,
+::ng-deep ion-input input:-webkit-autofill:focus,
+::ng-deep ion-input input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 1000px rgba(255, 255, 255, 0.05) inset !important;
+  -webkit-text-fill-color: #A0AEC0 !important;
+  transition: background-color 5000s ease-in-out 0s !important;
+  box-shadow: 0 0 0 1000px rgba(255, 255, 255, 0.05) inset !important;
+}
+
+// Override sur tous les types d'inputs
+input[type="email"],
+input[type="password"],
+input[type="text"] {
+  color: #A0AEC0 !important;
+  -webkit-text-fill-color: #A0AEC0 !important;
+  
+  &:-webkit-autofill,
+  &:-webkit-autofill:hover,
+  &:-webkit-autofill:focus,
+  &:-webkit-autofill:active {
+    -webkit-box-shadow: 0 0 0 1000px rgba(255, 255, 255, 0.05) inset !important;
+    -webkit-text-fill-color: #A0AEC0 !important;
+    transition: background-color 5000s ease-in-out 0s !important;
+    box-shadow: 0 0 0 1000px rgba(255, 255, 255, 0.05) inset !important;
+  }
+}
+
+// Curseur rose
+input,
+ion-input input {
+  caret-color: #FF2D55 !important;
+}

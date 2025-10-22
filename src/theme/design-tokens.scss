@@ -1,0 +1,273 @@
+// ========================================
+// 🎨 DESIGN TOKENS - Système de design global
+// ========================================
+// Ce fichier contient toutes les variables CSS custom
+// utilisées dans l'application pour maintenir la cohérence
+
+// ========================================
+// 🎨 PALETTE DE COULEURS
+// ========================================
+:root {
+    // Design 1 - Dark Premium (Défaut)
+    --color-primary: #FF2D55;
+    --color-primary-rgb: 255, 45, 85;
+    --color-primary-light: #FF6B9D;
+    --color-primary-dark: #E0284B;
+  
+    --color-secondary: #5B7FFF;
+    --color-secondary-rgb: 91, 127, 255;
+    --color-secondary-light: #8B9FFF;
+    --color-secondary-dark: #4A6BE0;
+  
+    --color-accent: #B06FFF;
+    --color-accent-rgb: 176, 111, 255;
+    --color-accent-light: #C89FFF;
+    --color-accent-dark: #9955E0;
+  
+    // Couleurs fonctionnelles
+    --color-success: #10B981;
+    --color-warning: #F59E0B;
+    --color-danger: #EF4444;
+    --color-info: #3B82F6;
+  
+    // Couleurs neutres (Dark Mode)
+    --color-bg-primary: #0A0E27;
+    --color-bg-secondary: #1A1D29;
+    --color-bg-tertiary: #252837;
+    --color-bg-elevated: #2D3142;
+  
+    --color-text-primary: #FFFFFF;
+    --color-text-secondary: #A0AEC0;
+    --color-text-tertiary: #718096;
+    --color-text-disabled: #4A5568;
+  
+    --color-border-light: rgba(255, 255, 255, 0.1);
+    --color-border-medium: rgba(255, 255, 255, 0.2);
+    --color-border-heavy: rgba(255, 255, 255, 0.3);
+  
+    // Glass effect
+    --color-glass-light: rgba(255, 255, 255, 0.08);
+    --color-glass-medium: rgba(255, 255, 255, 0.12);
+    --color-glass-heavy: rgba(255, 255, 255, 0.18);
+  }
+  
+  // ========================================
+  // 🎨 GRADIENTS
+  // ========================================
+  :root {
+    --gradient-primary: linear-gradient(135deg, #FF2D55 0%, #FF6B9D 100%);
+    --gradient-secondary: linear-gradient(135deg, #5B7FFF 0%, #B06FFF 100%);
+    --gradient-success: linear-gradient(135deg, #10B981 0%, #34D399 100%);
+    --gradient-danger: linear-gradient(135deg, #EF4444 0%, #F87171 100%);
+    
+    // Gradients spéciaux
+    --gradient-aurora: linear-gradient(135deg, #00D9FF 0%, #8338EC 50%, #FF006E 100%);
+    --gradient-sunset: linear-gradient(135deg, #FF006E 0%, #FFBE0B 100%);
+    --gradient-ocean: linear-gradient(135deg, #3A0CA3 0%, #7209B7 50%, #F72585 100%);
+    
+    // Overlays
+    --gradient-overlay-dark: linear-gradient(180deg, transparent 0%, rgba(10, 14, 39, 0.9) 100%);
+    --gradient-overlay-light: linear-gradient(180deg, rgba(255, 255, 255, 0.8) 0%, transparent 100%);
+  }
+  
+  // ========================================
+  // 📏 SPACING SYSTEM (4px base)
+  // ========================================
+  :root {
+    --spacing-0: 0;
+    --spacing-1: 4px;
+    --spacing-2: 8px;
+    --spacing-3: 12px;
+    --spacing-4: 16px;
+    --spacing-5: 20px;
+    --spacing-6: 24px;
+    --spacing-7: 28px;
+    --spacing-8: 32px;
+    --spacing-10: 40px;
+    --spacing-12: 48px;
+    --spacing-16: 64px;
+    --spacing-20: 80px;
+    --spacing-24: 96px;
+  }
+  
+  // ========================================
+  // ✏️ TYPOGRAPHY
+  // ========================================
+  :root {
+    // Font Family
+    --font-family-base: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 
+                        'Helvetica Neue', Arial, sans-serif;
+    --font-family-heading: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 
+                           'Helvetica Neue', Arial, sans-serif;
+    --font-family-mono: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', 
+                        Consolas, 'Courier New', monospace;
+  
+    // Font Sizes
+    --font-size-xs: 11px;
+    --font-size-sm: 13px;
+    --font-size-base: 15px;
+    --font-size-lg: 17px;
+    --font-size-xl: 20px;
+    --font-size-2xl: 24px;
+    --font-size-3xl: 28px;
+    --font-size-4xl: 32px;
+    --font-size-5xl: 40px;
+    --font-size-6xl: 48px;
+  
+    // Font Weights
+    --font-weight-light: 300;
+    --font-weight-regular: 400;
+    --font-weight-medium: 500;
+    --font-weight-semibold: 600;
+    --font-weight-bold: 700;
+    --font-weight-extrabold: 800;
+    --font-weight-black: 900;
+  
+    // Line Heights
+    --line-height-tight: 1.2;
+    --line-height-snug: 1.375;
+    --line-height-normal: 1.5;
+    --line-height-relaxed: 1.625;
+    --line-height-loose: 2;
+  
+    // Letter Spacing
+    --letter-spacing-tighter: -0.05em;
+    --letter-spacing-tight: -0.025em;
+    --letter-spacing-normal: 0;
+    --letter-spacing-wide: 0.025em;
+    --letter-spacing-wider: 0.05em;
+    --letter-spacing-widest: 0.1em;
+  }
+  
+  // ========================================
+  // 🔲 BORDER RADIUS
+  // ========================================
+  :root {
+    --radius-none: 0;
+    --radius-sm: 8px;
+    --radius-md: 12px;
+    --radius-lg: 16px;
+    --radius-xl: 20px;
+    --radius-2xl: 24px;
+    --radius-3xl: 28px;
+    --radius-full: 9999px;
+  }
+  
+  // ========================================
+  // 🌑 SHADOWS
+  // ========================================
+  :root {
+    --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.05);
+    --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.1);
+    --shadow-md: 0 4px 8px rgba(0, 0, 0, 0.15);
+    --shadow-lg: 0 8px 16px rgba(0, 0, 0, 0.2);
+    --shadow-xl: 0 12px 24px rgba(0, 0, 0, 0.25);
+    --shadow-2xl: 0 20px 40px rgba(0, 0, 0, 0.3);
+    --shadow-inner: inset 0 2px 4px rgba(0, 0, 0, 0.1);
+  
+    // Colored shadows
+    --shadow-primary: 0 8px 24px rgba(255, 45, 85, 0.3);
+    --shadow-secondary: 0 8px 24px rgba(91, 127, 255, 0.3);
+    --shadow-success: 0 8px 24px rgba(16, 185, 129, 0.3);
+    --shadow-danger: 0 8px 24px rgba(239, 68, 68, 0.3);
+  
+    // Glow effects
+    --glow-primary: 0 0 20px rgba(255, 45, 85, 0.5);
+    --glow-secondary: 0 0 20px rgba(91, 127, 255, 0.5);
+    --glow-accent: 0 0 20px rgba(176, 111, 255, 0.5);
+  }
+  
+  // ========================================
+  // ⏱️ TRANSITIONS & ANIMATIONS
+  // ========================================
+  :root {
+    // Durations
+    --duration-instant: 0ms;
+    --duration-fast: 150ms;
+    --duration-base: 300ms;
+    --duration-slow: 500ms;
+    --duration-slower: 700ms;
+  
+    // Easing functions
+    --ease-linear: linear;
+    --ease-in: cubic-bezier(0.4, 0, 1, 1);
+    --ease-out: cubic-bezier(0, 0, 0.2, 1);
+    --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+    --ease-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
+    --ease-spring: cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  
+    // Transitions combinées
+    --transition-fast: all var(--duration-fast) var(--ease-out);
+    --transition-base: all var(--duration-base) var(--ease-in-out);
+    --transition-slow: all var(--duration-slow) var(--ease-in-out);
+  }
+  
+  // ========================================
+  // 🔍 Z-INDEX SYSTEM
+  // ========================================
+  :root {
+    --z-dropdown: 1000;
+    --z-sticky: 1020;
+    --z-fixed: 1030;
+    --z-modal-backdrop: 1040;
+    --z-modal: 1050;
+    --z-popover: 1060;
+    --z-tooltip: 1070;
+    --z-notification: 1080;
+  }
+  
+  // ========================================
+  // 📱 BREAKPOINTS
+  // ========================================
+  // Usage avec @media (min-width: var(--breakpoint-md))
+  :root {
+    --breakpoint-xs: 0;
+    --breakpoint-sm: 576px;
+    --breakpoint-md: 768px;
+    --breakpoint-lg: 992px;
+    --breakpoint-xl: 1200px;
+    --breakpoint-2xl: 1400px;
+  }
+  
+  // ========================================
+  // 🎨 BACKDROP FILTERS
+  // ========================================
+  :root {
+    --backdrop-blur-sm: blur(8px);
+    --backdrop-blur-md: blur(16px);
+    --backdrop-blur-lg: blur(24px);
+    --backdrop-blur-xl: blur(32px);
+    
+    --backdrop-saturate: saturate(180%);
+    --backdrop-effect: blur(20px) saturate(180%);
+  }
+  
+  // ========================================
+  // 🌈 DESIGN VARIANTS (optionnel)
+  // ========================================
+  
+  // Design 2 - Light Gradient (à activer manuellement)
+  :root[data-theme="light"] {
+    --color-primary: #6366F1;
+    --color-secondary: #EC4899;
+    --color-accent: #8B5CF6;
+    
+    --color-bg-primary: #F8FAFC;
+    --color-bg-secondary: #F1F5F9;
+    --color-bg-tertiary: #FFFFFF;
+    
+    --color-text-primary: #0F172A;
+    --color-text-secondary: #64748B;
+    
+    --gradient-primary: linear-gradient(135deg, #6366F1 0%, #8B5CF6 50%, #EC4899 100%);
+  }
+  
+  // Design 3 - Glassmorphism (à activer manuellement)
+  :root[data-theme="glass"] {
+    --color-primary: #00D9FF;
+    --color-secondary: #FF006E;
+    --color-accent: #8338EC;
+    
+    --gradient-primary: linear-gradient(135deg, #00D9FF 0%, #8338EC 100%);
+    --gradient-secondary: linear-gradient(135deg, #FF006E 0%, #FFBE0B 100%);
+  }

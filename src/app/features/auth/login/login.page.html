@@ -1,117 +1,136 @@
-<!-- src/app/features/auth/login/login.page.html -->
+<!-- ========================================
+     🎉 LOGIN PAGE - PREMIUM DARK GLASSMORPHISM
+     Première impression WOW pour l'utilisateur
+     ======================================== -->
 
-<!-- Header avec titre -->
-<ion-header>
-  <ion-toolbar color="primary">
-    <ion-title>Connexion</ion-title>
-  </ion-toolbar>
-</ion-header>
-
-<!-- Contenu principal -->
-<ion-content class="ion-padding">
+     <ion-content [fullscreen]="true">
   
-  <!-- Container centré -->
-  <div class="login-container">
+      <!-- ========================================
+           CONTAINER PRINCIPAL
+           ======================================== -->
+      <div class="login-container">
     
-    <!-- Logo ou titre de l'application -->
-    <div class="app-logo">
-      <h1>🎉 Party Events</h1>
-      <p>Retrouve tes amis et découvre de nouvelles soirées</p>
-    </div>
-
-    <!-- Card contenant le formulaire -->
-    <ion-card>
-      <ion-card-header>
-        <ion-card-title>Se connecter</ion-card-title>
-      </ion-card-header>
-
-      <ion-card-content>
-        
-        <!-- Formulaire de connexion -->
-        <form [formGroup]="loginForm" (ngSubmit)="login()">
-          
-          <!-- Champ Email -->
-          <ion-item lines="full" class="ion-margin-bottom">
-            <ion-icon name="mail-outline" slot="start"></ion-icon>
-            <ion-label position="floating">Email</ion-label>
-            <ion-input 
-              type="email" 
-              formControlName="email"
-              placeholder="exemple@email.com"
-              autocomplete="email">
-            </ion-input>
-          </ion-item>
-          
-          <!-- Messages d'erreur pour l'email -->
-          <div class="error-message" *ngIf="email?.invalid && email?.touched">
-            <ion-text color="danger" *ngIf="email?.errors?.['required']">
-              <small>L'email est requis</small>
-            </ion-text>
-            <ion-text color="danger" *ngIf="email?.errors?.['email']">
-              <small>Format d'email invalide</small>
-            </ion-text>
+        <!-- ========================================
+             HERO SECTION - Logo & Titre
+             ======================================== -->
+        <div class="hero-section">
+          <div class="logo-wrapper">
+            <div class="logo-circle">
+              <ion-icon name="flame"></ion-icon>
+            </div>
           </div>
-
-          <!-- Champ Mot de passe -->
-          <ion-item lines="full" class="ion-margin-bottom">
-            <ion-icon name="lock-closed-outline" slot="start"></ion-icon>
-            <ion-label position="floating">Mot de passe</ion-label>
-            <ion-input 
-              type="password" 
-              formControlName="password"
-              placeholder="Minimum 6 caractères"
-              autocomplete="current-password">
-            </ion-input>
-          </ion-item>
           
-          <!-- Messages d'erreur pour le mot de passe -->
-          <div class="error-message" *ngIf="password?.invalid && password?.touched">
-            <ion-text color="danger" *ngIf="password?.errors?.['required']">
-              <small>Le mot de passe est requis</small>
-            </ion-text>
-            <ion-text color="danger" *ngIf="password?.errors?.['minlength']">
-              <small>Minimum 6 caractères requis</small>
-            </ion-text>
+          <h1 class="app-title">Party Events</h1>
+          <p class="app-subtitle">Retrouve tes amis et découvre de nouvelles soirées</p>
+        </div>
+    
+        <!-- ========================================
+             FORMULAIRE DE CONNEXION
+             ======================================== -->
+        <div class="login-card glassmorphism">
+          
+          <h2 class="card-title">Connexion</h2>
+    
+          <!-- Formulaire -->
+          <form [formGroup]="loginForm" (ngSubmit)="login()">
+            
+            <!-- Email -->
+            <ion-item lines="none" class="custom-item">
+              <ion-icon name="mail-outline" slot="start"></ion-icon>
+              <ion-label position="stacked">Email</ion-label>
+              <ion-input 
+                type="email" 
+                formControlName="email"
+                placeholder="exemple@email.com"
+                autocomplete="email">
+              </ion-input>
+            </ion-item>
+            
+            <!-- Messages d'erreur Email -->
+            <div class="error-message" *ngIf="email?.invalid && email?.touched">
+              <ion-text color="danger" *ngIf="email?.errors?.['required']">
+                <small>L'email est requis</small>
+              </ion-text>
+              <ion-text color="danger" *ngIf="email?.errors?.['email']">
+                <small>Format d'email invalide</small>
+              </ion-text>
+            </div>
+    
+            <!-- Mot de passe -->
+            <ion-item lines="none" class="custom-item">
+              <ion-icon name="lock-closed-outline" slot="start"></ion-icon>
+              <ion-label position="stacked">Mot de passe</ion-label>
+              <ion-input 
+                type="password" 
+                formControlName="password"
+                placeholder="Minimum 6 caractères"
+                autocomplete="current-password">
+              </ion-input>
+            </ion-item>
+            
+            <!-- Messages d'erreur Password -->
+            <div class="error-message" *ngIf="password?.invalid && password?.touched">
+              <ion-text color="danger" *ngIf="password?.errors?.['required']">
+                <small>Le mot de passe est requis</small>
+              </ion-text>
+              <ion-text color="danger" *ngIf="password?.errors?.['minlength']">
+                <small>Minimum 6 caractères requis</small>
+              </ion-text>
+            </div>
+    
+            <!-- ========================================
+                 🆕 LIEN MOT DE PASSE OUBLIÉ
+                 ======================================== -->
+            <div class="forgot-password-link">
+              <a (click)="goToForgotPassword()">Mot de passe oublié ?</a>
+            </div>
+    
+            <!-- Bouton Connexion -->
+            <ion-button 
+              expand="block" 
+              type="submit" 
+              class="login-button"
+              [disabled]="loginForm.invalid || isLoading">
+              <ion-spinner name="crescent" slot="start" *ngIf="isLoading"></ion-spinner>
+              <ion-icon name="log-in-outline" slot="start" *ngIf="!isLoading"></ion-icon>
+              Se connecter
+            </ion-button>
+    
+          </form>
+    
+          <!-- Séparateur -->
+          <div class="separator">
+            <span>ou</span>
           </div>
-
-          <!-- Bouton de connexion -->
+    
+          <!-- Bouton Google -->
           <ion-button 
             expand="block" 
-            type="submit" 
-            class="ion-margin-top"
-            [disabled]="loginForm.invalid || isLoading">
-            <ion-icon name="log-in-outline" slot="start"></ion-icon>
-            Se connecter
+            class="google-button"
+            fill="outline"
+            (click)="signInWithGoogle()"
+            [disabled]="isLoading">
+            <ion-icon name="logo-google" slot="start"></ion-icon>
+            Continuer avec Google
           </ion-button>
-
-        </form>
-
-        <!-- Séparateur -->
-        <div class="separator ion-margin-vertical">
-          <span>ou</span>
+    
+          <!-- Lien inscription -->
+          <div class="register-link">
+            <ion-text>
+              Pas encore de compte ? 
+              <a routerLink="/register" class="link">S'inscrire</a>
+            </ion-text>
+          </div>
+    
         </div>
-
-        <!-- Bouton connexion Google -->
-        <ion-button 
-          expand="block" 
-          color="light" 
-          (click)="signInWithGoogle()"
-          [disabled]="isLoading">
-          <ion-icon name="logo-google" slot="start" color="danger"></ion-icon>
-          Continuer avec Google
-        </ion-button>
-
-        <!-- Lien vers inscription -->
-        <div class="register-link ion-text-center ion-margin-top">
-          <ion-text>
-            Pas encore de compte ? 
-            <a routerLink="/register" class="link">S'inscrire</a>
-          </ion-text>
+    
+        <!-- ========================================
+             FOOTER INFO
+             ======================================== -->
+        <div class="footer-info">
+          <p>En te connectant, tu acceptes nos conditions d'utilisation</p>
         </div>
-
-      </ion-card-content>
-    </ion-card>
-
-  </div>
-
-</ion-content>
+    
+      </div>
+    
+    </ion-content>

@@ -1,5 +1,6 @@
+<app-email-verification-banner></app-email-verification-banner>
 <!-- 🧭 Navigation principale avec Bottom Tabs -->
-<ion-tabs>
+<ion-tabs (ionTabsDidChange)="ionTabsDidChange()">
   
   <!-- 📱 Contenu des tabs (chargé dynamiquement) -->
   
@@ -22,6 +23,7 @@
     <ion-tab-button tab="profile">
       <ion-icon name="person" aria-hidden="true"></ion-icon>
       <ion-label>Profil</ion-label>
+      <ion-badge *ngIf="!isEmailVerified" color="danger" class="profile-badge">1</ion-badge>
     </ion-tab-button>
     
   </ion-tab-bar>
@@ -30,11 +32,10 @@
 
 <!-- 
   🎈 FAB (Floating Action Button) - Créer un événement 
-  Position : fixed, bottom-right
-  Visible sur tous les tabs
+  ✅ Masqué automatiquement sur le tab Profil grâce à *ngIf="showFab"
 -->
-<ion-fab slot="fixed" vertical="bottom" horizontal="end">
-  <ion-fab-button (click)="navigateToCreateEvent()" color="primary" aria-label="Créer un événement">
+<ion-fab slot="fixed" vertical="bottom" horizontal="end" *ngIf="showFab">
+  <ion-fab-button (click)="navigateToCreateEvent()" aria-label="Créer un événement">
     <ion-icon name="add"></ion-icon>
   </ion-fab-button>
 </ion-fab>

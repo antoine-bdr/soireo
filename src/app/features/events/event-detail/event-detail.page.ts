@@ -43,7 +43,7 @@ import {
   personAddOutline,
   ellipsisVertical,
   exitOutline,
-  closeCircleOutline, warningOutline } from 'ionicons/icons';
+  closeCircleOutline, warningOutline, arrowBack, documentTextOutline } from 'ionicons/icons';
 
 import { EventsService } from '../../../core/services/events.service';
 import { AuthenticationService } from '../../../core/services/authentication.service';
@@ -61,27 +61,15 @@ import { Subscription } from 'rxjs';
   imports: [
     CommonModule,
     RouterLink,
-    IonHeader,
-    IonToolbar,
-    IonTitle,
     IonContent,
-    IonButtons,
-    IonBackButton,
     IonButton,
     IonIcon,
     IonCard,
-    IonCardHeader,
-    IonCardTitle,
     IonCardContent,
     IonChip,
     IonAvatar,
     IonSpinner,
-    IonFab,
-    IonFabButton,
-    IonFabList,
     IonBadge,
-    IonList,
-    IonItem,
     IonLabel
   ]
 })
@@ -117,7 +105,7 @@ export class EventDetailPage implements OnInit, OnDestroy {
   private subscriptions: Subscription[] = [];
 
   constructor() {
-    addIcons({createOutline,trashOutline,checkmarkCircleOutline,closeCircleOutline,peopleOutline,exitOutline,personAddOutline,warningOutline,calendarOutline,locationOutline,personOutline,ellipsisVertical,shareOutline,lockClosedOutline,timeOutline});
+    addIcons({arrowBack,peopleOutline,calendarOutline,locationOutline,personAddOutline,exitOutline,warningOutline,personOutline,documentTextOutline,createOutline,trashOutline,checkmarkCircleOutline,closeCircleOutline,ellipsisVertical,shareOutline,lockClosedOutline,timeOutline});
   }
 
   ngOnInit() {
@@ -460,40 +448,6 @@ export class EventDetailPage implements OnInit, OnDestroy {
   }
 
   /**
-   * Formate la date pour l'affichage
-   */
-  formatDate(timestamp: any): string {
-    if (!timestamp) return '';
-    
-    const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
-    return new Intl.DateTimeFormat('fr-FR', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    }).format(date);
-  }
-
-  /**
-   * Retourne le label de la catégorie avec emoji
-   */
-  getCategoryLabel(category: string): string {
-    const labels: Record<string, string> = {
-      'party': '🎉 Soirée',
-      'concert': '🎵 Concert',
-      'festival': '🎪 Festival',
-      'bar': '🍺 Bar',
-      'club': '💃 Club',
-      'outdoor': '🌳 Extérieur',
-      'private': '🔒 Privé',
-      'other': '📌 Autre'
-    };
-    return labels[category] || category;
-  }
-
-  /**
    * Retourne la couleur de la catégorie
    */
   getCategoryColor(category: string): string {
@@ -537,4 +491,96 @@ export class EventDetailPage implements OnInit, OnDestroy {
   shareEvent() {
     this.showToast('Fonctionnalité de partage à venir', 'warning');
   }
+
+  // ========================================
+// 🎨 AJOUTS POUR EVENT DETAIL - TypeScript
+// ========================================
+// À ajouter dans event-detail.page.ts (à la fin de la classe, avant le dernier })
+
+/**
+ * Retourne le label de la catégorie avec emoji
+ */
+getCategoryLabel(category: any): string {
+  const categoryStr = String(category).toUpperCase();
+  
+  const labels: Record<string, string> = {
+    'PARTY': '🎉 Soirée',
+    'CONCERT': '🎵 Concert',
+    'FESTIVAL': '🎪 Festival',
+    'BAR': '🍺 Bar',
+    'CLUB': '💃 Club',
+    'OUTDOOR': '🌳 Extérieur',
+    'PRIVATE': '🔒 Privé',
+    'OTHER': '📌 Autre'
+  };
+  
+  return labels[categoryStr] || `📌 ${category}`;
+}
+
+/**
+ * Formate la date pour l'affichage
+ */
+formatDate(dateValue: any): string {
+  if (!dateValue) return 'Date inconnue';
+  
+  try {
+    let date: Date;
+    
+    // Gère les Timestamp Firebase
+    if (dateValue?.toDate) {
+      date = dateValue.toDate();
+    } 
+    // Gère les strings ISO
+    else if (typeof dateValue === 'string') {
+      date = new Date(dateValue);
+    } 
+    // Déjà une Date
+    else {
+      date = dateValue;
+    }
+    
+    // Vérifie validité
+    if (isNaN(date.getTime())) {
+      return 'Date invalide';
+    }
+    
+    // Formate en français
+    return date.toLocaleDateString('fr-FR', {
+      weekday: 'long',
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  } catch (error) {
+    console.error('Erreur formatDate:', error);
+    return 'Erreur de date';
+  }
+}
+
+/**
+ * Retourne le status du badge participants
+ * Pour appliquer les couleurs dynamiques
+ */
+getParticipantBadgeStatus(): string {
+  if (this.isEventFull()) {
+    return 'danger';
+  }
+  
+  const percentage = (this.participantCount / this.event!.maxParticipants) * 100;
+  
+  if (percentage >= 80) {
+    return 'warning';
+  }
+  
+  return 'success';
+}
+
+/**
+ * Retour à la page précédente
+ */
+goBack() {
+  this.router.navigate(['/tabs/events']);
+}
 }

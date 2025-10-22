@@ -1,334 +1,355 @@
-<!-- src/app/features/events/event-edit/event-edit.page.html -->
-<!-- ✅ VERSION CORRIGÉE -->
+<!-- ========================================
+     ✏️ EVENT EDIT PAGE - DESIGN HARMONISÉ
+     Cohérent avec event-create.page.html
+     ======================================== -->
 
-<ion-header>
-  <ion-toolbar color="primary">
-    <ion-buttons slot="start">
-      <ion-back-button [defaultHref]="'/events/' + eventId"></ion-back-button>
-    </ion-buttons>
-    <ion-title>Modifier l'événement</ion-title>
-  </ion-toolbar>
-</ion-header>
-
-<ion-content class="ion-padding">
-  
-  <!-- Loader pendant le chargement -->
-  <div class="loading-container" *ngIf="isLoading">
-    <ion-spinner name="crescent" color="primary"></ion-spinner>
-    <p>Chargement...</p>
-  </div>
-
-  <!-- Formulaire -->
-  <form [formGroup]="eventForm" (ngSubmit)="updateEvent()" *ngIf="!isLoading">
+     <ion-header>
+      <ion-toolbar>
+        <ion-buttons slot="start">
+          <ion-back-button [defaultHref]="'/events/' + eventId" text="Back"></ion-back-button>
+        </ion-buttons>
+        <ion-title>Modifier l'événement</ion-title>
+      </ion-toolbar>
+    </ion-header>
     
-    <!-- Section Image -->
-    <ion-card>
-      <ion-card-header>
-        <ion-card-title>
-          <ion-icon name="camera-outline"></ion-icon>
-          Photo de l'événement
-        </ion-card-title>
-      </ion-card-header>
+    <ion-content>
       
-      <ion-card-content>
-        <!-- Prévisualisation de l'image -->
-        <div class="image-preview-container" *ngIf="imagePreview">
-          <img [src]="imagePreview" alt="Aperçu" class="image-preview" />
-          <ion-button 
-            fill="clear" 
-            color="danger" 
-            class="remove-image-btn"
-            (click)="removeImage()">
-            <ion-icon name="close-outline"></ion-icon>
-          </ion-button>
-        </div>
-
-        <!-- Bouton de sélection d'image -->
-        <div class="upload-container">
-          <input 
-            type="file" 
-            #fileInput 
-            accept="image/*" 
-            (change)="onImageSelected($event)"
-            style="display: none" />
+      <!-- ========================================
+           LOADING STATE
+           ======================================== -->
+      <div class="loading-container" *ngIf="isLoading">
+        <ion-spinner name="crescent" color="primary"></ion-spinner>
+        <p>Chargement...</p>
+      </div>
+    
+      <!-- ========================================
+           FORMULAIRE
+           ======================================== -->
+      <form [formGroup]="eventForm" (ngSubmit)="updateEvent()" *ngIf="!isLoading">
+        
+        <!-- ========================================
+             SECTION IMAGE
+             ======================================== -->
+        <ion-card>
+          <ion-card-header>
+            <ion-card-title>
+              <ion-icon name="camera-outline"></ion-icon>
+              Photo de l'événement
+            </ion-card-title>
+          </ion-card-header>
+          
+          <ion-card-content>
+            <!-- Prévisualisation de l'image -->
+            <div class="image-preview-container" *ngIf="imagePreview">
+              <img [src]="imagePreview" alt="Aperçu" class="image-preview" />
+              <ion-button 
+                fill="clear" 
+                color="danger" 
+                class="remove-image-btn"
+                (click)="removeImage()">
+                <ion-icon name="close-outline"></ion-icon>
+              </ion-button>
+            </div>
+    
+            <!-- Bouton de sélection d'image -->
+            <div class="upload-container">
+              <input 
+                type="file" 
+                #fileInput 
+                accept="image/*" 
+                (change)="onImageSelected($event)"
+                style="display: none" />
+              <ion-button 
+                expand="block" 
+                fill="outline"
+                (click)="fileInput.click()">
+                <ion-icon name="camera-outline" slot="start"></ion-icon>
+                {{ imagePreview ? 'Changer l\'image' : 'Ajouter une image' }}
+              </ion-button>
+              <p class="hint">JPG, PNG, GIF ou WebP - Max 5MB</p>
+            </div>
+          </ion-card-content>
+        </ion-card>
+    
+        <!-- ========================================
+             SECTION INFORMATIONS GÉNÉRALES
+             ======================================== -->
+        <ion-card>
+          <ion-card-header>
+            <ion-card-title>Informations générales</ion-card-title>
+          </ion-card-header>
+          
+          <ion-card-content>
+            
+            <!-- Titre -->
+            <ion-item lines="none">
+              <ion-label position="stacked">Titre de l'événement *</ion-label>
+              <ion-input 
+                type="text" 
+                formControlName="title"
+                placeholder="Ex: Soirée d'anniversaire">
+              </ion-input>
+            </ion-item>
+            <div class="error-message" *ngIf="title?.invalid && title?.touched">
+              <ion-text color="danger" *ngIf="title?.errors?.['required']">
+                <small>Le titre est requis</small>
+              </ion-text>
+              <ion-text color="danger" *ngIf="title?.errors?.['minlength']">
+                <small>Minimum 3 caractères</small>
+              </ion-text>
+            </div>
+    
+            <!-- Description -->
+            <ion-item lines="none">
+              <ion-label position="stacked">Description *</ion-label>
+              <ion-textarea 
+                formControlName="description"
+                rows="4"
+                placeholder="Décris ton événement...">
+              </ion-textarea>
+            </ion-item>
+            <div class="error-message" *ngIf="description?.invalid && description?.touched">
+              <ion-text color="danger" *ngIf="description?.errors?.['required']">
+                <small>La description est requise</small>
+              </ion-text>
+              <ion-text color="danger" *ngIf="description?.errors?.['minlength']">
+                <small>Minimum 10 caractères</small>
+              </ion-text>
+            </div>
+    
+            <!-- Catégorie -->
+            <ion-item lines="none">
+              <ion-label position="stacked">Catégorie *</ion-label>
+              <ion-select formControlName="category" interface="action-sheet">
+                <ion-select-option 
+                  *ngFor="let cat of categories" 
+                  [value]="cat.value">
+                  {{ cat.label }}
+                </ion-select-option>
+              </ion-select>
+            </ion-item>
+    
+          </ion-card-content>
+        </ion-card>
+    
+        <!-- ========================================
+             SECTION DATE ET HEURE
+             ======================================== -->
+        <ion-card>
+          <ion-card-header>
+            <ion-card-title>
+              <ion-icon name="calendar-outline"></ion-icon>
+              Date et heure
+            </ion-card-title>
+          </ion-card-header>
+          
+          <ion-card-content>
+            
+            <!-- Bouton pour ouvrir le sélecteur de date -->
+            <ion-item lines="none" button id="open-datetime-modal-edit">
+              <ion-label>Date et heure *</ion-label>
+              <ion-text slot="end">
+                {{ formatSelectedDate(date?.value) }}
+              </ion-text>
+              <ion-icon name="chevron-forward-outline" slot="end" color="medium"></ion-icon>
+            </ion-item>
+    
+            <!-- Modal avec le datetime picker -->
+            <ion-modal trigger="open-datetime-modal-edit" [keepContentsMounted]="true">
+              <ng-template>
+                <ion-datetime 
+                  [value]="date?.value"
+                  (ionChange)="onDateChange($event)"
+                  presentation="date-time"
+                  [min]="minDate"
+                  locale="fr-FR"
+                  [showDefaultButtons]="true"
+                  doneText="Valider"
+                  cancelText="Annuler">
+                </ion-datetime>
+              </ng-template>
+            </ion-modal>
+    
+            <div class="error-message" *ngIf="date?.invalid && date?.touched">
+              <ion-text color="danger">
+                <small>La date est requise</small>
+              </ion-text>
+            </div>
+    
+          </ion-card-content>
+        </ion-card>
+    
+        <!-- ========================================
+             SECTION LIEU
+             ======================================== -->
+        <ion-card>
+          <ion-card-header>
+            <ion-card-title>
+              <ion-icon name="location-outline"></ion-icon>
+              Lieu
+            </ion-card-title>
+          </ion-card-header>
+          
+          <ion-card-content>
+            
+            <!-- Adresse -->
+            <ion-item lines="none">
+              <ion-label position="stacked">Adresse *</ion-label>
+              <ion-input 
+                type="text" 
+                formControlName="address"
+                placeholder="Ex: 10 rue de la Paix">
+              </ion-input>
+            </ion-item>
+            <div class="error-message" *ngIf="address?.invalid && address?.touched">
+              <ion-text color="danger">
+                <small>L'adresse est requise</small>
+              </ion-text>
+            </div>
+    
+            <!-- Ville -->
+            <ion-item lines="none">
+              <ion-label position="stacked">Ville *</ion-label>
+              <ion-input 
+                type="text" 
+                formControlName="city"
+                placeholder="Ex: Paris">
+              </ion-input>
+            </ion-item>
+            <div class="error-message" *ngIf="city?.invalid && city?.touched">
+              <ion-text color="danger">
+                <small>La ville est requise</small>
+              </ion-text>
+            </div>
+    
+            <!-- Code postal -->
+            <ion-item lines="none">
+              <ion-label position="stacked">Code postal *</ion-label>
+              <ion-input 
+                type="text" 
+                formControlName="zipCode"
+                placeholder="Ex: 75001"
+                maxlength="5">
+              </ion-input>
+            </ion-item>
+            <div class="error-message" *ngIf="zipCode?.invalid && zipCode?.touched">
+              <ion-text color="danger" *ngIf="zipCode?.errors?.['required']">
+                <small>Le code postal est requis</small>
+              </ion-text>
+              <ion-text color="danger" *ngIf="zipCode?.errors?.['pattern']">
+                <small>Format invalide (5 chiffres)</small>
+              </ion-text>
+            </div>
+    
+          </ion-card-content>
+        </ion-card>
+    
+        <!-- ========================================
+             SECTION PARTICIPANTS
+             ======================================== -->
+        <ion-card>
+          <ion-card-header>
+            <ion-card-title>
+              <ion-icon name="people-outline"></ion-icon>
+              Participants
+            </ion-card-title>
+          </ion-card-header>
+          
+          <ion-card-content>
+            
+            <!-- Nombre max de participants -->
+            <ion-item lines="none">
+              <ion-label position="stacked">Nombre maximum de participants *</ion-label>
+              <ion-input 
+                type="number" 
+                formControlName="maxParticipants"
+                min="2"
+                max="1000"
+                placeholder="10">
+              </ion-input>
+            </ion-item>
+            <div class="error-message" *ngIf="maxParticipants?.invalid && maxParticipants?.touched">
+              <ion-text color="danger" *ngIf="maxParticipants?.errors?.['min']">
+                <small>Minimum 2 participants</small>
+              </ion-text>
+              <ion-text color="danger" *ngIf="maxParticipants?.errors?.['max']">
+                <small>Maximum 1000 participants</small>
+              </ion-text>
+            </div>
+    
+            <!-- Message d'avertissement -->
+            <ion-text color="warning" *ngIf="maxParticipants?.value < currentParticipantCount">
+              <p class="warning-text">
+                <ion-icon name="warning-outline"></ion-icon>
+                Le nombre actuel de participants ({{ currentParticipantCount }}) 
+                dépasse la nouvelle limite.
+              </p>
+            </ion-text>
+    
+          </ion-card-content>
+        </ion-card>
+    
+        <!-- ========================================
+             SECTION OPTIONS
+             ======================================== -->
+        <ion-card>
+          <ion-card-header>
+            <ion-card-title>
+              <ion-icon name="checkmark-circle-outline"></ion-icon>
+              Options
+            </ion-card-title>
+          </ion-card-header>
+          
+          <ion-card-content>
+            
+            <!-- Événement privé -->
+            <ion-item lines="none">
+              <ion-icon name="lock-closed-outline" slot="start"></ion-icon>
+              <ion-label>
+                <h3>Événement privé</h3>
+                <p>Seules les personnes invitées peuvent voir cet événement</p>
+              </ion-label>
+              <ion-toggle formControlName="isPrivate" slot="end"></ion-toggle>
+            </ion-item>
+    
+            <!-- Requiert approbation -->
+            <ion-item lines="none">
+              <ion-icon name="checkmark-circle-outline" slot="start"></ion-icon>
+              <ion-label>
+                <h3>Approbation requise</h3>
+                <p>Tu devras approuver chaque demande de participation</p>
+              </ion-label>
+              <ion-toggle formControlName="requiresApproval" slot="end"></ion-toggle>
+            </ion-item>
+    
+          </ion-card-content>
+        </ion-card>
+    
+        <!-- ========================================
+             BOUTONS D'ACTION
+             ======================================== -->
+        <div class="action-buttons">
           <ion-button 
             expand="block" 
+            type="button"
             fill="outline"
-            (click)="fileInput.click()">
-            <ion-icon name="camera-outline" slot="start"></ion-icon>
-            {{ imagePreview ? 'Changer l\'image' : 'Ajouter une image' }}
+            size="large"
+            class="cancel-btn"
+            (click)="cancelEdit()">
+            Annuler
           </ion-button>
-          <p class="hint">JPG, PNG, GIF ou WebP - Max 5MB</p>
+    
+          <ion-button 
+            expand="block" 
+            type="submit" 
+            size="large"
+            class="save-btn"
+            [disabled]="eventForm.invalid || !hasChanges()">
+            <ion-icon name="save-outline" slot="start"></ion-icon>
+            Enregistrer
+          </ion-button>
         </div>
-      </ion-card-content>
-    </ion-card>
-
-    <!-- Section Informations de base -->
-    <ion-card>
-      <ion-card-header>
-        <ion-card-title>Informations générales</ion-card-title>
-      </ion-card-header>
-      
-      <ion-card-content>
-        
-        <!-- Titre -->
-        <ion-item lines="full">
-          <ion-label position="floating">Titre de l'événement *</ion-label>
-          <ion-input 
-            type="text" 
-            formControlName="title"
-            placeholder="Ex: Soirée d'anniversaire">
-          </ion-input>
-        </ion-item>
-        <div class="error-message" *ngIf="title?.invalid && title?.touched">
-          <ion-text color="danger" *ngIf="title?.errors?.['required']">
-            <small>Le titre est requis</small>
-          </ion-text>
-          <ion-text color="danger" *ngIf="title?.errors?.['minlength']">
-            <small>Minimum 3 caractères</small>
-          </ion-text>
-        </div>
-
-        <!-- Description -->
-        <ion-item lines="full">
-          <ion-label position="floating">Description *</ion-label>
-          <ion-textarea 
-            formControlName="description"
-            rows="4"
-            placeholder="Décris ton événement...">
-          </ion-textarea>
-        </ion-item>
-        <div class="error-message" *ngIf="description?.invalid && description?.touched">
-          <ion-text color="danger" *ngIf="description?.errors?.['required']">
-            <small>La description est requise</small>
-          </ion-text>
-          <ion-text color="danger" *ngIf="description?.errors?.['minlength']">
-            <small>Minimum 10 caractères</small>
-          </ion-text>
-        </div>
-
-        <!-- Catégorie -->
-        <ion-item lines="full">
-          <ion-label>Catégorie *</ion-label>
-          <ion-select formControlName="category" interface="action-sheet">
-            <ion-select-option 
-              *ngFor="let cat of categories" 
-              [value]="cat.value">
-              {{ cat.label }}
-            </ion-select-option>
-          </ion-select>
-        </ion-item>
-
-      </ion-card-content>
-    </ion-card>
-
-    <!-- Section Date et heure -->
-    <ion-card>
-      <ion-card-header>
-        <ion-card-title>
-          <ion-icon name="calendar-outline"></ion-icon>
-          Date et heure
-        </ion-card-title>
-      </ion-card-header>
-      
-      <ion-card-content>
-        
-        <!-- Bouton pour ouvrir le sélecteur de date -->
-        <ion-item lines="full" button id="open-datetime-modal-edit">
-          <ion-label>Date et heure *</ion-label>
-          <ion-text slot="end" color="primary">
-            {{ formatSelectedDate(date?.value) }}
-          </ion-text>
-        </ion-item>
-
-        <!-- Modal avec le datetime picker -->
-        <ion-modal trigger="open-datetime-modal-edit" [keepContentsMounted]="true">
-          <ng-template>
-            <ion-datetime 
-              [value]="date?.value"
-              (ionChange)="onDateChange($event)"
-              presentation="date-time"
-              [min]="minDate"
-              locale="fr-FR"
-              [showDefaultButtons]="true"
-              doneText="Valider"
-              cancelText="Annuler">
-            </ion-datetime>
-          </ng-template>
-        </ion-modal>
-
-        <div class="error-message" *ngIf="date?.invalid && date?.touched">
-          <ion-text color="danger">
-            <small>La date est requise</small>
-          </ion-text>
-        </div>
-
-      </ion-card-content>
-    </ion-card>
-
-    <!-- Section Lieu -->
-    <ion-card>
-      <ion-card-header>
-        <ion-card-title>
-          <ion-icon name="location-outline"></ion-icon>
-          Lieu
-        </ion-card-title>
-      </ion-card-header>
-      
-      <ion-card-content>
-        
-        <!-- Adresse -->
-        <ion-item lines="full">
-          <ion-label position="floating">Adresse *</ion-label>
-          <ion-input 
-            type="text" 
-            formControlName="address"
-            placeholder="Ex: 10 rue de la Paix">
-          </ion-input>
-        </ion-item>
-        <div class="error-message" *ngIf="address?.invalid && address?.touched">
-          <ion-text color="danger">
-            <small>L'adresse est requise</small>
-          </ion-text>
-        </div>
-
-        <!-- Ville -->
-        <ion-item lines="full">
-          <ion-label position="floating">Ville *</ion-label>
-          <ion-input 
-            type="text" 
-            formControlName="city"
-            placeholder="Ex: Paris">
-          </ion-input>
-        </ion-item>
-        <div class="error-message" *ngIf="city?.invalid && city?.touched">
-          <ion-text color="danger">
-            <small>La ville est requise</small>
-          </ion-text>
-        </div>
-
-        <!-- Code postal -->
-        <ion-item lines="full">
-          <ion-label position="floating">Code postal *</ion-label>
-          <ion-input 
-            type="text" 
-            formControlName="zipCode"
-            placeholder="Ex: 75001"
-            maxlength="5">
-          </ion-input>
-        </ion-item>
-        <div class="error-message" *ngIf="zipCode?.invalid && zipCode?.touched">
-          <ion-text color="danger" *ngIf="zipCode?.errors?.['required']">
-            <small>Le code postal est requis</small>
-          </ion-text>
-          <ion-text color="danger" *ngIf="zipCode?.errors?.['pattern']">
-            <small>Format invalide (5 chiffres)</small>
-          </ion-text>
-        </div>
-
-      </ion-card-content>
-    </ion-card>
-
-    <!-- Section Participants -->
-    <ion-card>
-      <ion-card-header>
-        <ion-card-title>
-          <ion-icon name="people-outline"></ion-icon>
-          Participants
-        </ion-card-title>
-      </ion-card-header>
-      
-      <ion-card-content>
-        
-        <!-- Nombre max de participants -->
-        <ion-item lines="full">
-          <ion-label position="floating">Nombre maximum de participants *</ion-label>
-          <ion-input 
-            type="number" 
-            formControlName="maxParticipants"
-            min="2"
-            max="1000">
-          </ion-input>
-        </ion-item>
-        <div class="error-message" *ngIf="maxParticipants?.invalid && maxParticipants?.touched">
-          <ion-text color="danger" *ngIf="maxParticipants?.errors?.['min']">
-            <small>Minimum 2 participants</small>
-          </ion-text>
-          <ion-text color="danger" *ngIf="maxParticipants?.errors?.['max']">
-            <small>Maximum 1000 participants</small>
-          </ion-text>
-        </div>
-
-        <!-- ✅ FIX : Utilisation de currentParticipantCount au lieu de currentParticipants -->
-        <ion-text color="warning" *ngIf="maxParticipants?.value < currentParticipantCount">
-          <p class="warning-text">
-            <ion-icon name="warning-outline"></ion-icon>
-            Le nombre actuel de participants ({{ currentParticipantCount }}) 
-            dépasse la nouvelle limite.
-          </p>
-        </ion-text>
-
-      </ion-card-content>
-    </ion-card>
-
-    <!-- Section Options -->
-    <ion-card>
-      <ion-card-header>
-        <ion-card-title>
-          <ion-icon name="checkmark-circle-outline"></ion-icon>
-          Options
-        </ion-card-title>
-      </ion-card-header>
-      
-      <ion-card-content>
-        
-        <!-- Événement privé -->
-        <ion-item lines="full">
-          <ion-icon name="lock-closed-outline" slot="start" color="medium"></ion-icon>
-          <ion-label>
-            <h3>Événement privé</h3>
-            <p>Seules les personnes invitées peuvent voir cet événement</p>
-          </ion-label>
-          <ion-toggle formControlName="isPrivate" slot="end"></ion-toggle>
-        </ion-item>
-
-        <!-- Requiert approbation -->
-        <ion-item lines="none">
-          <ion-icon name="checkmark-circle-outline" slot="start" color="medium"></ion-icon>
-          <ion-label>
-            <h3>Approbation requise</h3>
-            <p>Tu devras approuver chaque demande de participation</p>
-          </ion-label>
-          <ion-toggle formControlName="requiresApproval" slot="end"></ion-toggle>
-        </ion-item>
-
-      </ion-card-content>
-    </ion-card>
-
-    <!-- Boutons d'action -->
-    <div class="action-buttons">
-      <ion-button 
-        expand="block" 
-        type="button"
-        fill="outline"
-        color="medium"
-        size="large"
-        class="cancel-btn"
-        (click)="cancelEdit()">
-        Annuler
-      </ion-button>
-
-      <ion-button 
-        expand="block" 
-        type="submit" 
-        size="large"
-        class="save-btn"
-        [disabled]="eventForm.invalid || !hasChanges()">
-        <ion-icon name="save-outline" slot="start"></ion-icon>
-        Enregistrer les modifications
-      </ion-button>
-    </div>
-
-  </form>
-
-</ion-content>
+    
+      </form>
+    
+    </ion-content>

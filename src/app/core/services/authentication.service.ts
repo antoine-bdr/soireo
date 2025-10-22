@@ -15,10 +15,11 @@ import {
   signInWithPopup,
   updateProfile,
   sendPasswordResetEmail,
+  sendEmailVerification,
   onAuthStateChanged
 } from '@angular/fire/auth';
-import { from, Observable, BehaviorSubject } from 'rxjs';
-import { map, tap, switchMap } from 'rxjs/operators';
+import { from, Observable, BehaviorSubject, throwError, of } from 'rxjs'; // ✅ Ajout de throwError et of
+import { map, tap, switchMap, catchError } from 'rxjs/operators';
 import { UsersService } from './users.service'; // ✅ AJOUTÉ
 import { CreateUserDto } from '../models/user.model'; // ✅ AJOUTÉ
 
@@ -111,12 +112,28 @@ export class AuthenticationService {
         return this.usersService.createUserProfile(userProfile).pipe(
           map(() => {
             console.log('✅ Profil Firestore créé');
-            return credential; // Retourne le credential pour la page
+            return credential;
+          }),
+          // ✅ NOUVEAU : Envoi de l'email de vérification
+          switchMap((cred) => {
+            console.log('📧 Envoi de l\'email de vérification...');
+            return this.sendEmailVerification().pipe(
+              tap(() => console.log('✅ Email de vérification envoyé')),
+              // Retourne le credential même si l'email échoue (non bloquant)
+              catchError((error) => {
+                console.warn('⚠️ Erreur envoi email vérification (non bloquant):', error);
+                return of(undefined);
+              }),
+              // Retourne toujours le credential original
+              map(() => cred)
+            );
           })
         );
       })
     );
   }
+
+  
 
   // ========================================
   // ✅ CONNEXION (MODIFIÉE)
@@ -305,4 +322,70 @@ export class AuthenticationService {
 
     return { firstName, lastName };
   }
+
+  /**
+ * Rafraîchit le statut de vérification de l'email
+ * ✅ À appeler après que l'utilisateur ait cliqué sur le lien dans l'email
+ * 
+ * @returns Observable<boolean> - true si email vérifié, false sinon
+ */
+  sendEmailVerification(): Observable<void> {
+    const user = this.auth.currentUser;
+    
+    if (!user) {
+      console.error('❌ Aucun utilisateur connecté');
+      return throwError(() => new Error('Aucun utilisateur connecté'));
+    }
+  
+    if (user.emailVerified) {
+      console.log('✅ Email déjà vérifié');
+      return of(undefined);
+    }
+  
+    return from(
+      sendEmailVerification(user, {
+        // URL de redirection après vérification (optionnel)
+        url: window.location.origin + '/tabs/profile',
+        handleCodeInApp: false
+      })
+    ).pipe(
+      tap(() => console.log('📧 Email de vérification envoyé à :', user.email))
+    );
+  }
+  
+  /**
+   * Rafraîchit le statut de vérification de l'email
+   * ✅ À appeler après que l'utilisateur ait cliqué sur le lien dans l'email
+   * 
+   * @returns Observable<boolean> - true si email vérifié, false sinon
+   */
+  reloadEmailVerificationStatus(): Observable<boolean> {
+    const user = this.auth.currentUser;
+    
+    if (!user) {
+      return of(false);
+    }
+  
+    return from(user.reload()).pipe(
+      map(() => {
+        const isVerified = this.auth.currentUser?.emailVerified || false;
+        console.log('🔄 Statut email vérifié:', isVerified);
+        return isVerified;
+      }),
+      catchError((error) => {
+        console.error('❌ Erreur lors du rafraîchissement:', error);
+        return of(false);
+      })
+    );
+  }
+  
+  /**
+   * Vérifie si l'email de l'utilisateur courant est vérifié
+   * 
+   * @returns boolean
+   */
+  isEmailVerified(): boolean {
+    return this.auth.currentUser?.emailVerified || false;
+  }
 }
+

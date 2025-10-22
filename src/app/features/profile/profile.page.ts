@@ -1,7 +1,3 @@
-// src/app/features/profile/profile.page.ts
-// Page de profil utilisateur
-// 🎯 Sprint 4 - Profil Utilisateur
-
 import { Component, OnInit, OnDestroy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
@@ -12,22 +8,14 @@ import {
   IonToolbar,
   IonTitle,
   IonButtons,
-  IonBackButton,
   IonCard,
-  IonCardHeader,
-  IonCardTitle,
   IonCardContent,
   IonAvatar,
-  IonLabel,
   IonItem,
   IonInput,
   IonTextarea,
   IonButton,
   IonIcon,
-  IonBadge,
-  IonGrid,
-  IonRow,
-  IonCol,
   IonSpinner,
   IonRefresher,
   IonRefresherContent,
@@ -46,8 +34,7 @@ import {
   logOutOutline,
   saveOutline,
   createOutline,
-  checkmarkCircle
-} from 'ionicons/icons';
+  checkmarkCircle, shieldCheckmarkOutline, alertCircle, refreshOutline } from 'ionicons/icons';
 import { Subscription } from 'rxjs';
 import { UsersService } from '../../core/services/users.service';
 import { AuthenticationService } from '../../core/services/authentication.service';
@@ -67,21 +54,14 @@ import { User, UpdateUserDto } from '../../core/models/user.model';
     IonToolbar,
     IonTitle,
     IonButtons,
-    IonBackButton,
     IonCard,
-    IonCardHeader,
-    IonCardTitle,
     IonCardContent,
     IonAvatar,
-    IonLabel,
     IonItem,
     IonInput,
     IonTextarea,
     IonButton,
     IonIcon,
-    IonGrid,
-    IonRow,
-    IonCol,
     IonSpinner,
     IonRefresher,
     IonRefresherContent
@@ -113,22 +93,15 @@ export class ProfilePage implements OnInit, OnDestroy {
   selectedFile: File | null = null;
   previewUrl: string | null = null;
 
+  isEmailVerified = false;
+  userEmail: string | null = null;
+  isLoadingVerification = false;
+
   private subscriptions: Subscription[] = [];
 
   constructor() {
     // Enregistrement des icônes Ionic
-    addIcons({
-      personOutline,
-      mailOutline,
-      callOutline,
-      locationOutline,
-      cameraOutline,
-      calendarOutline,
-      logOutOutline,
-      saveOutline,
-      createOutline,
-      checkmarkCircle
-    });
+    addIcons({createOutline,personOutline,cameraOutline,callOutline,locationOutline,calendarOutline,shieldCheckmarkOutline,checkmarkCircle,alertCircle,mailOutline,refreshOutline,logOutOutline,saveOutline});
 
     // Initialisation du formulaire
     this.initForm();
@@ -148,6 +121,7 @@ export class ProfilePage implements OnInit, OnDestroy {
     }
 
     this.loadUserProfile();
+    this.checkEmailVerification();
   }
 
   ngOnDestroy() {
@@ -481,6 +455,106 @@ export class ProfilePage implements OnInit, OnDestroy {
     });
     await toast.present();
   }
+
+
+  checkEmailVerification() {
+  const user = this.authService.currentUser();
+  
+  if (user) {
+    this.isEmailVerified = user.emailVerified;
+    this.userEmail = user.email;
+    console.log('📧 Statut email vérifié:', this.isEmailVerified);
+  }
+}
+
+/**
+ * Envoie un email de vérification
+ */
+async sendVerificationEmail() {
+  this.isLoadingVerification = true;
+
+  this.authService.sendEmailVerification().subscribe({
+    next: async () => {
+      this.isLoadingVerification = false;
+      
+      const toast = await this.toastCtrl.create({
+        message: `📧 Email de vérification envoyé à ${this.userEmail}`,
+        duration: 3000,
+        position: 'top',
+        color: 'success',
+        icon: 'checkmark-circle'
+      });
+      await toast.present();
+    },
+    error: async (error) => {
+      this.isLoadingVerification = false;
+      console.error('❌ Erreur lors de l\'envoi:', error);
+      
+      const toast = await this.toastCtrl.create({
+        message: '❌ Erreur lors de l\'envoi. Réessayez plus tard.',
+        duration: 3000,
+        position: 'top',
+        color: 'danger',
+        icon: 'close-circle'
+      });
+      await toast.present();
+    }
+  });
+}
+
+/**
+ * Rafraîchit le statut de vérification de l'email
+ * ✅ À utiliser après que l'utilisateur ait cliqué sur le lien dans l'email
+ */
+async refreshEmailStatus() {
+  this.isLoadingVerification = true;
+
+  this.authService.reloadEmailVerificationStatus().subscribe({
+    next: async (isVerified) => {
+      this.isLoadingVerification = false;
+      this.isEmailVerified = isVerified;
+      
+      if (isVerified) {
+        // Email vérifié avec succès
+        const toast = await this.toastCtrl.create({
+          message: '✅ Email vérifié avec succès !',
+          duration: 3000,
+          position: 'top',
+          color: 'success',
+          icon: 'checkmark-circle'
+        });
+        await toast.present();
+        
+        // Recharger le profil pour mettre à jour Firestore
+        this.loadUserProfile();
+      } else {
+        // Email toujours non vérifié
+        const toast = await this.toastCtrl.create({
+          message: '⚠️ Email non vérifié. Vérifiez votre boîte mail et cliquez sur le lien.',
+          duration: 4000,
+          position: 'top',
+          color: 'warning',
+          icon: 'alert-circle'
+        });
+        await toast.present();
+      }
+    },
+    error: async (error) => {
+      this.isLoadingVerification = false;
+      console.error('❌ Erreur lors du rafraîchissement:', error);
+      
+      const toast = await this.toastCtrl.create({
+        message: '❌ Erreur lors de la vérification. Réessayez.',
+        duration: 3000,
+        position: 'top',
+        color: 'danger',
+        icon: 'close-circle'
+      });
+      await toast.present();
+    }
+  });
+}
+
 
   /**
    * Nettoie les subscriptions

@@ -1,6 +1,3 @@
-// src/app/features/events/event-create/event-create.page.ts
-// Page de création d'un nouvel événement
-
 import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
@@ -42,8 +39,7 @@ import {
   locationOutline,
   peopleOutline,
   lockClosedOutline,
-  checkmarkCircleOutline
-} from 'ionicons/icons';
+  checkmarkCircleOutline, chevronForwardOutline } from 'ionicons/icons';
 
 import { EventsService } from '../../../core/services/events.service';
 import { StorageService } from '../../../core/services/storage.service';
@@ -114,16 +110,7 @@ export class EventCreatePage implements OnInit {
   ];
 
   constructor() {
-    addIcons({
-      cameraOutline,
-      closeOutline,
-      saveOutline,
-      calendarOutline,
-      locationOutline,
-      peopleOutline,
-      lockClosedOutline,
-      checkmarkCircleOutline
-    });
+    addIcons({cameraOutline,closeOutline,calendarOutline,chevronForwardOutline,locationOutline,peopleOutline,checkmarkCircleOutline,lockClosedOutline,saveOutline});
   }
 
   ngOnInit() {

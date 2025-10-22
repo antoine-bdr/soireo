@@ -1,21 +1,42 @@
-<!-- src/app/features/events/event-list/event-list.page.html -->
-<!-- ✅ MODIFIÉ : Ajout avatars organisateurs + lien profil -->
+<!-- ========================================
+     ✨ EVENT LIST - VERSION CORRIGÉE AVEC DEBUG
+     ======================================== -->
 
-<ion-header>
-  <ion-toolbar color="primary">
+<ion-header [translucent]="true">
+  <ion-toolbar>
+    <!-- Titre -->
     <ion-title>🎉 Événements</ion-title>
+    
+    <!-- Bouton filtres -->
+    <ion-buttons slot="end">
+      <ion-button (click)="openFiltersModal()">
+        <ion-badge 
+          *ngIf="activeFiltersCount() > 0" 
+          color="danger"
+          class="filter-badge">
+          {{ activeFiltersCount() }}
+        </ion-badge>
+        <ion-icon name="funnel-outline"></ion-icon>
+      </ion-button>
+    </ion-buttons>
   </ion-toolbar>
 
-  <!-- Barre de recherche -->
+  <!-- ✅ CORRIGÉ : Searchbar avec searchValue au lieu de searchTerm() -->
   <ion-toolbar>
     <ion-searchbar
       placeholder="Rechercher un événement..."
       (ionInput)="onSearchChange($event)"
-      [debounce]="500">
+      [debounce]="500"
+      [value]="searchValue()">
     </ion-searchbar>
   </ion-toolbar>
 
-  <!-- Segments de filtrage -->
+  <!-- ========================================
+       CHIPS DES FILTRES ACTIFS
+       ======================================== -->
+  <app-active-filters-chips></app-active-filters-chips>
+
+  <!-- Segments -->
   <ion-toolbar>
     <ion-segment 
       [value]="selectedSegment()" 
@@ -26,139 +47,96 @@
       <ion-segment-button value="all">
         <ion-label>Tous</ion-label>
       </ion-segment-button>
+      <ion-segment-button value="past">
+        <ion-label>Passés</ion-label>
+      </ion-segment-button>
     </ion-segment>
   </ion-toolbar>
 </ion-header>
 
-<ion-content>
+<ion-content [fullscreen]="true">
   
   <!-- Pull-to-refresh -->
   <ion-refresher slot="fixed" (ionRefresh)="handleRefresh($event)">
     <ion-refresher-content></ion-refresher-content>
   </ion-refresher>
 
-  <!-- Loader pendant le chargement -->
+  <!-- ========================================
+       COMPTEUR DE RÉSULTATS
+       ======================================== -->
+  <div class="results-counter" *ngIf="!isLoading()">
+    <ion-text>
+      <p>
+        <strong>{{ filteredEvents().length }}</strong> 
+        événement{{ filteredEvents().length > 1 ? 's' : '' }} trouvé{{ filteredEvents().length > 1 ? 's' : '' }}
+        <span *ngIf="allEvents().length > 0" class="total-count">
+          sur {{ allEvents().length }} total
+        </span>
+      </p>
+    </ion-text>
+  </div>
+
+  <!-- ========================================
+       LOADING STATE
+       ======================================== -->
   <div class="loading-container" *ngIf="isLoading()">
     <ion-spinner name="crescent" color="primary"></ion-spinner>
     <p>Chargement des événements...</p>
   </div>
 
-  <!-- Liste des événements -->
+  <!-- ========================================
+       EVENTS LIST
+       ======================================== -->
   <div class="events-container" *ngIf="!isLoading()">
     
-    <!-- Message si aucun événement -->
+    <!-- ========================================
+         EMPTY STATE
+         ======================================== -->
     <div class="empty-state" *ngIf="filteredEvents().length === 0">
-      <ion-icon name="calendar-outline" color="medium"></ion-icon>
+      <ion-icon name="calendar-outline"></ion-icon>
       <h2>Aucun événement</h2>
-      <p *ngIf="searchTerm()">
-        Aucun résultat pour "{{ searchTerm() }}"
+      
+      <!-- Message différent selon contexte -->
+      <p *ngIf="activeFiltersCount() > 0">
+        Aucun résultat ne correspond à vos critères.
+        <br>
+        <small>Essayez de modifier ou supprimer certains filtres.</small>
       </p>
-      <p *ngIf="!searchTerm()">
+      <p *ngIf="activeFiltersCount() === 0 && searchValue()">
+        Aucun résultat pour "{{ searchValue() }}"
+      </p>
+      <p *ngIf="activeFiltersCount() === 0 && !searchValue()">
         Sois le premier à créer un événement !
       </p>
-      <ion-button (click)="goToCreateEvent()">
-        <ion-icon name="add-outline" slot="start"></ion-icon>
-        Créer un événement
-      </ion-button>
+      
+      <!-- Actions -->
+      <div class="empty-actions">
+        <ion-button 
+          *ngIf="activeFiltersCount() > 0"
+          fill="outline"
+          (click)="clearFilters()">
+          <ion-icon name="close-circle" slot="start"></ion-icon>
+          Effacer les filtres
+        </ion-button>
+        
+        <ion-button 
+          (click)="goToCreateEvent()">
+          <ion-icon name="add-outline" slot="start"></ion-icon>
+          Créer un événement
+        </ion-button>
+      </div>
     </div>
 
-    <!-- Cards des événements -->
-    <ion-card 
-      *ngFor="let event of filteredEvents()" 
-      class="event-card"
-      (click)="goToEventDetail(event.id!)">
-      
-      <!-- Image de l'événement -->
-      <div class="event-image-container">
-        <img 
-          [src]="event.imageUrl || 'assets/placeholder-event.jpg'" 
-          [alt]="event.title"
-          class="event-image" />
-        
-        <!-- Badge "Complet" si l'événement est plein -->
-        <ion-badge 
-          class="full-badge" 
-          color="danger" 
-          *ngIf="isEventFull(event)">
-          ⚠️ Complet
-        </ion-badge>
+    <!-- ========================================
+         ✨ EVENT CARDS - COMPOSANT RÉUTILISABLE
+         ======================================== -->
+    <app-event-card
+      *ngFor="let event of filteredEvents(); trackBy: trackByEventId"
+      [event]="event"
+      [participantCount]="getParticipantCount(event.id!)"
+      (cardClick)="goToEventDetail($event)">
+    </app-event-card>
 
-        <!-- Badge "Privé" -->
-        <ion-badge 
-          class="private-badge" 
-          color="dark" 
-          *ngIf="event.isPrivate">
-          🔒 Privé
-        </ion-badge>
-      </div>
-
-      <ion-card-header>
-        <!-- En-tête avec catégorie et badge participants -->
-        <div class="header-badges">
-          <!-- Catégorie -->
-          <ion-chip [color]="getCategoryColor(event.category)">
-            <ion-label>{{ getCategoryLabel(event.category) }}</ion-label>
-          </ion-chip>
-
-          <!-- Badge compteur participants -->
-          <ion-chip [color]="getParticipantBadgeColor(event)" class="participants-badge">
-            <ion-icon name="people-outline"></ion-icon>
-            <ion-label>
-              {{ getParticipantCount(event.id!) }} / {{ event.maxParticipants }}
-            </ion-label>
-          </ion-chip>
-        </div>
-
-        <!-- Titre -->
-        <ion-card-title>{{ event.title }}</ion-card-title>
-
-        <!-- ✅ MODIFIÉ : Organisateur avec avatar -->
-        <div class="organizer-info">
-          <ion-avatar class="organizer-avatar">
-            <img 
-              [src]="event.organizerPhoto || 'assets/default-avatar.png'" 
-              [alt]="event.organizerName"
-            />
-          </ion-avatar>
-          <ion-card-subtitle>
-            Par {{ event.organizerName }}
-          </ion-card-subtitle>
-        </div>
-      </ion-card-header>
-
-      <ion-card-content>
-        <!-- Description (tronquée) -->
-        <p class="event-description">
-          {{ event.description.length > 100 
-             ? event.description.substring(0, 100) + '...' 
-             : event.description }}
-        </p>
-
-        <!-- Informations -->
-        <div class="event-info">
-          <!-- Date -->
-          <div class="info-item">
-            <ion-icon name="calendar-outline" color="primary"></ion-icon>
-            <ion-text>{{ formatDate(event.date) }}</ion-text>
-          </div>
-
-          <!-- Lieu -->
-          <div class="info-item">
-            <ion-icon name="location-outline" color="danger"></ion-icon>
-            <ion-text>{{ event.location.city }}</ion-text>
-          </div>
-        </div>
-
-        <!-- Bouton Voir détails -->
-        <ion-button 
-          expand="block" 
-          fill="outline" 
-          class="ion-margin-top"
-          (click)="goToEventDetail(event.id!); $event.stopPropagation()">
-          Voir les détails
-        </ion-button>
-      </ion-card-content>
-    </ion-card>
   </div>
 
 </ion-content>

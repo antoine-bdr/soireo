@@ -1,0 +1,186 @@
+// src/app/shared/components/email-verification-banner/email-verification-banner.component.scss
+// Styles du banner de vérification d'email
+// ✅ Design cohérent avec Party Events (Glassmorphism Rose/Violet)
+
+.email-banner {
+    // ========================================
+    // CONTENEUR PRINCIPAL
+    // ========================================
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    
+    // Glassmorphism effect
+    background: linear-gradient(
+      135deg,
+      rgba(255, 45, 85, 0.15),     // Rose transparent
+      rgba(255, 107, 157, 0.12)    // Rose clair transparent
+    );
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    
+    // Bordures subtiles
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 
+      0 4px 20px rgba(255, 45, 85, 0.15),
+      0 1px 3px rgba(0, 0, 0, 0.2);
+    
+    // Espacement
+    padding: 12px 16px;
+    
+    // Animation d'entrée
+    animation: slideDown 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  
+  // ========================================
+  // ANIMATION SLIDE DOWN
+  // ========================================
+  @keyframes slideDown {
+    from {
+      transform: translateY(-100%);
+      opacity: 0;
+    }
+    to {
+      transform: translateY(0);
+      opacity: 1;
+    }
+  }
+  
+  // ========================================
+  // CONTENU DU BANNER
+  // ========================================
+  .banner-content {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    max-width: 1200px;
+    margin: 0 auto;
+    
+    @media (max-width: 768px) {
+      flex-direction: column;
+      text-align: center;
+    }
+  }
+  
+  // ========================================
+  // ICÔNE
+  // ========================================
+  .banner-icon {
+    font-size: 32px;
+    color: var(--ion-color-primary, #FF2D55);
+    flex-shrink: 0;
+    
+    // Effet glow
+    filter: drop-shadow(0 0 8px rgba(255, 45, 85, 0.4));
+  }
+  
+  // ========================================
+  // MESSAGE
+  // ========================================
+  .banner-message {
+    flex: 1;
+    
+    .banner-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: rgba(255, 255, 255, 0.95);
+      margin: 0 0 4px 0;
+    }
+    
+    .banner-subtitle {
+      font-size: 14px;
+      color: rgba(255, 255, 255, 0.7);
+      margin: 0;
+      
+      strong {
+        color: rgba(255, 255, 255, 0.9);
+        font-weight: 500;
+      }
+    }
+  }
+  
+  // ========================================
+  // ACTIONS
+  // ========================================
+  .banner-actions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    
+    @media (max-width: 768px) {
+      width: 100%;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+  }
+  
+  // ========================================
+  // BOUTONS
+  // ========================================
+  .banner-button {
+    --color: rgba(255, 255, 255, 0.9);
+    --background-hover: rgba(255, 255, 255, 0.1);
+    
+    font-size: 13px;
+    font-weight: 500;
+    text-transform: none;
+    
+    ion-icon {
+      font-size: 18px;
+    }
+    
+    // Hover effect
+    &:hover:not([disabled]) {
+      --background: rgba(255, 255, 255, 0.15);
+    }
+    
+    // État désactivé
+    &[disabled] {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+  }
+  
+  .banner-close {
+    --color: rgba(255, 255, 255, 0.6);
+    --background-hover: rgba(255, 255, 255, 0.1);
+    
+    ion-icon {
+      font-size: 20px;
+    }
+    
+    &:hover {
+      --color: rgba(255, 255, 255, 0.9);
+    }
+  }
+  
+  // ========================================
+  // RESPONSIVE MOBILE
+  // ========================================
+  @media (max-width: 576px) {
+    .email-banner {
+      padding: 10px 12px;
+    }
+    
+    .banner-icon {
+      font-size: 28px;
+    }
+    
+    .banner-message {
+      .banner-title {
+        font-size: 14px;
+      }
+      
+      .banner-subtitle {
+        font-size: 12px;
+      }
+    }
+    
+    .banner-button {
+      font-size: 12px;
+      
+      ion-icon {
+        font-size: 16px;
+      }
+    }
+  }

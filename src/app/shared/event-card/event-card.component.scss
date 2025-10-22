@@ -1,0 +1,389 @@
+// ========================================
+// 🎨 EVENT CARD COMPONENT - SCSS
+// ========================================
+// Styles réutilisables pour les event cards
+// Compatible mobile-first
+
+// ========================================
+// 🎴 EVENT CARD
+// ========================================
+.event-card {
+    margin-bottom: 20px !important;
+    border-radius: 20px !important;
+    overflow: hidden !important;
+    
+    // Glassmorphism premium
+    background: linear-gradient(
+      135deg,
+      rgba(37, 40, 55, 0.95) 0%,
+      rgba(45, 49, 66, 0.95) 100%
+    ) !important;
+    backdrop-filter: blur(20px);
+    
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    
+    // Shadow avec glow ROSE
+    box-shadow: 
+      0 8px 32px rgba(0, 0, 0, 0.3),
+      0 2px 8px rgba(0, 0, 0, 0.2),
+      0 0 0 1px rgba(255, 45, 85, 0.1),
+      inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    
+    --color: #FFFFFF !important;
+    --ion-color-base: #FFFFFF !important;
+    
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  
+    &:active {
+      transform: scale(0.98) translateY(2px);
+      box-shadow: 
+        0 4px 16px rgba(0, 0, 0, 0.4),
+        0 1px 4px rgba(0, 0, 0, 0.3),
+        0 0 20px rgba(255, 45, 85, 0.2);
+    }
+  }
+  
+  // ========================================
+  // 📐 LAYOUT WRAPPER
+  // ========================================
+  .card-layout-wrapper {
+    display: flex !important;
+    flex-direction: row !important;
+    height: 177px !important;
+    width: 100% !important;
+    position: relative;
+    color: #FFFFFF !important;
+  }
+  
+  // ========================================
+  // 🖼️ IMAGE CONTAINER
+  // ========================================
+  .card-image-container {
+    position: relative;
+    width: 110px;
+    min-width: 110px;
+    height: 170px;
+    flex-shrink: 0;
+    overflow: hidden;
+    
+    &::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-right: 1px solid rgba(255, 255, 255, 0.1);
+      pointer-events: none;
+      z-index: 3;
+    }
+    
+    .card-image {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+  
+    .image-overlay {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(
+        135deg,
+        rgba(255, 45, 85, 0.15) 0%,
+        rgba(255, 107, 157, 0.1) 50%,
+        rgba(10, 14, 39, 0.6) 100%
+      );
+      z-index: 1;
+    }
+  
+    .image-badges {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      z-index: 4;
+    }
+  
+    .floating-badge {
+      font-size: 9px;
+      padding: 4px 8px;
+      border-radius: 8px;
+      font-weight: 700;
+      letter-spacing: 0.3px;
+      backdrop-filter: blur(10px);
+      box-shadow: 
+        0 2px 8px rgba(0, 0, 0, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    }
+  
+    .status-badge {
+      background: linear-gradient(
+        135deg,
+        rgba(239, 68, 68, 0.95) 0%,
+        rgba(220, 38, 38, 0.95) 100%
+      );
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: white;
+    }
+  
+    .private-badge {
+      background: linear-gradient(
+        135deg,
+        rgba(15, 23, 42, 0.95) 0%,
+        rgba(30, 41, 59, 0.95) 100%
+      );
+      border: 1px solid rgba(148, 163, 184, 0.3);
+      color: #E2E8F0;
+    }
+  }
+  
+  .event-card:active .card-image {
+    transform: scale(1.05);
+  }
+  
+  // ========================================
+  // 📦 CONTENT WRAPPER
+  // ========================================
+  .card-content-wrapper {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    color: #FFFFFF !important;
+    padding: 16px 16px 14px 16px;
+  }
+  
+  // ========================================
+  // 📋 CARD HEADER - Simplifié
+  // ========================================
+  ion-card-header {
+    --color: #FFFFFF !important;
+    padding: 0 !important;
+    flex-shrink: 0;
+    margin-bottom: 12px;
+    
+    // ✨ TITRE - Encore plus gros et visible
+    .event-title {
+      --color: #FFFFFF !important;
+      
+      font-size: 17px !important;
+      line-height: 1.3;
+      margin-bottom: 10px !important;
+      color: #FFFFFF !important;
+      font-weight: 700;
+      letter-spacing: -0.3px;
+      
+      // Dégradé rose subtil
+      background: linear-gradient(
+        135deg,
+        #FFFFFF 0%,
+        #FFB3C6 100%
+      );
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+  
+    // ✨ BADGES INLINE - Mini et compacts
+    .inline-badges {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: nowrap;
+  
+      .mini-chip {
+        height: 18px !important;
+        font-size: 11px !important;
+        padding: 0 6px !important;
+        margin: 0 !important;
+        border-radius: 6px;
+        font-weight: 600;
+        letter-spacing: 0.3px;
+        --color: #FFFFFF;
+        
+        ion-label {
+          color: #FFFFFF !important;
+          margin: 0;
+          font-weight: 600;
+          font-size: 8px !important;
+        }
+        
+        ion-icon {
+          font-size: 9px;
+          margin-right: 2px;
+          color: #FFFFFF !important;
+        }
+      }
+  
+      // Badge catégorie - TON ROSE
+      .category-chip {
+        background: linear-gradient(
+          135deg,
+          rgba(255, 45, 85, 0.9) 0%,
+          rgba(255, 107, 157, 0.9) 100%
+        ) !important;
+        border: 1px solid rgba(255, 107, 157, 0.3);
+        backdrop-filter: blur(10px);
+        box-shadow: 
+          0 2px 8px rgba(255, 45, 85, 0.3),
+          0 0 12px rgba(255, 45, 85, 0.2),
+          inset 0 1px 0 rgba(255, 255, 255, 0.2);
+      }
+  
+      // Badge participants avec états
+      .participants-chip {
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        backdrop-filter: blur(10px);
+  
+        &[data-status="success"] {
+          background: linear-gradient(
+            135deg,
+            rgba(16, 185, 129, 0.15) 0%,
+            rgba(5, 150, 105, 0.15) 100%
+          );
+          border: 1px solid rgba(16, 185, 129, 0.4);
+          box-shadow: 0 0 12px rgba(16, 185, 129, 0.2);
+          
+          ion-label, ion-icon {
+            color: #34D399 !important;
+          }
+        }
+        
+        &[data-status="warning"] {
+          background: linear-gradient(
+            135deg,
+            rgba(245, 158, 11, 0.15) 0%,
+            rgba(217, 119, 6, 0.15) 100%
+          );
+          border: 1px solid rgba(245, 158, 11, 0.4);
+          box-shadow: 0 0 12px rgba(245, 158, 11, 0.2);
+          
+          ion-label, ion-icon {
+            color: #FBBF24 !important;
+          }
+        }
+        
+        &[data-status="danger"] {
+          background: linear-gradient(
+            135deg,
+            rgba(239, 68, 68, 0.15) 0%,
+            rgba(220, 38, 38, 0.15) 100%
+          );
+          border: 1px solid rgba(239, 68, 68, 0.4);
+          box-shadow: 0 0 12px rgba(239, 68, 68, 0.2);
+          
+          ion-label, ion-icon {
+            color: #F87171 !important;
+          }
+        }
+      }
+    }
+  }
+  
+  // ========================================
+  // 📄 CARD CONTENT - Metadata optimisée
+  // ========================================
+  ion-card-content {
+    --color: #FFFFFF !important;
+    
+    flex: 1;
+    padding: 0 !important;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    overflow: hidden;
+  
+    // ✨ METADATA BOX - Plus d'espace
+    .event-meta {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      padding: 12px 14px;
+      margin-top: auto;
+      
+      // Box glassmorphism
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 10px;
+      backdrop-filter: blur(10px);
+  
+      .meta-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+  
+        ion-icon {
+          font-size: 15px;
+          flex-shrink: 0;
+          opacity: 1;
+        }
+  
+        // ✨ Texte metadata
+        ion-text.meta-text,
+        .meta-text {
+          --color: #E2E8F0 !important;
+          color: #E2E8F0 !important;
+          
+          font-size: 12px !important;
+          font-weight: 600 !important;
+          letter-spacing: 0.2px !important;
+          
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          
+          --ion-color-base: #E2E8F0 !important;
+          --ion-text-color: #E2E8F0 !important;
+          
+          display: inline-block !important;
+          opacity: 1 !important;
+          visibility: visible !important;
+        }
+      }
+  
+      // Couleurs d'icônes
+      .meta-date {
+        ion-icon {
+          color: #FF2D55 !important;
+        }
+      }
+  
+      .meta-location {
+        ion-icon {
+          color: #5B7FFF !important;
+        }
+      }
+    }
+  }
+  
+  // ========================================
+  // ✨ ANIMATIONS
+  // ========================================
+  @keyframes fadeInUp {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  .event-card {
+    animation: fadeInUp 0.4s cubic-bezier(0.4, 0, 0.2, 1) backwards;
+    
+    @for $i from 1 through 10 {
+      &:nth-child(#{$i}) {
+        animation-delay: #{$i * 0.05}s;
+      }
+    }
+  }

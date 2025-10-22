@@ -1,0 +1,235 @@
+<!-- src/app/shared/components/filter-modal/filter-modal.component.html -->
+<!-- Modal Fullscreen pour filtres de recherche avancée -->
+
+<ion-header [translucent]="true">
+  <ion-toolbar>
+    <!-- Titre -->
+    <ion-title>🎚️ Filtres</ion-title>
+    
+    <!-- Bouton fermer -->
+    <ion-buttons slot="end">
+      <ion-button (click)="dismiss()">
+        <ion-icon name="close" slot="icon-only"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="filter-modal-content">
+  
+  <!-- ========================================
+       RÉSUMÉ DES FILTRES ACTIFS
+       ======================================== -->
+  <div class="filters-summary">
+    <div class="summary-badge">
+      <ion-icon name="funnel-outline"></ion-icon>
+      <span>{{ activeFiltersCount }} filtre(s) actif(s)</span>
+    </div>
+    
+    <ion-button 
+      fill="clear" 
+      size="small" 
+      class="reset-button"
+      *ngIf="activeFiltersCount > 0"
+      (click)="resetAllFilters()">
+      <ion-icon name="refresh-outline" slot="start"></ion-icon>
+      Réinitialiser
+    </ion-button>
+  </div>
+  
+  <!-- ========================================
+       SECTION 1 : CATÉGORIES
+       ======================================== -->
+  <div class="filter-section">
+    <h3 class="section-title">
+      <ion-icon name="pricetag-outline"></ion-icon>
+      Catégories
+    </h3>
+    
+    <div class="categories-grid">
+      <ion-chip
+        *ngFor="let category of categories"
+        [class.selected]="isCategorySelected(category.value)"
+        (click)="toggleCategory(category.value)"
+        class="category-chip">
+        <ion-label>{{ category.icon }} {{ category.label }}</ion-label>
+      </ion-chip>
+    </div>
+  </div>
+  
+  <!-- ========================================
+       SECTION 2 : DATES
+       ======================================== -->
+  <div class="filter-section">
+    <h3 class="section-title">
+      <ion-icon name="calendar-outline"></ion-icon>
+      Période
+    </h3>
+    
+    <!-- Raccourcis dates -->
+    <div class="date-shortcuts">
+      <ion-chip
+        *ngFor="let shortcut of dateShortcuts"
+        [class.selected]="selectedDateShortcut === shortcut.value"
+        (click)="applyDateShortcut(shortcut.value)"
+        class="date-chip">
+        <ion-label>{{ shortcut.label }}</ion-label>
+      </ion-chip>
+    </div>
+    
+    <!-- Date personnalisée -->
+    <div class="custom-date-section">
+      <ion-item lines="none" class="date-item">
+        <ion-label position="stacked">Du</ion-label>
+        <ion-datetime-button datetime="dateFrom"></ion-datetime-button>
+      </ion-item>
+      
+      <ion-item lines="none" class="date-item">
+        <ion-label position="stacked">Au</ion-label>
+        <ion-datetime-button datetime="dateTo"></ion-datetime-button>
+      </ion-item>
+    </div>
+    
+    <!-- Modals datetime -->
+    <ion-modal [keepContentsMounted]="true">
+      <ng-template>
+        <ion-datetime
+          id="dateFrom"
+          presentation="date"
+          [(ngModel)]="tempDateFrom"
+          [min]="minDate"
+          locale="fr-FR">
+        </ion-datetime>
+      </ng-template>
+    </ion-modal>
+    
+    <ion-modal [keepContentsMounted]="true">
+      <ng-template>
+        <ion-datetime
+          id="dateTo"
+          presentation="date"
+          [(ngModel)]="tempDateTo"
+          [min]="minDate"
+          locale="fr-FR">
+        </ion-datetime>
+      </ng-template>
+    </ion-modal>
+  </div>
+  
+  <!-- ========================================
+       SECTION 3 : LIEUX
+       ======================================== -->
+  <div class="filter-section">
+    <h3 class="section-title">
+      <ion-icon name="location-outline"></ion-icon>
+      Villes
+    </h3>
+    
+    <div class="cities-grid">
+      <ion-chip
+        *ngFor="let city of availableCities"
+        [class.selected]="isCitySelected(city)"
+        (click)="toggleCity(city)"
+        class="city-chip">
+        <ion-label>{{ city }}</ion-label>
+      </ion-chip>
+    </div>
+  </div>
+  
+  <!-- ========================================
+       SECTION 4 : DISPONIBILITÉ
+       ======================================== -->
+  <div class="filter-section">
+    <h3 class="section-title">
+      <ion-icon name="checkmark-circle-outline"></ion-icon>
+      Disponibilité
+    </h3>
+    
+    <ion-item lines="none" class="toggle-item">
+      <ion-label>
+        <h4>Places disponibles uniquement</h4>
+        <p>Afficher seulement les événements non complets</p>
+      </ion-label>
+      <ion-toggle
+        [(ngModel)]="tempOnlyAvailable"
+        slot="end"
+        color="danger">
+      </ion-toggle>
+    </ion-item>
+    
+    <ion-item lines="none" class="toggle-item">
+      <ion-label>
+        <h4>Inclure événements privés</h4>
+        <p>Afficher aussi les événements privés</p>
+      </ion-label>
+      <ion-toggle
+        [(ngModel)]="tempIncludePrivate"
+        slot="end"
+        color="danger">
+      </ion-toggle>
+    </ion-item>
+  </div>
+  
+  <!-- ========================================
+       SECTION 5 : TRI
+       ======================================== -->
+  <div class="filter-section">
+    <h3 class="section-title">
+      <ion-icon name="swap-vertical-outline"></ion-icon>
+      Trier par
+    </h3>
+    
+    <div class="sort-options">
+      <ion-chip
+        *ngFor="let sort of sortOptions"
+        [class.selected]="isSortSelected(sort.value)"
+        (click)="selectSort(sort.value)"
+        class="sort-chip">
+        <ion-icon [name]="sort.icon"></ion-icon>
+        <ion-label>{{ sort.label }}</ion-label>
+      </ion-chip>
+    </div>
+    
+    <!-- Ordre (asc/desc) -->
+    <ion-item lines="none" class="toggle-item" *ngIf="tempSortBy">
+      <ion-label>
+        <h4>Ordre décroissant</h4>
+        <p>Du plus récent au plus ancien</p>
+      </ion-label>
+      <ion-toggle
+        [(ngModel)]="tempSortDesc"
+        slot="end"
+        color="danger">
+      </ion-toggle>
+    </ion-item>
+  </div>
+  
+</ion-content>
+
+<!-- ========================================
+     FOOTER - ACTIONS
+     ======================================== -->
+<ion-footer>
+  <ion-toolbar>
+    <div class="footer-actions">
+      <!-- Bouton Annuler -->
+      <ion-button
+        fill="outline"
+        color="medium"
+        class="cancel-button"
+        (click)="dismiss()">
+        Annuler
+      </ion-button>
+      
+      <!-- Bouton Appliquer -->
+      <ion-button
+        fill="solid"
+        color="danger"
+        class="apply-button"
+        (click)="applyFilters()">
+        <ion-icon name="checkmark" slot="start"></ion-icon>
+        Appliquer ({{ activeFiltersCount }})
+      </ion-button>
+    </div>
+  </ion-toolbar>
+</ion-footer>

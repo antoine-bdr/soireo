@@ -1,4 +1,3 @@
-// src/app/features/auth/register/register.page.ts
 import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule, AbstractControl, ValidationErrors } from '@angular/forms';
@@ -19,10 +18,11 @@ import {
   IonText,
   IonIcon,
   LoadingController,
-  ToastController
+  ToastController,
+  IonSpinner
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
-import { mailOutline, lockClosedOutline, personOutline, checkmarkCircleOutline } from 'ionicons/icons';
+import { mailOutline, lockClosedOutline, personOutline, checkmarkCircleOutline, personAdd } from 'ionicons/icons';
 
 import { AuthenticationService } from '../../../core/services/authentication.service';
 
@@ -43,6 +43,7 @@ import { AuthenticationService } from '../../../core/services/authentication.ser
     IonCardHeader,
     IonCardTitle,
     IonCardContent,
+    IonSpinner,
     IonItem,
     IonLabel,
     IonInput,
@@ -66,7 +67,7 @@ export class RegisterPage {
 
   constructor() {
     // Enregistrement des icônes
-    addIcons({ mailOutline, lockClosedOutline, personOutline, checkmarkCircleOutline });
+    addIcons({personAdd,personOutline,mailOutline,lockClosedOutline,checkmarkCircleOutline});
     
     // Création du formulaire avec validations
     this.registerForm = this.fb.group({

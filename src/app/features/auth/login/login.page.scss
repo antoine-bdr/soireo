@@ -1,124 +1,579 @@
-// src/app/features/auth/login/login.page.scss
+// ========================================
+// 🎉 LOGIN PAGE - PREMIUM DARK GLASSMORPHISM
+// Design immersif et moderne
+// ========================================
 
-// Container principal centré
+// ========================================
+// 🎨 GLOBAL BACKGROUND AVEC ANIMATION
+// ========================================
+ion-content {
+  --background: linear-gradient(
+    180deg,
+    rgba(10, 14, 25, 1) 0%,
+    rgba(15, 20, 35, 1) 100%
+  );
+  
+  // Effet de gradient animé subtil
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(
+      circle at 50% 0%,
+      rgba(255, 45, 85, 0.15) 0%,
+      transparent 50%
+    );
+    animation: pulseGradient 8s ease-in-out infinite;
+    z-index: 0;
+  }
+}
+
+// ========================================
+// 📦 CONTAINER PRINCIPAL
+// ========================================
 .login-container {
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    min-height: 100%;
-    padding: 20px;
-  }
-  
-  // Logo de l'application
-  .app-logo {
-    text-align: center;
-    margin-bottom: 30px;
-  
-    h1 {
-      font-size: 2.5rem;
-      font-weight: bold;
-      margin-bottom: 10px;
-      background: linear-gradient(45deg, var(--ion-color-primary), var(--ion-color-secondary));
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-    }
-  
-    p {
-      color: var(--ion-color-medium);
-      font-size: 1rem;
-    }
-  }
-  
-  // Card du formulaire
-  ion-card {
-    width: 100%;
-    max-width: 450px;
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
-    border-radius: 12px;
-  
-    ion-card-title {
-      font-size: 1.5rem;
-      font-weight: 600;
-    }
-  }
-  
-  // Items du formulaire
-  ion-item {
-    --border-radius: 8px;
-    --padding-start: 12px;
-    margin-bottom: 8px;
-  
-    ion-icon {
-      color: var(--ion-color-primary);
-      margin-right: 8px;
-    }
-  }
-  
-  // Messages d'erreur
-  .error-message {
-    padding-left: 16px;
-    margin-top: -8px;
-    margin-bottom: 12px;
-  
-    small {
-      font-size: 0.85rem;
-    }
-  }
-  
-  // Boutons
-  ion-button {
-    --border-radius: 8px;
-    font-weight: 600;
-    text-transform: none;
-    height: 48px;
-  }
-  
-  // Séparateur "ou"
-  .separator {
-    display: flex;
-    align-items: center;
-    text-align: center;
-    margin: 24px 0;
-  
-    &::before,
-    &::after {
-      content: '';
-      flex: 1;
-      border-bottom: 1px solid var(--ion-color-light-shade);
-    }
-  
-    span {
-      padding: 0 16px;
-      color: var(--ion-color-medium);
-      font-size: 0.9rem;
-    }
-  }
-  
-  // Lien d'inscription
-  .register-link {
-    margin-top: 20px;
-    font-size: 0.95rem;
-  
-    .link {
-      color: var(--ion-color-primary);
-      font-weight: 600;
-      text-decoration: none;
-  
-      &:hover {
-        text-decoration: underline;
+  position: relative;
+  z-index: 1;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 20px;
+  gap: 32px;
+}
+
+// ========================================
+// 🎭 HERO SECTION - Logo & Titre
+// ========================================
+.hero-section {
+  text-align: center;
+  animation: fadeInDown 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+
+  .logo-wrapper {
+    margin-bottom: 24px;
+    animation: float 3s ease-in-out infinite;
+
+    .logo-circle {
+      width: 100px;
+      height: 100px;
+      margin: 0 auto;
+      border-radius: 50%;
+      background: linear-gradient(
+        135deg,
+        rgba(255, 45, 85, 0.9) 0%,
+        rgba(255, 107, 157, 0.9) 100%
+      );
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 
+        0 12px 40px rgba(255, 45, 85, 0.4),
+        0 0 60px rgba(255, 45, 85, 0.3),
+        inset 0 2px 0 rgba(255, 255, 255, 0.3);
+      border: 2px solid rgba(255, 107, 157, 0.4);
+      animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+
+      ion-icon {
+        font-size: 48px;
+        color: #FFFFFF;
+        filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.3));
       }
     }
   }
-  
-  // Responsive
-  @media (max-width: 576px) {
-    .app-logo h1 {
-      font-size: 2rem;
-    }
-  
-    ion-card {
-      margin: 0;
+
+  .app-title {
+    font-size: 42px;
+    font-weight: 900;
+    margin: 0 0 12px 0;
+    letter-spacing: -1px;
+    background: linear-gradient(
+      135deg,
+      #FFFFFF 0%,
+      #FFB3C6 50%,
+      #FF6B9D 100%
+    );
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    text-shadow: 0 0 40px rgba(255, 45, 85, 0.3);
+  }
+
+  .app-subtitle {
+    font-size: 16px;
+    color: #94A3B8;
+    font-weight: 500;
+    line-height: 1.5;
+    margin: 0;
+    max-width: 320px;
+    margin: 0 auto;
+  }
+}
+
+// ========================================
+// 💳 GLASSMORPHISM CARD - Formulaire
+// ========================================
+.login-card {
+  width: 100%;
+  max-width: 420px;
+  padding: 32px 28px;
+  background: linear-gradient(
+    135deg,
+    rgba(37, 40, 55, 0.95) 0%,
+    rgba(45, 49, 66, 0.95) 100%
+  ) !important;
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 24px;
+  box-shadow: 
+    0 16px 48px rgba(0, 0, 0, 0.4),
+    0 4px 16px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  animation: fadeInUp 0.8s cubic-bezier(0.4, 0, 0.2, 1) 0.2s backwards;
+
+  .card-title {
+    font-size: 26px;
+    font-weight: 800;
+    margin: 0 0 28px 0;
+    text-align: center;
+    color: #FFFFFF;
+    background: linear-gradient(
+      135deg,
+      #FFFFFF 0%,
+      #FFB3C6 100%
+    );
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  form {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+}
+
+// ========================================
+// 📝 ITEMS DU FORMULAIRE - Glassmorphism
+// ========================================
+// ========================================
+// 📝 ITEMS DU FORMULAIRE - FIX AUTOFILL
+// ========================================
+.custom-item {
+  --background: rgba(255, 255, 255, 0.05);
+  --border-radius: 12px;
+  --padding-start: 16px;
+  --padding-end: 16px;
+  --inner-padding-end: 16px;
+  --min-height: 56px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  margin-bottom: 12px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+  &:last-of-type {
+    margin-bottom: 8px;
+  }
+
+  &.item-has-focus {
+    --background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 45, 85, 0.3);
+    box-shadow: 
+      0 0 0 3px rgba(255, 45, 85, 0.15),
+      0 4px 12px rgba(0, 0, 0, 0.2);
+    transform: translateY(-1px);
+  }
+
+  ion-icon[slot="start"] {
+    color: #FF2D55;
+    font-size: 22px;
+    margin-right: 12px;
+  }
+
+  ion-label {
+    color: #94A3B8 !important;
+    font-size: 12px !important;
+    font-weight: 600 !important;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 8px !important;
+  }
+
+  &.item-has-value {
+    ion-label[position="stacked"] {
+      color: #FFFFFF !important;
     }
   }
+
+  ion-input {
+    --color: #A0AEC0 !important; // 🔴 GRIS SECONDAIRE
+    --placeholder-color: #64748B;
+    --placeholder-opacity: 1;
+    font-size: 15px;
+    font-weight: 500;
+    color: #A0AEC0 !important; // 🔴 GRIS SECONDAIRE
+  }
+  
+  // 🔴 FORCER LE MÊME GRIS EN AUTOFILL
+  ::ng-deep .custom-item ion-input input {
+    color: #A0AEC0 !important;
+    -webkit-text-fill-color: #A0AEC0 !important;
+    caret-color: #FF2D55;
+  }
+  
+  ::ng-deep .custom-item ion-input input:-webkit-autofill,
+  ::ng-deep .custom-item ion-input input:-webkit-autofill:hover,
+  ::ng-deep .custom-item ion-input input:-webkit-autofill:focus,
+  ::ng-deep .custom-item ion-input input:-webkit-autofill:active {
+    -webkit-box-shadow: 0 0 0 1000px rgba(255, 255, 255, 0.05) inset !important;
+    -webkit-text-fill-color: #A0AEC0 !important; // 🔴 MÊME GRIS
+    transition: background-color 5000s ease-in-out 0s !important;
+  }
+}
+
+// ========================================
+// ⚠️ MESSAGES D'ERREUR
+// ========================================
+.error-message {
+  padding-left: 16px;
+  margin-top: -8px;
+  margin-bottom: 8px;
+
+  ion-text {
+    color: #FF3B30;
+  }
+
+  small {
+    font-size: 12px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    color: #FF3B30;
+
+    &::before {
+      content: '⚠️';
+      font-size: 12px;
+    }
+  }
+}
+
+// ========================================
+// 🎯 BOUTON DE CONNEXION
+// ========================================
+.login-button {
+  margin-top: 16px;
+  height: 56px;
+  font-size: 16px;
+  font-weight: 700;
+  --background: linear-gradient(
+    135deg,
+    rgba(255, 45, 85, 0.9) 0%,
+    rgba(255, 107, 157, 0.9) 100%
+  );
+  --border-radius: 14px;
+  border-radius: 14px;
+  --box-shadow: 
+    0 8px 24px rgba(255, 45, 85, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 107, 157, 0.3);
+  text-transform: none;
+  letter-spacing: 0;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+  ion-icon {
+    font-size: 22px;
+  }
+
+  &:hover:not([disabled]) {
+    --box-shadow: 
+      0 12px 32px rgba(255, 45, 85, 0.4),
+      inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    transform: translateY(-2px);
+  }
+
+  &:active:not([disabled]) {
+    transform: scale(0.98) translateY(0);
+  }
+
+  &[disabled] {
+    opacity: 0.5;
+    --background: rgba(255, 255, 255, 0.1);
+    --box-shadow: none;
+  }
+}
+
+// ========================================
+// ➗ SÉPARATEUR
+// ========================================
+.separator {
+  display: flex;
+  align-items: center;
+  margin: 24px 0;
+  
+  &::before,
+  &::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      rgba(255, 255, 255, 0.1) 50%,
+      transparent 100%
+    );
+  }
+  
+  span {
+    padding: 0 16px;
+    font-size: 13px;
+    color: #64748B;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+}
+
+// ========================================
+// 🔘 BOUTON GOOGLE
+// ========================================
+.google-button {
+  height: 52px;
+  font-size: 15px;
+  font-weight: 600;
+  --border-radius: 14px;
+  --border-width: 2px;
+  --border-color: rgba(255, 255, 255, 0.15);
+  --color: #FFFFFF;
+  --background: transparent;
+  --background-hover: rgba(255, 255, 255, 0.05);
+  text-transform: none;
+  letter-spacing: 0;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+  ion-icon {
+    font-size: 20px;
+    color: #EA4335; // Couleur rouge Google
+  }
+
+  &:hover:not([disabled]) {
+    --background: rgba(255, 255, 255, 0.08);
+    --border-color: rgba(255, 45, 85, 0.3);
+    transform: translateY(-1px);
+  }
+
+  &:active:not([disabled]) {
+    transform: scale(0.98);
+  }
+
+  &[disabled] {
+    opacity: 0.5;
+  }
+}
+
+// ========================================
+// 🔗 LIEN INSCRIPTION
+// ========================================
+.register-link {
+  text-align: center;
+  margin-top: 20px;
+  font-size: 14px;
+  color: #94A3B8;
+
+  .link {
+    color: #FF2D55;
+    font-weight: 700;
+    text-decoration: none;
+    transition: all 0.2s ease;
+    
+    &:hover {
+      color: #FF6B9D;
+      text-decoration: underline;
+    }
+  }
+}
+
+// ========================================
+// 📄 FOOTER INFO
+// ========================================
+.footer-info {
+  text-align: center;
+  animation: fadeIn 1s ease 0.5s backwards;
+
+  p {
+    font-size: 12px;
+    color: #64748B;
+    margin: 0;
+    line-height: 1.5;
+  }
+}
+
+// ========================================
+// ✨ ANIMATIONS
+// ========================================
+@keyframes fadeInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    box-shadow: 
+      0 12px 40px rgba(255, 45, 85, 0.4),
+      0 0 60px rgba(255, 45, 85, 0.3),
+      inset 0 2px 0 rgba(255, 255, 255, 0.3);
+  }
+  50% {
+    box-shadow: 
+      0 12px 40px rgba(255, 45, 85, 0.6),
+      0 0 80px rgba(255, 45, 85, 0.5),
+      inset 0 2px 0 rgba(255, 255, 255, 0.3);
+  }
+}
+
+@keyframes pulseGradient {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.6;
+  }
+}
+
+// ========================================
+// 📱 RESPONSIVE
+// ========================================
+@media (max-width: 576px) {
+  .login-container {
+    padding: 24px 16px;
+    gap: 24px;
+  }
+
+  .hero-section {
+    .logo-wrapper .logo-circle {
+      width: 80px;
+      height: 80px;
+
+      ion-icon {
+        font-size: 40px;
+      }
+    }
+
+    .app-title {
+      font-size: 36px;
+    }
+
+    .app-subtitle {
+      font-size: 14px;
+    }
+  }
+
+  .login-card {
+    padding: 28px 24px;
+    max-width: 100%;
+
+    .card-title {
+      font-size: 24px;
+    }
+  }
+
+  .custom-item {
+    --min-height: 56px;
+  }
+
+  .login-button {
+    height: 54px;
+    font-size: 15px;
+  }
+
+  .google-button {
+    height: 50px;
+    font-size: 14px;
+  }
+}
+
+// ========================================
+// 💫 EFFETS SUPPLÉMENTAIRES
+// ========================================
+@media (min-width: 768px) {
+  .login-container {
+    gap: 40px;
+  }
+
+  .hero-section .logo-wrapper .logo-circle {
+    width: 110px;
+    height: 110px;
+
+    ion-icon {
+      font-size: 52px;
+    }
+  }
+
+  .login-card {
+    padding: 36px 32px;
+  }
+}
+
+// ========================================
+// 🔗 LIEN MOT DE PASSE OUBLIÉ
+// ========================================
+.forgot-password-link {
+  text-align: right;
+  margin-top: -8px;
+  margin-bottom: 16px;
+  padding-right: 4px;
+  
+  a {
+    font-size: 13px;
+    font-weight: 600;
+    color: #FF6B9D;
+    cursor: pointer;
+    text-decoration: none;
+    transition: all 0.2s ease;
+    
+    &:hover {
+      color: #FF2D55;
+      text-decoration: underline;
+    }
+    
+    &:active {
+      transform: scale(0.98);
+    }
+  }
+}

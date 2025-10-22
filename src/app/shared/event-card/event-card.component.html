@@ -1,3 +1,108 @@
-<p>
-  event-card works!
-</p>
+<!-- ========================================
+     🎴 EVENT CARD COMPONENT - HTML
+     ======================================== -->
+
+     <ion-card 
+     class="event-card"
+     button="true"
+     (click)="onCardClick()">
+     
+     <!-- 🎯 WRAPPER DIV pour le layout horizontal -->
+     <div class="card-layout-wrapper">
+       
+       <!-- ========================================
+            IMAGE CONTAINER
+            ======================================== -->
+       <div class="card-image-container">
+         <img 
+           [src]="event.imageUrl || 'assets/placeholder-event.jpg'" 
+           [alt]="event.title"
+           class="card-image" />
+         
+         <!-- Gradient overlay -->
+         <div class="image-overlay"></div>
+   
+         <!-- Badges status (en haut de l'image) -->
+         <div class="image-badges">
+           <ion-badge 
+             class="floating-badge status-badge" 
+             *ngIf="isEventFull()"
+             color="danger">
+             COMPLET
+           </ion-badge>
+     
+           <ion-badge 
+             class="floating-badge private-badge" 
+             *ngIf="event.isPrivate"
+             color="dark">
+             🔒 PRIVÉ
+           </ion-badge>
+         </div>
+       </div>
+   
+       <!-- ========================================
+            CONTENT WRAPPER
+            ======================================== -->
+       <div class="card-content-wrapper">
+         
+         <!-- CARD HEADER -->
+         <ion-card-header>
+           
+           <!-- ✨ TITRE - Plus gros et bien visible -->
+           <ion-card-title class="event-title">
+             {{ event.title }}
+           </ion-card-title>
+   
+           <!-- ✨ BADGES INLINE - Compacts sous le titre -->
+           <div class="inline-badges">
+             <!-- Catégorie -->
+             <ion-chip class="mini-chip category-chip">
+               <ion-label>{{ getCategoryLabel(event.category) }}</ion-label>
+             </ion-chip>
+   
+             <!-- Participants -->
+             <ion-chip 
+               [attr.data-status]="getParticipantBadgeStatus()"
+               class="mini-chip participants-chip">
+               <ion-icon name="people-outline"></ion-icon>
+               <ion-label>
+                 {{ getDisplayParticipantCount() }}/{{ event.maxParticipants }}
+               </ion-label>
+             </ion-chip>
+           </div>
+   
+         </ion-card-header>
+   
+         <!-- CARD CONTENT -->
+         <ion-card-content>
+           
+           <!-- ✨ DATE + LIEU - Box bien visible en bas -->
+           <div class="event-meta">
+             
+             <!-- 📅 DATE -->
+             <div class="meta-item meta-date">
+               <ion-icon name="calendar-outline"></ion-icon>
+               <ion-text class="meta-text">
+                 {{ formatDate(event.date) }}
+               </ion-text>
+             </div>
+   
+             <!-- 📍 LIEU -->
+             <div class="meta-item meta-location">
+               <ion-icon name="location-outline"></ion-icon>
+               <ion-text class="meta-text">
+                 {{ event.location.city }}
+               </ion-text>
+             </div>
+             
+           </div>
+   
+         </ion-card-content>
+         
+       </div>
+       <!-- FIN CONTENT WRAPPER -->
+       
+     </div>
+     <!-- FIN LAYOUT WRAPPER -->
+   
+   </ion-card>

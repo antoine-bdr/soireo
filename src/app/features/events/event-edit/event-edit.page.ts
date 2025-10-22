@@ -1,6 +1,3 @@
-// src/app/features/events/event-edit/event-edit.page.ts
-// ✅ VERSION COMPLÈTE CORRIGÉE
-
 import { Component, OnInit, OnDestroy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
@@ -44,8 +41,7 @@ import {
   peopleOutline,
   lockClosedOutline,
   checkmarkCircleOutline,
-  warningOutline
-} from 'ionicons/icons';
+  warningOutline, chevronForwardOutline } from 'ionicons/icons';
 
 import { EventsService } from '../../../core/services/events.service';
 import { StorageService } from '../../../core/services/storage.service';
@@ -134,17 +130,7 @@ export class EventEditPage implements OnInit, OnDestroy {
   ];
 
   constructor() {
-    addIcons({
-      cameraOutline,
-      closeOutline,
-      saveOutline,
-      calendarOutline,
-      locationOutline,
-      peopleOutline,
-      warningOutline,
-      checkmarkCircleOutline,
-      lockClosedOutline
-    });
+    addIcons({cameraOutline,closeOutline,calendarOutline,chevronForwardOutline,locationOutline,peopleOutline,warningOutline,checkmarkCircleOutline,lockClosedOutline,saveOutline});
   }
 
   ngOnInit() {

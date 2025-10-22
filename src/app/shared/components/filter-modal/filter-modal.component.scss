@@ -1,0 +1,403 @@
+// src/app/shared/components/filter-modal/filter-modal.component.scss
+// Styles glassmorphism premium pour la modal de filtres
+
+// ========================================
+// 🎨 VARIABLES
+// ========================================
+
+$gradient-primary: linear-gradient(
+  135deg,
+  rgba(255, 45, 85, 0.9) 0%,
+  rgba(255, 107, 157, 0.9) 100%
+);
+
+$gradient-title: linear-gradient(
+  135deg,
+  #FFFFFF 0%,
+  #FFB3C6 100%
+);
+
+$bg-dark: linear-gradient(
+  180deg,
+  rgba(10, 14, 25, 1) 0%,
+  rgba(15, 20, 35, 1) 100%
+);
+
+$glass-card: linear-gradient(
+  135deg,
+  rgba(37, 40, 55, 0.95) 0%,
+  rgba(45, 49, 66, 0.95) 100%
+);
+
+// ========================================
+// 🎭 HEADER
+// ========================================
+
+ion-header {
+  ion-toolbar {
+    --background: linear-gradient(
+      180deg,
+      rgba(15, 20, 35, 0.98) 0%,
+      rgba(10, 14, 25, 0.95) 100%
+    );
+    --border-color: rgba(255, 255, 255, 0.05);
+    
+    ion-title {
+      font-size: 20px;
+      font-weight: 700;
+      background: $gradient-title;
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    
+    ion-button {
+      --color: rgba(255, 179, 198, 1);
+      
+      &:hover {
+        --color: rgba(255, 107, 157, 1);
+      }
+    }
+  }
+}
+
+// ========================================
+// 📜 CONTENT
+// ========================================
+
+.filter-modal-content {
+  --background: $bg-dark;
+  --padding-top: 0;
+  --padding-bottom: 0;
+}
+
+// ========================================
+// 📊 RÉSUMÉ DES FILTRES
+// ========================================
+
+.filters-summary {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px;
+  background: rgba(37, 40, 55, 0.5);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  
+  .summary-badge {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    background: $glass-card;
+    border: 1px solid rgba(255, 107, 157, 0.2);
+    border-radius: 20px;
+    font-size: 14px;
+    font-weight: 600;
+    color: rgba(255, 179, 198, 1);
+    
+    ion-icon {
+      font-size: 18px;
+      color: rgba(255, 107, 157, 1);
+    }
+  }
+  
+  .reset-button {
+    --color: rgba(255, 107, 157, 1);
+    --padding-start: 12px;
+    --padding-end: 12px;
+    font-size: 13px;
+    font-weight: 600;
+    
+    ion-icon {
+      font-size: 18px;
+    }
+  }
+}
+
+// ========================================
+// 📦 SECTIONS DE FILTRES
+// ========================================
+
+.filter-section {
+  padding: 20px 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  
+  .section-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 0 0 16px 0;
+    font-size: 18px;
+    font-weight: 700;
+    color: #FFFFFF;
+    
+    ion-icon {
+      font-size: 22px;
+      color: rgba(255, 107, 157, 1);
+    }
+  }
+}
+
+// ========================================
+// 🏷️ GRILLES DE CHIPS (Catégories, Villes)
+// ========================================
+
+.categories-grid,
+.cities-grid,
+.date-shortcuts,
+.sort-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+// Chips génériques
+ion-chip {
+  --background: rgba(37, 40, 55, 0.8);
+  --color: rgba(255, 255, 255, 0.7);
+  
+  height: 40px;
+  padding: 0 16px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  
+  &:hover {
+    --background: rgba(45, 49, 66, 0.9);
+    border-color: rgba(255, 107, 157, 0.3);
+    transform: translateY(-2px);
+  }
+  
+  &.selected {
+    --background: $gradient-primary;
+    --color: #FFFFFF;
+    border-color: rgba(255, 107, 157, 0.5);
+    font-weight: 600;
+    box-shadow:
+      0 4px 16px rgba(255, 45, 85, 0.3),
+      0 0 30px rgba(255, 107, 157, 0.2);
+  }
+}
+
+// Chips spécifiques
+
+.category-chip {
+  min-width: 110px;
+}
+
+.city-chip {
+  min-width: 90px;
+}
+
+.date-chip {
+  min-width: 100px;
+}
+
+.sort-chip {
+  min-width: 100px;
+  
+  ion-icon {
+    font-size: 18px;
+    margin-right: 6px;
+  }
+}
+
+// ========================================
+// 📅 SECTION DATES PERSONNALISÉES
+// ========================================
+
+.custom-date-section {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-top: 16px;
+  
+  .date-item {
+    --background: $glass-card;
+    --border-color: rgba(255, 255, 255, 0.08);
+    
+    border-radius: 12px;
+    padding: 12px;
+    
+    ion-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: rgba(255, 179, 198, 1);
+      margin-bottom: 8px;
+    }
+    
+    ion-datetime-button {
+      --background: rgba(255, 107, 157, 0.1);
+      --color: rgba(255, 179, 198, 1);
+      
+      border: 1px solid rgba(255, 107, 157, 0.2);
+      border-radius: 8px;
+      padding: 8px 12px;
+      font-size: 14px;
+      font-weight: 500;
+    }
+  }
+}
+
+// ========================================
+// 🔘 TOGGLES
+// ========================================
+
+.toggle-item {
+  --background: $glass-card;
+  --border-color: rgba(255, 255, 255, 0.08);
+  
+  margin-top: 12px;
+  border-radius: 12px;
+  padding: 16px;
+  
+  ion-label {
+    h4 {
+      font-size: 15px;
+      font-weight: 600;
+      color: #FFFFFF;
+      margin: 0 0 4px 0;
+    }
+    
+    p {
+      font-size: 13px;
+      color: rgba(255, 255, 255, 0.6);
+      margin: 0;
+    }
+  }
+  
+  ion-toggle {
+    --handle-background: #FFFFFF;
+    --handle-background-checked: #FFFFFF;
+    
+    &::part(track) {
+      background: rgba(255, 255, 255, 0.2);
+    }
+  }
+}
+
+// ========================================
+// 🦶 FOOTER
+// ========================================
+
+ion-footer {
+  ion-toolbar {
+    --background: linear-gradient(
+      0deg,
+      rgba(15, 20, 35, 0.98) 0%,
+      rgba(10, 14, 25, 0.95) 100%
+    );
+    --border-color: rgba(255, 255, 255, 0.05);
+    --padding-top: 12px;
+    --padding-bottom: 12px;
+  }
+}
+
+.footer-actions {
+  display: flex;
+  gap: 12px;
+  padding: 8px 16px;
+  
+  .cancel-button,
+  .apply-button {
+    flex: 1;
+    height: 50px;
+    font-size: 16px;
+    font-weight: 600;
+    border-radius: 14px;
+    margin: 0;
+  }
+  
+  .cancel-button {
+    --border-color: rgba(255, 255, 255, 0.2);
+    --color: rgba(255, 255, 255, 0.8);
+    
+    &:hover {
+      --border-color: rgba(255, 255, 255, 0.3);
+      --color: #FFFFFF;
+    }
+  }
+  
+  .apply-button {
+    --background: $gradient-primary;
+    box-shadow:
+      0 8px 24px rgba(255, 45, 85, 0.3),
+      0 0 40px rgba(255, 107, 157, 0.2);
+    
+    ion-icon {
+      font-size: 20px;
+    }
+    
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow:
+        0 12px 32px rgba(255, 45, 85, 0.4),
+        0 0 50px rgba(255, 107, 157, 0.3);
+    }
+    
+    &:active {
+      transform: translateY(0);
+    }
+  }
+}
+
+// ========================================
+// 📱 RESPONSIVE
+// ========================================
+
+@media (max-width: 576px) {
+  .filter-section {
+    padding: 16px 12px;
+    
+    .section-title {
+      font-size: 16px;
+      
+      ion-icon {
+        font-size: 20px;
+      }
+    }
+  }
+  
+  ion-chip {
+    height: 36px;
+    padding: 0 14px;
+    font-size: 13px;
+  }
+  
+  .custom-date-section {
+    grid-template-columns: 1fr;
+  }
+  
+  .footer-actions {
+    flex-direction: column;
+    
+    .cancel-button,
+    .apply-button {
+      width: 100%;
+    }
+  }
+}
+
+// ========================================
+// 🎬 ANIMATIONS
+// ========================================
+
+@keyframes chipPulse {
+  0%, 100% {
+    box-shadow:
+      0 4px 16px rgba(255, 45, 85, 0.3),
+      0 0 30px rgba(255, 107, 157, 0.2);
+  }
+  50% {
+    box-shadow:
+      0 4px 16px rgba(255, 45, 85, 0.5),
+      0 0 40px rgba(255, 107, 157, 0.4);
+  }
+}
+
+ion-chip.selected {
+  animation: chipPulse 2s ease-in-out infinite;
+}

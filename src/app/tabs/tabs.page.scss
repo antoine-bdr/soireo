@@ -1,77 +1,163 @@
-/**
- * 🎨 Styles pour la navigation Tabs
- */
-
-// Barre de navigation
-ion-tab-bar {
-    --background: var(--ion-background-color, #1a1a1a);
-    --border: 1px solid rgba(255, 255, 255, 0.1);
-    padding-bottom: env(safe-area-inset-bottom); // Support iPhone notch
-    height: 60px;
-  }
+// ========================================
+// 🎈 FAB (Floating Action Button) - VERSION FINALE (ROND)
+// ========================================
+ion-fab {
+  margin-bottom: 70px;
+  margin-right: 16px;
   
-  // Boutons des tabs
-  ion-tab-button {
-    --color: rgba(255, 255, 255, 0.6);
-    --color-selected: var(--ion-color-primary, #6b9aff);
+  ion-fab-button {
+    // ✅ FORCER LE GRADIENT OPAQUE (pas de transparence)
+    --background: linear-gradient(135deg, #FF2D55 0%, #FF6B9D 100%);
+    --background-activated: linear-gradient(135deg, #e0284b 0%, #e05f8a 100%);
+    --background-focused: linear-gradient(135deg, #FF2D55 0%, #FF6B9D 100%);
+    --background-hover: linear-gradient(135deg, #ff4266 0%, #ff7faa 100%);
     
-    // Icône
+    // ✅ DÉSACTIVER TOUTES LES BORDURES IONIC
+    --border-width: 0;
+    --border-style: none;
+    --border-color: transparent;
+    
+    // 🔴 CRITICAL: FORCER LE BORDER-RADIUS À 50% (ROND)
+    --border-radius: 50%;
+    border-radius: 50% !important;
+    
+    // ✅ DÉSACTIVER LE RIPPLE EFFECT
+    --ripple-color: transparent;
+    --ion-ripple-color: transparent;
+    
+    // ✅ FORCER LA COULEUR D'ARRIÈRE-PLAN
+    --color: #FFFFFF;
+    
+    // ✅ OMBRES PERSONNALISÉES
+    --box-shadow: 0 8px 24px rgba(255, 45, 85, 0.4),
+                  0 4px 12px rgba(255, 107, 157, 0.3);
+    
+    // ✅ DIMENSIONS
+    width: 56px;
+    height: 56px;
+    
+    // ✅ FORCER LES STYLES EN CSS DIRECT (override complet)
+    border: none !important;
+    outline: none !important;
+    background: linear-gradient(135deg, #FF2D55 0%, #FF6B9D 100%) !important;
+    box-shadow: 0 8px 24px rgba(255, 45, 85, 0.4),
+                0 4px 12px rgba(255, 107, 157, 0.3) !important;
+    
+    // 🔴 CRITICAL: FORCER overflow:hidden pour que le gradient respecte le border-radius
+    overflow: hidden !important;
+    
+    // ✅ SUPPRIMER LES PSEUDO-ÉLÉMENTS
+    &::before,
+    &::after {
+      display: none !important;
+    }
+    
+    // 🔴 CRITICAL: CIBLER LE SHADOW ROOT ET FORCER LE BORDER-RADIUS
+    &::part(native) {
+      border: none !important;
+      outline: none !important;
+      background: linear-gradient(135deg, #FF2D55 0%, #FF6B9D 100%) !important;
+      box-shadow: none !important;
+      border-radius: 50% !important; // 🔴 LIGNE CRITIQUE
+      overflow: hidden !important;   // 🔴 LIGNE CRITIQUE
+      
+      // S'assurer que l'élément natif prend toute la place
+      width: 100% !important;
+      height: 100% !important;
+    }
+    
+    // ✅ ICÔNE BLANCHE BIEN VISIBLE
     ion-icon {
-      font-size: 24px;
-      margin-bottom: 4px;
+      font-size: 28px;
+      color: #FFFFFF !important;
+      --ionicon-stroke-width: 48px;
     }
     
-    // Label
-    ion-label {
-      font-size: 12px;
-      font-weight: 500;
-    }
+    // ========================================
+    // 🎭 ÉTATS INTERACTIFS
+    // ========================================
     
-    // État sélectionné
-    &.tab-selected {
-      ion-icon {
-        transform: scale(1.1);
-        transition: transform 0.2s ease;
-      }
-    }
-    
-    // Hover effect (desktop)
+    // Hover (desktop)
     &:hover {
-      --color: rgba(255, 255, 255, 0.9);
+      --background: linear-gradient(135deg, #ff4266 0%, #ff7faa 100%);
+      transform: translateY(-2px) scale(1.05);
+      box-shadow: 0 12px 32px rgba(255, 45, 85, 0.5),
+                  0 6px 16px rgba(255, 107, 157, 0.4) !important;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      
+      // Maintenir le border-radius en hover
+      border-radius: 50% !important;
     }
+    
+    // Active/Press
+    &:active {
+      transform: scale(0.92);
+      transition: transform 0.1s ease;
+      --background: linear-gradient(135deg, #e0284b 0%, #e05f8a 100%);
+      
+      // Maintenir le border-radius au clic
+      border-radius: 50% !important;
+    }
+    
+    // Focus (accessibilité clavier)
+    &:focus-visible {
+      outline: 2px solid #FFFFFF !important;
+      outline-offset: 4px;
+      border-radius: 50% !important;
+    }
+    
+    // ========================================
+    // 🌟 ANIMATION PULSE
+    // ========================================
+    animation: fabPulse 3s ease-in-out infinite;
   }
-  
-  // FAB (Floating Action Button)
+}
+
+// Animation pulse pour attirer l'attention
+@keyframes fabPulse {
+  0%, 100% {
+    box-shadow: 
+      0 8px 24px rgba(255, 45, 85, 0.4),
+      0 4px 12px rgba(255, 107, 157, 0.3);
+  }
+  50% {
+    box-shadow: 
+      0 8px 24px rgba(255, 45, 85, 0.5),
+      0 4px 12px rgba(255, 107, 157, 0.4);
+  }
+}
+
+// ========================================
+// 📱 RESPONSIVE - Petits écrans
+// ========================================
+@media (max-width: 360px) {
   ion-fab {
-    margin-bottom: 70px; // Espace au-dessus de la tab bar
-    margin-right: 16px;
+    margin-bottom: 66px;
+    margin-right: 12px;
     
     ion-fab-button {
-      --background: var(--ion-color-primary, #6b9aff);
-      --box-shadow: 0 4px 12px rgba(107, 154, 255, 0.4);
-      width: 56px;
-      height: 56px;
+      width: 52px;
+      height: 52px;
+      border-radius: 50% !important; // 🔴 MAINTENIR LE ROND SUR MOBILE
       
       ion-icon {
-        font-size: 28px;
-      }
-      
-      // Animation au clic
-      &:active {
-        transform: scale(0.95);
+        font-size: 26px;
       }
     }
   }
-  
-  // Mode clair (override si nécessaire)
-  @media (prefers-color-scheme: light) {
-    ion-tab-bar {
-      --background: #ffffff;
-      --border: 1px solid rgba(0, 0, 0, 0.1);
-    }
+}
+
+// ========================================
+// 🌞 MODE CLAIR (si activé)
+// ========================================
+@media (prefers-color-scheme: light) {
+  ion-fab ion-fab-button {
+    box-shadow: 0 8px 24px rgba(255, 45, 85, 0.3),
+                0 4px 12px rgba(255, 107, 157, 0.2) !important;
     
-    ion-tab-button {
-      --color: rgba(0, 0, 0, 0.6);
-      --color-selected: var(--ion-color-primary, #6b9aff);
+    &:hover {
+      box-shadow: 0 12px 32px rgba(255, 45, 85, 0.4),
+                  0 6px 16px rgba(255, 107, 157, 0.3) !important;
     }
   }
+}

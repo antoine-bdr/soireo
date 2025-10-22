@@ -1,4 +1,3 @@
-// src/app/features/auth/login/login.page.ts
 import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
@@ -23,7 +22,7 @@ import {
   ToastController
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
-import { mailOutline, lockClosedOutline, logoGoogle, logInOutline } from 'ionicons/icons';
+import { mailOutline, lockClosedOutline, logoGoogle, logInOutline, flame } from 'ionicons/icons';
 
 // Import du service d'authentification
 import { AuthenticationService } from '../../../core/services/authentication.service';
@@ -38,13 +37,7 @@ import { AuthenticationService } from '../../../core/services/authentication.ser
     ReactiveFormsModule,
     RouterModule,
     IonContent,
-    IonHeader,
-    IonTitle,
-    IonToolbar,
-    IonCard,
-    IonCardHeader,
-    IonCardTitle,
-    IonCardContent,
+    IonSpinner,
     IonItem,
     IonLabel,
     IonInput,
@@ -69,7 +62,7 @@ export class LoginPage {
 
   constructor() {
     // Enregistrement des icônes Ionicons
-    addIcons({ mailOutline, lockClosedOutline, logoGoogle, logInOutline });
+    addIcons({flame,mailOutline,lockClosedOutline,logInOutline,logoGoogle});
     
     // Création du formulaire avec validations
     this.loginForm = this.fb.group({
@@ -191,6 +184,10 @@ export class LoginPage {
       color
     });
     await toast.present();
+  }
+
+  goToForgotPassword(): void {
+    this.router.navigate(['/forgot-password']);
   }
 
   /**

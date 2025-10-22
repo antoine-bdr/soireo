@@ -1,10 +1,112 @@
+// storage.rules
+// Règles de sécurité Firebase Storage pour l'application d'événements
+// À déployer avec : firebase deploy --only storage
+
 rules_version = '2';
 
-// Craft rules based on data in your Firestore database
-// allow write: if firestore.get(
-//    /databases/(default)/documents/users/$(request.auth.uid)).data.isAdmin;
 service firebase.storage {
   match /b/{bucket}/o {
+    
+    // ========================================
+    // FONCTIONS UTILITAIRES
+    // ========================================
+    
+    /**
+     * Vérifie si l'utilisateur est authentifié
+     */
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    /**
+     * Vérifie si l'utilisateur est le propriétaire
+     */
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    /**
+     * Vérifie si le fichier est une image valide
+     */
+    function isValidImage() {
+      return request.resource.contentType.matches('image/.*');
+    }
+    
+    /**
+     * Vérifie si le fichier est un format d'image autorisé
+     */
+    function isAllowedImageFormat() {
+      return request.resource.contentType in [
+        'image/jpeg',
+        'image/jpg', 
+        'image/png',
+        'image/gif',
+        'image/webp'
+      ];
+    }
+    
+    /**
+     * Vérifie la taille du fichier (en bytes)
+     */
+    function isBelowMaxSize(maxSizeInMB) {
+      return request.resource.size < maxSizeInMB * 1024 * 1024;
+    }
+    
+    /**
+     * Vérifie si l'utilisateur est l'organisateur de l'événement
+     */
+    function isEventOrganizer(eventId) {
+      return isAuthenticated() 
+        && firestore.get(/databases/(default)/documents/events/$(eventId)).data.organizerId == request.auth.uid;
+    }
+    
+    // ========================================
+    // IMAGES D'ÉVÉNEMENTS
+    // Path: /events/{eventId}/image.{extension}
+    // ========================================
+    
+    match /events/{eventId}/{imageFile} {
+      
+      // LECTURE : Tout le monde peut voir les images d'événements (publiques)
+      // Les images sont utilisées dans les cards de l'app
+      allow read: if true;
+      
+      // CRÉATION/MISE À JOUR : Seul l'organisateur peut uploader/modifier l'image
+      allow write: if isEventOrganizer(eventId)
+        && isValidImage()
+        && isAllowedImageFormat()
+        && isBelowMaxSize(5); // Max 5MB pour les images d'événements
+      
+      // SUPPRESSION : Seul l'organisateur peut supprimer l'image
+      allow delete: if isEventOrganizer(eventId);
+    }
+    
+    // ========================================
+    // AVATARS UTILISATEURS
+    // Path: /users/{userId}/avatar.{extension}
+    // ========================================
+    
+    match /users/{userId}/{avatarFile} {
+      
+      // LECTURE : Tout le monde peut voir les avatars (publiques)
+      // Les avatars sont utilisés dans les profils et listes de participants
+      allow read: if true;
+      
+      // CRÉATION/MISE À JOUR : Seul le propriétaire peut uploader/modifier son avatar
+      allow write: if isOwner(userId)
+        && isValidImage()
+        && isAllowedImageFormat()
+        && isBelowMaxSize(2); // Max 2MB pour les avatars
+      
+      // SUPPRESSION : Seul le propriétaire peut supprimer son avatar
+      allow delete: if isOwner(userId);
+    }
+    
+    // ========================================
+    // RÈGLE PAR DÉFAUT : INTERDIRE TOUT LE RESTE
+    // ========================================
+    
+    // Tout autre chemin non explicitement autorisé est interdit
     match /{allPaths=**} {
       allow read, write: if false;
     }
