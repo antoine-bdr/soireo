@@ -1,19 +1,21 @@
 // src/app/core/models/event.model.ts
-// Modèle Event - VERSION CORRIGÉE avec zipCode
+// Modèle Event - VERSION CORRIGÉE
+// ✅ Ajout de currentParticipants et participants[] pour conformité avec Firestore Rules
 
 import { Timestamp } from '@angular/fire/firestore';
 
 /**
  * Interface représentant une localisation
- * ✅ FIX : Ajout de zipCode
+ * ✅ COMPLET avec tous les champs requis
  */
 export interface EventLocation {
   address: string;
   city: string;
-  zipCode: string; // ✅ AJOUTÉ
-  latitude?: number;
-  longitude?: number;
+  zipCode: string;
+  latitude: number;
+  longitude: number;
   country?: string;
+  placeId?: string; // Google Places ID
 }
 
 /**
@@ -32,8 +34,11 @@ export enum EventCategory {
 
 /**
  * Interface Event principale
- * ✅ Sans currentParticipants et participants[]
- * Ces données viennent de la collection "participants"
+ * ✅ CORRIGÉ : Ajout de currentParticipants et participants[]
+ * 
+ * Architecture hybride :
+ * - currentParticipants et participants[] stockés dans Firestore (pour rapidité)
+ * - Détails complets des participants dans collection "participants" (pour la flexibilité)
  */
 export interface Event {
   id?: string;
@@ -51,8 +56,8 @@ export interface Event {
   
   // Participants
   maxParticipants: number;
-  // ✅ PAS de currentParticipants (calculé via ParticipantsService)
-  // ✅ PAS de participants[] (récupéré via ParticipantsService)
+  currentParticipants: number; // ✅ AJOUTÉ : Nombre actuel de participants
+  participants: string[];      // ✅ AJOUTÉ : Tableau des UIDs des participants
   
   // Catégorisation
   category: EventCategory;
@@ -101,4 +106,17 @@ export interface UpdateEventDto {
   isPrivate?: boolean;
   requiresApproval?: boolean;
   tags?: string[];
+}
+
+/**
+ * Interface pour les statistiques d'un événement
+ * Utile pour afficher des métriques sans charger tous les participants
+ */
+export interface EventStats {
+  eventId: string;
+  currentParticipants: number;
+  maxParticipants: number;
+  spotsRemaining: number;
+  isFull: boolean;
+  participationRate: number; // Pourcentage (0-100)
 }

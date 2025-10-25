@@ -12,6 +12,9 @@ export const environment = {
     storageBucket: "soireo-87443.firebasestorage.app",
     messagingSenderId: "98366039587",
     appId: "1:98366039587:web:5383307edf52a8b58fb396"
+  },
+  googleMaps: {
+    apiKey: "AIzaSyBVhbGO-arCX2zhWetEkbkcj2WLH_JCEsY" // 👈 
   }
 };
 

@@ -1,0 +1,392 @@
+// firestore.rules
+// Règles de sécurité Firebase Firestore pour l'application d'événements
+// À déployer avec : firebase deploy --only firestore:rules
+
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // ========================================
+    // FONCTIONS UTILITAIRES
+    // ========================================
+    
+    /**
+     * Vérifie si l'utilisateur est authentifié
+     */
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    /**
+     * Vérifie si l'utilisateur est le propriétaire de la ressource
+     */
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    /**
+     * Vérifie si les champs requis sont présents
+     */
+    function hasRequiredFields(fields) {
+      return request.resource.data.keys().hasAll(fields);
+    }
+    
+    /**
+     * Vérifie si une chaîne n'est pas vide
+     */
+    function isValidString(value) {
+      return value is string && value.size() > 0;
+    }
+    
+    /**
+     * Vérifie si un nombre est dans une plage
+     */
+    function isInRange(value, min, max) {
+      return value is number && value >= min && value <= max;
+    }
+    
+    // ========================================
+    // COLLECTION: users
+    // Profils utilisateurs
+    // ========================================
+    
+    match /users/{userId} {
+      
+      // LECTURE : Tout utilisateur authentifié peut lire les profils publics
+      allow read: if isAuthenticated();
+      
+      // CRÉATION : L'utilisateur peut créer son propre profil lors de l'inscription
+      allow create: if isAuthenticated() 
+        && request.auth.uid == userId
+        && hasRequiredFields(['uid', 'email', 'displayName', 'createdAt'])
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.email == request.auth.token.email;
+      
+      // MISE À JOUR : L'utilisateur peut modifier uniquement son propre profil
+      allow update: if isOwner(userId)
+        // Ne peut pas modifier uid, email, createdAt
+        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['uid', 'email', 'createdAt'])
+        // Validation des champs modifiables
+        && (
+          !('displayName' in request.resource.data) 
+          || (request.resource.data.displayName is string && request.resource.data.displayName.size() <= 100)
+        )
+        && (
+          !('bio' in request.resource.data) 
+          || (request.resource.data.bio is string && request.resource.data.bio.size() <= 500)
+        )
+        && (
+          !('photoURL' in request.resource.data) 
+          || (request.resource.data.photoURL is string)
+        );
+      
+      // SUPPRESSION : L'utilisateur peut supprimer son propre profil
+      allow delete: if isOwner(userId);
+    }
+    
+    // ========================================
+    // COLLECTION: events
+    // Événements créés par les utilisateurs
+    // ========================================
+    
+    match /events/{eventId} {
+      
+      /**
+       * Fonction helper pour vérifier si l'utilisateur est l'organisateur
+       */
+      function isOrganizer() {
+        return isAuthenticated() && resource.data.organizerId == request.auth.uid;
+      }
+      
+      /**
+       * Fonction helper pour vérifier si l'utilisateur participe
+       */
+      function isParticipant() {
+        return isAuthenticated() && request.auth.uid in resource.data.participants;
+      }
+      
+      /**
+       * Fonction pour vérifier si l'événement est public
+       */
+      function isPublicEvent() {
+        return resource.data.isPrivate == false;
+      }
+      
+      // ========================================
+      // ✅ LECTURE : RÈGLES SÉPARÉES LIST vs GET
+      // ========================================
+      
+      /**
+       * LIST (queries) : Tout utilisateur authentifié peut lister les événements
+       * Note : resource.data n'est PAS disponible lors des queries
+       * La logique de filtrage des événements privés se fait côté client
+       */
+      allow list: if isAuthenticated();
+      
+      /**
+       * GET (lecture individuelle) : Règles strictes
+       * - Événements publics : tout utilisateur authentifié
+       * - Événements privés : seulement organisateur et participants
+       */
+      allow get: if isAuthenticated() && (
+        isPublicEvent() 
+        || isOrganizer() 
+        || isParticipant()
+      );
+      
+      // ========================================
+      // CRÉATION D'ÉVÉNEMENT
+      // ========================================
+      
+      allow create: if isAuthenticated()
+        // Validation des champs requis
+        && hasRequiredFields([
+          'title', 
+          'description', 
+          'date', 
+          'location',
+          'organizerId',
+          'organizerName',
+          'maxParticipants',
+          'currentParticipants',
+          'participants',
+          'category',
+          'isPrivate',
+          'requiresApproval',
+          'createdAt',
+          'updatedAt'
+        ])
+        // Validation que l'organisateur est bien l'utilisateur connecté
+        && request.resource.data.organizerId == request.auth.uid
+        // Validation du titre (3 à 100 caractères)
+        && request.resource.data.title is string
+        && request.resource.data.title.size() >= 3 
+        && request.resource.data.title.size() <= 100
+        // Validation de la description (10 à 1000 caractères)
+        && request.resource.data.description is string
+        && request.resource.data.description.size() >= 10
+        && request.resource.data.description.size() <= 1000
+        // Validation de la date (doit être dans le futur)
+        && request.resource.data.date is timestamp
+        && request.resource.data.date > request.time
+        // Validation de la localisation
+        && request.resource.data.location is map
+        && 'address' in request.resource.data.location
+        && 'city' in request.resource.data.location
+        && 'zipCode' in request.resource.data.location
+        // Validation du nombre de participants
+        && isInRange(request.resource.data.maxParticipants, 2, 1000)
+        && request.resource.data.currentParticipants == 1
+        && request.resource.data.participants is list
+        && request.resource.data.participants.size() == 1
+        && request.resource.data.participants[0] == request.auth.uid
+        // Validation des booléens
+        && request.resource.data.isPrivate is bool
+        && request.resource.data.requiresApproval is bool
+        // Validation des timestamps
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.updatedAt == request.time;
+      
+      // ========================================
+      // MODIFICATION D'ÉVÉNEMENT
+      // ========================================
+      
+      // MISE À JOUR : Seul l'organisateur peut modifier l'événement
+      allow update: if isOrganizer()
+        // Ne peut pas modifier : organizerId, createdAt, participants (sauf via joinEvent/leaveEvent)
+        && !request.resource.data.diff(resource.data).affectedKeys()
+          .hasAny(['organizerId', 'createdAt'])
+        // Validation du titre si modifié
+        && (
+          !('title' in request.resource.data.diff(resource.data).affectedKeys())
+          || (
+            request.resource.data.title is string
+            && request.resource.data.title.size() >= 3
+            && request.resource.data.title.size() <= 100
+          )
+        )
+        // Validation de la description si modifiée
+        && (
+          !('description' in request.resource.data.diff(resource.data).affectedKeys())
+          || (
+            request.resource.data.description is string
+            && request.resource.data.description.size() >= 10
+            && request.resource.data.description.size() <= 1000
+          )
+        )
+        // Validation du nombre max de participants si modifié
+        && (
+          !('maxParticipants' in request.resource.data.diff(resource.data).affectedKeys())
+          || isInRange(request.resource.data.maxParticipants, 2, 1000)
+        )
+        // Validation que currentParticipants correspond au tableau participants
+        && request.resource.data.currentParticipants == request.resource.data.participants.size()
+        // Mise à jour du timestamp updatedAt
+        && request.resource.data.updatedAt == request.time;
+      
+      // SUPPRESSION : Seul l'organisateur peut supprimer l'événement
+      allow delete: if isOrganizer();
+      
+      // ========================================
+      // RÈGLES SPÉCIALES POUR REJOINDRE/QUITTER UN ÉVÉNEMENT
+      // ========================================
+      
+      /**
+       * Permettre à un utilisateur de rejoindre un événement
+       * Conditions :
+       * - Utilisateur authentifié
+       * - Événement public OU demande approuvée (TODO: vérifier dans accessRequests)
+       * - L'utilisateur n'est pas déjà participant
+       * - L'événement n'est pas complet
+       * - Seuls participants et currentParticipants sont modifiés
+       */
+      allow update: if isAuthenticated()
+        // L'événement n'est pas complet
+        && resource.data.currentParticipants < resource.data.maxParticipants
+        // L'utilisateur n'est pas déjà participant
+        && !(request.auth.uid in resource.data.participants)
+        // L'utilisateur s'ajoute à la liste des participants
+        && request.resource.data.participants.size() == resource.data.participants.size() + 1
+        && request.auth.uid in request.resource.data.participants
+        // Le nombre de participants est incrémenté de 1
+        && request.resource.data.currentParticipants == resource.data.currentParticipants + 1
+        // Seuls participants, currentParticipants et updatedAt sont modifiés
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['participants', 'currentParticipants', 'updatedAt'])
+        // updatedAt est mis à jour
+        && (request.resource.data.updatedAt == request.time 
+        || request.resource.data.updatedAt is timestamp);
+      
+      /**
+       * Permettre à un utilisateur de quitter un événement
+       * Conditions :
+       * - Utilisateur authentifié
+       * - L'utilisateur participe actuellement
+       * - L'utilisateur n'est pas l'organisateur
+       * - Seuls participants et currentParticipants sont modifiés
+       */
+      allow update: if isAuthenticated()
+        // L'utilisateur participe actuellement
+        && request.auth.uid in resource.data.participants
+        // L'utilisateur n'est pas l'organisateur (il ne peut pas quitter son propre événement)
+        && request.auth.uid != resource.data.organizerId
+        // L'utilisateur est retiré de la liste
+        && request.resource.data.participants.size() == resource.data.participants.size() - 1
+        && !(request.auth.uid in request.resource.data.participants)
+        // Le nombre de participants est décrémenté de 1
+        && request.resource.data.currentParticipants == resource.data.currentParticipants - 1
+        // Seuls participants, currentParticipants et updatedAt sont modifiés
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['participants', 'currentParticipants', 'updatedAt'])
+        // updatedAt est mis à jour
+        && (request.resource.data.updatedAt == request.time 
+        || request.resource.data.updatedAt is timestamp);
+    }
+    
+    // ========================================
+    // COLLECTION: participants
+    // Participations aux événements
+    // ========================================
+    
+    match /participants/{participantId} {
+      
+      /**
+       * Fonction helper pour récupérer l'organisateur de l'événement
+       */
+      function getEventOrganizer(eventId) {
+        return get(/databases/$(database)/documents/events/$(eventId)).data.organizerId;
+      }
+      
+      // LECTURE : 
+      // - Tout utilisateur authentifié peut lire les participants des événements
+      // - Nécessaire pour afficher les listes de participants
+      allow read: if isAuthenticated();
+      
+      // CRÉATION : Un utilisateur peut créer une participation pour lui-même
+      allow create: if isAuthenticated()
+        && hasRequiredFields(['eventId', 'userId', 'userName', 'userEmail', 'joinedAt', 'status'])
+        // L'utilisateur crée une participation pour lui-même
+        && request.resource.data.userId == request.auth.uid
+        // L'email correspond à l'utilisateur authentifié
+        && request.resource.data.userEmail == request.auth.token.email
+        // Le statut est "approved" ou "pending"
+        && request.resource.data.status in ['approved', 'pending']
+        // Timestamp de création
+        && request.resource.data.joinedAt == request.time;
+      
+      // MISE À JOUR : Seul l'organisateur peut mettre à jour le statut
+      allow update: if isAuthenticated()
+        && request.auth.uid == getEventOrganizer(resource.data.eventId)
+        // Seul le status peut être modifié
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status'])
+        // Le statut doit être "approved" ou "rejected"
+        && request.resource.data.status in ['approved', 'rejected'];
+      
+      // SUPPRESSION : 
+      // - L'utilisateur peut supprimer sa propre participation
+      // - L'organisateur peut retirer n'importe quel participant
+      allow delete: if isAuthenticated() && (
+        request.auth.uid == resource.data.userId
+        || request.auth.uid == getEventOrganizer(resource.data.eventId)
+      );
+    }
+    
+    // ========================================
+    // COLLECTION: accessRequests
+    // Demandes d'accès aux événements privés
+    // ========================================
+    
+    match /accessRequests/{requestId} {
+      
+      /**
+       * Fonction helper pour récupérer l'organisateur de l'événement
+       */
+      function getEventOrganizer() {
+        return get(/databases/$(database)/documents/events/$(resource.data.eventId)).data.organizerId;
+      }
+      
+      // LECTURE : 
+      // - L'utilisateur qui a fait la demande peut lire sa demande
+      // - L'organisateur de l'événement peut lire les demandes pour son événement
+      allow read: if isAuthenticated() && (
+        request.auth.uid == resource.data.userId
+        || request.auth.uid == getEventOrganizer()
+      );
+      
+      // CRÉATION : Un utilisateur peut créer une demande d'accès
+      allow create: if isAuthenticated()
+        && hasRequiredFields(['eventId', 'userId', 'userName', 'message', 'status', 'createdAt'])
+        // L'utilisateur crée une demande pour lui-même
+        && request.resource.data.userId == request.auth.uid
+        // Le statut initial est "pending"
+        && request.resource.data.status == 'pending'
+        // Le message est valide
+        && request.resource.data.message is string
+        && request.resource.data.message.size() >= 10
+        && request.resource.data.message.size() <= 500
+        // Timestamp de création
+        && request.resource.data.createdAt == request.time;
+      
+      // MISE À JOUR : Seul l'organisateur peut mettre à jour le statut
+      allow update: if isAuthenticated()
+        && request.auth.uid == getEventOrganizer()
+        // Seuls status et respondedAt peuvent être modifiés
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'respondedAt'])
+        // Le statut doit être "accepted" ou "rejected"
+        && request.resource.data.status in ['accepted', 'rejected']
+        // Timestamp de réponse
+        && request.resource.data.respondedAt == request.time;
+      
+      // SUPPRESSION : L'utilisateur peut supprimer sa propre demande
+      allow delete: if isAuthenticated() && request.auth.uid == resource.data.userId;
+    }
+    
+    // ========================================
+    // RÈGLE PAR DÉFAUT : INTERDIRE TOUT LE RESTE
+    // ========================================
+    
+    // Toute autre collection ou document non explicitement autorisé est interdit
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

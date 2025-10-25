@@ -1,4 +1,7 @@
-import { Component, OnInit, inject } from '@angular/core';
+// src/app/features/events/event-create/event-create.page.ts
+// ✅ CORRIGÉ : Validation que latitude/longitude existent avant l'envoi
+
+import { Component, OnInit, OnDestroy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -28,7 +31,9 @@ import {
   IonDatetime,
   LoadingController,
   ToastController,
-  AlertController
+  AlertController,
+  IonList,
+  IonSpinner,
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import {
@@ -39,11 +44,20 @@ import {
   locationOutline,
   peopleOutline,
   lockClosedOutline,
-  checkmarkCircleOutline, chevronForwardOutline } from 'ionicons/icons';
+  checkmarkCircleOutline, 
+  chevronForwardOutline, 
+  searchOutline, 
+  checkmarkCircle 
+} from 'ionicons/icons';
 
 import { EventsService } from '../../../core/services/events.service';
 import { StorageService } from '../../../core/services/storage.service';
 import { CreateEventDto, EventCategory, EventLocation } from '../../../core/models/event.model';
+
+import { FormsModule } from '@angular/forms';
+import { GooglePlacesService, AddressPrediction, PlaceDetails } from '../../../core/services/google-places.service';
+import { Subject, Subscription } from 'rxjs';
+import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 
 @Component({
   selector: 'app-event-create',
@@ -74,10 +88,13 @@ import { CreateEventDto, EventCategory, EventLocation } from '../../../core/mode
     IonToggle,
     IonText,
     IonModal,
-    IonDatetime
+    IonDatetime,
+    IonList,
+    IonSpinner,
+    FormsModule
   ]
 })
-export class EventCreatePage implements OnInit {
+export class EventCreatePage implements OnInit, OnDestroy {
   // Injection des services
   private readonly fb = inject(FormBuilder);
   private readonly eventsService = inject(EventsService);
@@ -86,6 +103,7 @@ export class EventCreatePage implements OnInit {
   private readonly loadingCtrl = inject(LoadingController);
   private readonly toastCtrl = inject(ToastController);
   private readonly alertCtrl = inject(AlertController);
+  private readonly googlePlacesService = inject(GooglePlacesService);
 
   // Formulaire
   eventForm!: FormGroup;
@@ -109,12 +127,43 @@ export class EventCreatePage implements OnInit {
     { value: EventCategory.OTHER, label: '📌 Autre' }
   ];
 
+  // Google Places Autocomplete
+  isGoogleMapsLoaded = false;
+  addressSearchTerm = '';
+  addressPredictions: AddressPrediction[] = [];
+  selectedPlaceDetails: PlaceDetails | null = null;
+  isSearching = false;
+  submitted = false;
+  
+  private searchSubject = new Subject<string>();
+  private subscriptions: Subscription[] = [];
+
   constructor() {
-    addIcons({cameraOutline,closeOutline,calendarOutline,chevronForwardOutline,locationOutline,peopleOutline,checkmarkCircleOutline,lockClosedOutline,saveOutline});
+    addIcons({
+      cameraOutline,
+      closeOutline,
+      calendarOutline,
+      chevronForwardOutline,
+      locationOutline,
+      searchOutline,
+      checkmarkCircle,
+      peopleOutline,
+      checkmarkCircleOutline,
+      lockClosedOutline,
+      saveOutline
+    });
   }
 
   ngOnInit() {
     this.initForm();
+    this.setupGoogleMaps();
+    this.setupAddressSearch();
+  }
+
+  ngOnDestroy() {
+    // Nettoyage des subscriptions pour éviter les memory leaks
+    this.subscriptions.forEach(sub => sub?.unsubscribe());
+    this.searchSubject.complete();
   }
 
   /**
@@ -128,12 +177,120 @@ export class EventCreatePage implements OnInit {
       category: [EventCategory.PARTY, Validators.required],
       maxParticipants: [10, [Validators.required, Validators.min(2), Validators.max(1000)]],
       isPrivate: [false],
-      requiresApproval: [false],
-      // Location
-      address: ['', Validators.required],
-      city: ['', Validators.required],
-      zipCode: ['', [Validators.required, Validators.pattern(/^\d{5}$/)]]
+      requiresApproval: [false]
     });
+  }
+
+  /**
+   * Configure Google Maps
+   */
+  setupGoogleMaps() {
+    const sub = this.googlePlacesService.isReady().subscribe(ready => {
+      this.isGoogleMapsLoaded = ready;
+      if (ready) {
+        console.log('✅ Google Maps prêt pour l\'autocomplete');
+      }
+    });
+    this.subscriptions.push(sub);
+  }
+  
+  /**
+   * Configure la recherche d'adresse avec debounce
+   */
+  setupAddressSearch() {
+    const sub = this.searchSubject
+      .pipe(
+        debounceTime(300),
+        distinctUntilChanged()
+      )
+      .subscribe(searchTerm => {
+        this.performAddressSearch(searchTerm);
+      });
+    
+    this.subscriptions.push(sub);
+  }
+  
+  /**
+   * Gestion de la saisie dans le champ d'adresse
+   */
+  onAddressSearch(event: any) {
+    const value = event.detail.value || '';
+    this.searchSubject.next(value);
+  }
+
+  /**
+   * Effectue la recherche d'adresses
+   */
+  performAddressSearch(searchTerm: string) {
+    if (!searchTerm || searchTerm.length < 3) {
+      this.addressPredictions = [];
+      return;
+    }
+  
+    this.isSearching = true;
+  
+    this.googlePlacesService.getAddressPredictions(searchTerm).subscribe({
+      next: (predictions) => {
+        this.addressPredictions = predictions;
+        this.isSearching = false;
+        console.log('🔍 Prédictions reçues:', predictions.length);
+      },
+      error: (error) => {
+        console.error('❌ Erreur autocomplete:', error);
+        this.addressPredictions = [];
+        this.isSearching = false;
+        
+        // Message d'erreur utilisateur
+        if (error.status === 'OVER_QUERY_LIMIT') {
+          this.showToast('Limite de requêtes atteinte, réessayez plus tard', 'warning');
+        } else if (error.status === 'REQUEST_DENIED') {
+          this.showToast('Erreur de configuration Google Maps', 'danger');
+        }
+      }
+    });
+  }
+  
+  /**
+   * Sélection d'une adresse dans les suggestions
+   */
+  async selectAddress(prediction: AddressPrediction) {
+    console.log('📍 Adresse sélectionnée:', prediction.description);
+  
+    const loading = await this.loadingCtrl.create({
+      message: 'Récupération des détails...',
+      spinner: 'dots',
+      duration: 5000
+    });
+    await loading.present();
+  
+    this.googlePlacesService.getPlaceDetails(prediction.placeId).subscribe({
+      next: (details) => {
+        loading.dismiss();
+        
+        this.selectedPlaceDetails = details;
+        this.addressSearchTerm = details.formattedAddress;
+        this.addressPredictions = [];
+        
+        console.log('✅ Détails de l\'adresse:', details);
+        console.log(`📍 Coordonnées: ${details.latitude}, ${details.longitude}`);
+        
+        this.showToast('✅ Adresse confirmée', 'success');
+      },
+      error: (error) => {
+        loading.dismiss();
+        console.error('❌ Erreur détails place:', error);
+        this.showToast('Erreur lors de la récupération des détails', 'danger');
+      }
+    });
+  }
+  
+  /**
+   * Efface l'adresse sélectionnée
+   */
+  clearAddress() {
+    this.selectedPlaceDetails = null;
+    this.addressSearchTerm = '';
+    this.addressPredictions = [];
   }
 
   /**
@@ -202,14 +359,52 @@ export class EventCreatePage implements OnInit {
   }
 
   /**
-   * Crée l'événement
+   * ✅ CORRIGÉ : Validation incluant selectedPlaceDetails ET coordonnées GPS
    */
   async createEvent() {
+    this.submitted = true;
+
+    // Validation du formulaire
     if (this.eventForm.invalid) {
       await this.showToast('Veuillez remplir tous les champs correctement', 'warning');
       this.markFormGroupTouched(this.eventForm);
       return;
     }
+
+    // ✅ Vérification qu'une adresse a été sélectionnée
+    if (!this.selectedPlaceDetails) {
+      await this.showToast('Veuillez sélectionner une adresse dans la liste', 'warning');
+      return;
+    }
+
+    // ✅ NOUVEAU : Vérification que les coordonnées GPS existent
+    if (this.selectedPlaceDetails.latitude === undefined || 
+        this.selectedPlaceDetails.latitude === null ||
+        this.selectedPlaceDetails.longitude === undefined || 
+        this.selectedPlaceDetails.longitude === null) {
+      
+      console.error('❌ Coordonnées GPS manquantes:', this.selectedPlaceDetails);
+      await this.showToast('Les coordonnées GPS de l\'adresse sont manquantes. Veuillez sélectionner une autre adresse.', 'danger');
+      this.clearAddress();
+      return;
+    }
+
+    // ✅ NOUVEAU : Vérification que les coordonnées GPS sont des nombres valides
+    if (typeof this.selectedPlaceDetails.latitude !== 'number' || 
+        typeof this.selectedPlaceDetails.longitude !== 'number' ||
+        isNaN(this.selectedPlaceDetails.latitude) ||
+        isNaN(this.selectedPlaceDetails.longitude)) {
+      
+      console.error('❌ Coordonnées GPS invalides:', this.selectedPlaceDetails);
+      await this.showToast('Les coordonnées GPS sont invalides. Veuillez sélectionner une autre adresse.', 'danger');
+      this.clearAddress();
+      return;
+    }
+
+    console.log('✅ Validation GPS réussie:', {
+      latitude: this.selectedPlaceDetails.latitude,
+      longitude: this.selectedPlaceDetails.longitude
+    });
 
     // Confirmation si pas d'image
     if (!this.selectedImage) {
@@ -229,6 +424,7 @@ export class EventCreatePage implements OnInit {
 
   /**
    * Soumet l'événement à Firestore
+   * ✅ CORRIGÉ : Les coordonnées GPS sont maintenant garanties d'exister
    */
   private async submitEvent() {
     const loading = await this.loadingCtrl.create({
@@ -251,13 +447,18 @@ export class EventCreatePage implements OnInit {
       // Prépare les données
       const formValue = this.eventForm.value;
       
+      // ✅ Construction de l'objet location avec coordonnées GPS GARANTIES
       const location: EventLocation = {
-        address: formValue.address,
-        city: formValue.city,
-        zipCode: formValue.zipCode,
-        latitude: 0, // TODO: Géolocalisation avec Google Maps API
-        longitude: 0
+        address: this.selectedPlaceDetails!.address,
+        city: this.selectedPlaceDetails!.city,
+        zipCode: this.selectedPlaceDetails!.zipCode,
+        latitude: this.selectedPlaceDetails!.latitude,   // ✅ Garanti d'être un number
+        longitude: this.selectedPlaceDetails!.longitude, // ✅ Garanti d'être un number
+        country: this.selectedPlaceDetails!.country,
+        placeId: this.selectedPlaceDetails!.placeId
       };
+
+      console.log('📝 Objet location à envoyer:', location);
 
       const eventData: CreateEventDto = {
         title: formValue.title,
@@ -269,7 +470,7 @@ export class EventCreatePage implements OnInit {
         imageUrl: imageUrl,
         isPrivate: formValue.isPrivate,
         requiresApproval: formValue.requiresApproval,
-        tags: [] // TODO: Ajouter un champ tags plus tard
+        tags: []
       };
 
       // Crée l'événement dans Firestore
@@ -323,9 +524,16 @@ export class EventCreatePage implements OnInit {
   get date() { return this.eventForm.get('date'); }
   get category() { return this.eventForm.get('category'); }
   get maxParticipants() { return this.eventForm.get('maxParticipants'); }
-  get address() { return this.eventForm.get('address'); }
-  get city() { return this.eventForm.get('city'); }
-  get zipCode() { return this.eventForm.get('zipCode'); }
   get isPrivate() { return this.eventForm.get('isPrivate'); }
   get requiresApproval() { return this.eventForm.get('requiresApproval'); }
+  
+  /**
+   * ✅ Getter pour vérifier si le formulaire est valide ET qu'une adresse avec GPS est sélectionnée
+   */
+  get isFormValid(): boolean {
+    return this.eventForm.valid && 
+           this.selectedPlaceDetails !== null &&
+           this.selectedPlaceDetails.latitude !== undefined &&
+           this.selectedPlaceDetails.longitude !== undefined;
+  }
 }

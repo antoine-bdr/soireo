@@ -169,7 +169,7 @@
         </ion-card>
     
         <!-- ========================================
-             SECTION LIEU
+             SECTION LIEU - GOOGLE PLACES AUTOCOMPLETE
              ======================================== -->
         <ion-card>
           <ion-card-header>
@@ -181,52 +181,95 @@
           
           <ion-card-content>
             
-            <!-- Adresse -->
-            <ion-item lines="none">
-              <ion-label position="stacked">Adresse *</ion-label>
+            <!-- Champ d'autocomplete -->
+            <ion-item lines="none" class="address-search-item">
+              <ion-label position="stacked">🔍 Rechercher une adresse *</ion-label>
               <ion-input 
                 type="text" 
-                formControlName="address"
-                placeholder="Ex: 10 rue de la Paix">
+                [(ngModel)]="addressSearchTerm"
+                [ngModelOptions]="{standalone: true}"
+                (ionInput)="onAddressSearch($event)"
+                placeholder="Ex: 10 rue de la Paix, Paris"
+                [disabled]="!isGoogleMapsLoaded">
               </ion-input>
+              
+              <!-- Spinner pendant la recherche -->
+              <ion-spinner 
+                *ngIf="isSearching" 
+                name="dots" 
+                slot="end" 
+                color="primary">
+              </ion-spinner>
+              <ion-icon 
+                *ngIf="!isSearching" 
+                name="search-outline" 
+                slot="end" 
+                color="medium">
+              </ion-icon>
             </ion-item>
-            <div class="error-message" *ngIf="address?.invalid && address?.touched">
-              <ion-text color="danger">
-                <small>L'adresse est requise</small>
+    
+            <!-- Loader Google Maps -->
+            <div class="loading-maps" *ngIf="!isGoogleMapsLoaded">
+              <ion-spinner name="dots" color="primary"></ion-spinner>
+              <p class="hint">Chargement de Google Maps...</p>
+            </div>
+    
+            <!-- Liste des suggestions -->
+            <div class="predictions-list" *ngIf="addressPredictions.length > 0">
+              <ion-list>
+                <ion-item 
+                  *ngFor="let prediction of addressPredictions"
+                  button
+                  (click)="selectAddress(prediction)"
+                  class="prediction-item">
+                  <ion-icon name="location-outline" slot="start" color="primary"></ion-icon>
+                  <ion-label>
+                    <h3>{{ prediction.mainText }}</h3>
+                    <p>{{ prediction.secondaryText }}</p>
+                  </ion-label>
+                </ion-item>
+              </ion-list>
+            </div>
+    
+            <!-- Aucun résultat -->
+            <div class="no-results" *ngIf="addressSearchTerm && addressSearchTerm.length >= 3 && addressPredictions.length === 0 && !isSearching">
+              <ion-text color="medium">
+                <p class="hint">
+                  <ion-icon name="search-outline"></ion-icon>
+                  Aucune adresse trouvée
+                </p>
               </ion-text>
             </div>
     
-            <!-- Ville -->
-            <ion-item lines="none">
-              <ion-label position="stacked">Ville *</ion-label>
-              <ion-input 
-                type="text" 
-                formControlName="city"
-                placeholder="Ex: Paris">
-              </ion-input>
-            </ion-item>
-            <div class="error-message" *ngIf="city?.invalid && city?.touched">
-              <ion-text color="danger">
-                <small>La ville est requise</small>
-              </ion-text>
+            <!-- ✅ Adresse sélectionnée -->
+            <div class="selected-address" *ngIf="selectedPlaceDetails">
+              <ion-card class="address-card">
+                <ion-card-content>
+                  <div class="address-details">
+                    <ion-icon name="checkmark-circle" color="success" class="check-icon"></ion-icon>
+                    <div class="address-text">
+                      <h3>{{ selectedPlaceDetails.address }}</h3>
+                      <p>{{ selectedPlaceDetails.zipCode }} {{ selectedPlaceDetails.city }}</p>
+                      <p class="coordinates">
+                        📍 {{ selectedPlaceDetails.latitude.toFixed(6) }}, {{ selectedPlaceDetails.longitude.toFixed(6) }}
+                      </p>
+                    </div>
+                    <ion-button 
+                      fill="clear" 
+                      size="small" 
+                      color="danger"
+                      (click)="clearAddress()">
+                      <ion-icon name="close-outline" slot="icon-only"></ion-icon>
+                    </ion-button>
+                  </div>
+                </ion-card-content>
+              </ion-card>
             </div>
     
-            <!-- Code postal -->
-            <ion-item lines="none">
-              <ion-label position="stacked">Code postal *</ion-label>
-              <ion-input 
-                type="text" 
-                formControlName="zipCode"
-                placeholder="Ex: 75001"
-                maxlength="5">
-              </ion-input>
-            </ion-item>
-            <div class="error-message" *ngIf="zipCode?.invalid && zipCode?.touched">
-              <ion-text color="danger" *ngIf="zipCode?.errors?.['required']">
-                <small>Le code postal est requis</small>
-              </ion-text>
-              <ion-text color="danger" *ngIf="zipCode?.errors?.['pattern']">
-                <small>Format invalide (5 chiffres)</small>
+            <!-- Message d'erreur -->
+            <div class="error-message" *ngIf="!selectedPlaceDetails && (eventForm.touched || submitted)">
+              <ion-text color="danger">
+                <small>Veuillez sélectionner une adresse dans la liste</small>
               </ion-text>
             </div>
     
@@ -307,13 +350,14 @@
     
         <!-- ========================================
              BOUTON CRÉER
+             ✅ MODIFIÉ : Utilise isFormValid au lieu de eventForm.invalid
              ======================================== -->
         <ion-button 
           expand="block" 
           type="submit" 
           size="large"
           class="create-btn"
-          [disabled]="eventForm.invalid">
+          [disabled]="!isFormValid">
           <ion-icon name="save-outline" slot="start"></ion-icon>
           Créer l'événement
         </ion-button>

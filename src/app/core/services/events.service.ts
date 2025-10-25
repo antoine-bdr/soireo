@@ -1,6 +1,6 @@
-// src/app/core/services/events.service.ts
-// Service de gestion des événements
-// ✅ MODIFIÉ Sprint 4 : Récupération photo de profil depuis Firestore
+// events.service.ts - VERSION DEBUG
+// ✅ Ajout de logs détaillés pour identifier le problème exact
+// Remplacer temporairement votre fichier existant par celui-ci pour déboguer
 
 import { Injectable, inject } from '@angular/core';
 import {
@@ -18,7 +18,7 @@ import {
 } from '@angular/fire/firestore';
 import { Observable, from, map, switchMap } from 'rxjs';
 import { AuthenticationService } from './authentication.service';
-import { UsersService } from './users.service'; // ✅ AJOUTÉ
+import { UsersService } from './users.service';
 import { Event, CreateEventDto, EventCategory } from '../models/event.model';
 import { Participant, ParticipantStatus } from '../models/participant.model';
 
@@ -26,46 +26,60 @@ import { Participant, ParticipantStatus } from '../models/participant.model';
   providedIn: 'root'
 })
 export class EventsService {
-  // Injection des services
   private readonly firestore = inject(Firestore);
   private readonly authService = inject(AuthenticationService);
-  private readonly usersService = inject(UsersService); // ✅ AJOUTÉ
+  private readonly usersService = inject(UsersService);
   
-  // Noms des collections Firestore
   private readonly eventsCollection = 'events';
   private readonly participantsCollection = 'participants';
 
   constructor() {}
 
-  // ========================================
-  // CRÉATION D'ÉVÉNEMENTS
-  // ========================================
-
   /**
    * Crée un nouvel événement dans Firestore
-   * ✅ MODIFIÉ : Récupère la photo de profil depuis Firestore
-   * 
-   * @param eventData Données de l'événement à créer
-   * @returns Observable avec l'ID du document créé
+   * ✅ VERSION DEBUG avec logs détaillés
    */
   createEvent(eventData: CreateEventDto): Observable<string> {
     const userId = this.authService.getCurrentUserId();
     const userEmail = this.authService.getCurrentUserEmail();
     const userName = this.authService.getCurrentUserDisplayName();
 
+    console.log('🔍 [DEBUG] Début createEvent');
+    console.log('🔍 [DEBUG] userId:', userId);
+    console.log('🔍 [DEBUG] userEmail:', userEmail);
+    console.log('🔍 [DEBUG] userName:', userName);
+
     if (!userId) {
       throw new Error('Utilisateur non connecté');
     }
 
-    // ✅ MODIFIÉ : Récupère le profil utilisateur pour obtenir la photo
     return this.usersService.getUserProfileOnce(userId).pipe(
       switchMap(userProfile => {
-        // Utilise la photo du profil si disponible
         const organizerPhoto = userProfile?.photoURL || '';
         
-        console.log('📸 Photo organisateur:', organizerPhoto);
+        console.log('🔍 [DEBUG] organizerPhoto:', organizerPhoto);
+        console.log('🔍 [DEBUG] eventData reçu:', JSON.stringify(eventData, null, 2));
 
-        // Prépare les données pour Firestore
+        // ✅ Validation GPS AVANT création
+        if (!eventData.location.latitude || !eventData.location.longitude) {
+          console.error('❌ [DEBUG] ERREUR : Coordonnées GPS manquantes !', {
+            latitude: eventData.location.latitude,
+            longitude: eventData.location.longitude
+          });
+          throw new Error('Coordonnées GPS manquantes');
+        }
+
+        if (typeof eventData.location.latitude !== 'number' || typeof eventData.location.longitude !== 'number') {
+          console.error('❌ [DEBUG] ERREUR : Coordonnées GPS ne sont pas des nombres !', {
+            latitude: eventData.location.latitude,
+            latitudeType: typeof eventData.location.latitude,
+            longitude: eventData.location.longitude,
+            longitudeType: typeof eventData.location.longitude
+          });
+          throw new Error('Coordonnées GPS invalides');
+        }
+
+        // Préparation des données
         const eventToCreate: Omit<Event, 'id'> = {
           title: eventData.title,
           description: eventData.description,
@@ -73,8 +87,10 @@ export class EventsService {
           location: eventData.location,
           organizerId: userId,
           organizerName: userName || userEmail || 'Organisateur',
-          organizerPhoto: organizerPhoto, // ✅ MODIFIÉ : Photo du profil
+          organizerPhoto: organizerPhoto,
           maxParticipants: eventData.maxParticipants,
+          currentParticipants: 1,
+          participants: [userId],
           category: eventData.category,
           imageUrl: eventData.imageUrl || '',
           images: [],
@@ -85,13 +101,84 @@ export class EventsService {
           tags: eventData.tags || []
         };
 
+        // ✅ LOGS DÉTAILLÉS AVANT ENVOI
+        console.log('🔍 [DEBUG] ========================================');
+        console.log('🔍 [DEBUG] DONNÉES À ENVOYER À FIRESTORE:');
+        console.log('🔍 [DEBUG] ========================================');
+        console.log(JSON.stringify(eventToCreate, null, 2));
+        
+        console.log('🔍 [DEBUG] ========================================');
+        console.log('🔍 [DEBUG] VÉRIFICATION DES TYPES:');
+        console.log('🔍 [DEBUG] ========================================');
+        console.log({
+          'title (string)': typeof eventToCreate.title,
+          'description (string)': typeof eventToCreate.description,
+          'date (timestamp)': eventToCreate.date instanceof Timestamp,
+          'organizerId (string)': typeof eventToCreate.organizerId,
+          'organizerName (string)': typeof eventToCreate.organizerName,
+          'organizerPhoto (string)': typeof eventToCreate.organizerPhoto,
+          'maxParticipants (number)': typeof eventToCreate.maxParticipants,
+          'currentParticipants (number)': typeof eventToCreate.currentParticipants,
+          'participants (array)': Array.isArray(eventToCreate.participants),
+          'participants.length': eventToCreate.participants.length,
+          'participants[0] (string)': typeof eventToCreate.participants[0],
+          'category (string)': typeof eventToCreate.category,
+          'imageUrl (string)': typeof eventToCreate.imageUrl,
+          'images (array)': Array.isArray(eventToCreate.images),
+          'tags (array)': Array.isArray(eventToCreate.tags),
+          'isPrivate (boolean)': typeof eventToCreate.isPrivate,
+          'requiresApproval (boolean)': typeof eventToCreate.requiresApproval,
+          'createdAt (timestamp)': eventToCreate.createdAt instanceof Timestamp,
+          'updatedAt (timestamp)': eventToCreate.updatedAt instanceof Timestamp,
+          'location (object)': typeof eventToCreate.location,
+          'location.address (string)': typeof eventToCreate.location.address,
+          'location.city (string)': typeof eventToCreate.location.city,
+          'location.zipCode (string)': typeof eventToCreate.location.zipCode,
+          'location.latitude (number)': typeof eventToCreate.location.latitude,
+          'location.longitude (number)': typeof eventToCreate.location.longitude,
+        });
+
+        console.log('🔍 [DEBUG] ========================================');
+        console.log('🔍 [DEBUG] VALEURS DES CHAMPS CRITIQUES:');
+        console.log('🔍 [DEBUG] ========================================');
+        console.log({
+          'currentParticipants': eventToCreate.currentParticipants,
+          'participants': eventToCreate.participants,
+          'maxParticipants': eventToCreate.maxParticipants,
+          'location.latitude': eventToCreate.location.latitude,
+          'location.longitude': eventToCreate.location.longitude,
+          'organizerId': eventToCreate.organizerId,
+          'organizerPhoto': eventToCreate.organizerPhoto,
+          'imageUrl': eventToCreate.imageUrl,
+          'images': eventToCreate.images,
+          'tags': eventToCreate.tags,
+        });
+
+        // ✅ VÉRIFICATION FINALE DES CHAMPS REQUIS
+        const requiredFields = [
+          'title', 'description', 'date', 'location',
+          'organizerId', 'organizerName', 'maxParticipants',
+          'currentParticipants', 'participants', 'category',
+          'isPrivate', 'requiresApproval', 'createdAt', 'updatedAt',
+          'imageUrl', 'images', 'tags'
+        ];
+
+        const missingFields = requiredFields.filter(field => !(field in eventToCreate));
+        if (missingFields.length > 0) {
+          console.error('❌ [DEBUG] CHAMPS MANQUANTS:', missingFields);
+          throw new Error(`Champs manquants: ${missingFields.join(', ')}`);
+        } else {
+          console.log('✅ [DEBUG] Tous les champs requis sont présents');
+        }
+
         const eventsRef = collection(this.firestore, this.eventsCollection);
         
-        // Crée l'événement PUIS ajoute l'organisateur comme participant
+        console.log('🔍 [DEBUG] Tentative de création dans Firestore...');
+
         return from(addDoc(eventsRef, eventToCreate)).pipe(
           switchMap(docRef => {
             const eventId = docRef.id;
-            console.log('✅ Événement créé:', eventId);
+            console.log('✅ [DEBUG] Événement créé avec succès! ID:', eventId);
 
             // Crée le document participant pour l'organisateur
             const participantData: Omit<Participant, 'id'> = {
@@ -99,16 +186,18 @@ export class EventsService {
               userId,
               userName: userName || userEmail || 'Organisateur',
               userEmail: userEmail || '',
-              userPhoto: organizerPhoto, // ✅ MODIFIÉ : Photo du profil
+              userPhoto: organizerPhoto,
               joinedAt: Timestamp.now(),
               status: ParticipantStatus.APPROVED
             };
+
+            console.log('🔍 [DEBUG] Création du participant organisateur:', participantData);
 
             const participantsRef = collection(this.firestore, this.participantsCollection);
             
             return from(addDoc(participantsRef, participantData)).pipe(
               map(() => {
-                console.log('✅ Organisateur ajouté comme participant');
+                console.log('✅ [DEBUG] Organisateur ajouté comme participant');
                 return eventId;
               })
             );
@@ -118,14 +207,8 @@ export class EventsService {
     );
   }
 
-  // ========================================
-  // LECTURE D'ÉVÉNEMENTS
-  // ========================================
-
-  /**
-   * Récupère tous les événements (temps réel)
-   * @returns Observable<Event[]>
-   */
+  // ... (reste des méthodes inchangé)
+  
   getAllEvents(): Observable<Event[]> {
     return new Observable(observer => {
       const eventsRef = collection(this.firestore, this.eventsCollection);
@@ -145,10 +228,6 @@ export class EventsService {
     });
   }
 
-  /**
-   * Récupère les événements à venir
-   * @returns Observable<Event[]>
-   */
   getUpcomingEvents(): Observable<Event[]> {
     return new Observable(observer => {
       const eventsRef = collection(this.firestore, this.eventsCollection);
@@ -172,11 +251,6 @@ export class EventsService {
     });
   }
 
-  /**
-   * Récupère un événement par son ID (temps réel)
-   * @param eventId ID de l'événement
-   * @returns Observable<Event | null>
-   */
   getEventById(eventId: string): Observable<Event | null> {
     return new Observable(observer => {
       const eventDocRef = doc(this.firestore, this.eventsCollection, eventId);
@@ -198,11 +272,6 @@ export class EventsService {
     });
   }
 
-  /**
-   * Récupère les événements créés par un utilisateur
-   * @param organizerId ID de l'organisateur
-   * @returns Observable<Event[]>
-   */
   getEventsByOrganizer(organizerId: string): Observable<Event[]> {
     return new Observable(observer => {
       const eventsRef = collection(this.firestore, this.eventsCollection);
@@ -225,16 +294,6 @@ export class EventsService {
     });
   }
 
-  // ========================================
-  // MODIFICATION D'ÉVÉNEMENTS
-  // ========================================
-
-  /**
-   * Met à jour un événement
-   * @param eventId ID de l'événement
-   * @param updates Données à mettre à jour
-   * @returns Observable<void>
-   */
   updateEvent(eventId: string, updates: Partial<Event>): Observable<void> {
     const eventDocRef = doc(this.firestore, this.eventsCollection, eventId);
 
@@ -250,15 +309,6 @@ export class EventsService {
     );
   }
 
-  // ========================================
-  // SUPPRESSION D'ÉVÉNEMENTS
-  // ========================================
-
-  /**
-   * Supprime un événement
-   * @param eventId ID de l'événement
-   * @returns Observable<void>
-   */
   deleteEvent(eventId: string): Observable<void> {
     const eventDocRef = doc(this.firestore, this.eventsCollection, eventId);
 
@@ -269,15 +319,6 @@ export class EventsService {
     );
   }
 
-  // ========================================
-  // RECHERCHE ET FILTRES
-  // ========================================
-
-  /**
-   * Recherche des événements par titre ou description
-   * @param searchTerm Terme de recherche
-   * @returns Observable<Event[]>
-   */
   searchEvents(searchTerm: string): Observable<Event[]> {
     return this.getAllEvents().pipe(
       map(events => {
@@ -290,11 +331,6 @@ export class EventsService {
     );
   }
 
-  /**
-   * Filtre les événements par catégorie
-   * @param category Catégorie à filtrer
-   * @returns Observable<Event[]>
-   */
   filterEventsByCategory(category: EventCategory): Observable<Event[]> {
     return this.getAllEvents().pipe(
       map(events => events.filter(event => event.category === category))

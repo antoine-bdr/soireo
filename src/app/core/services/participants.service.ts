@@ -14,7 +14,12 @@ import {
   orderBy,
   getDocs,
   onSnapshot,
-  Timestamp
+  Timestamp,
+  updateDoc,  // ✅ AJOUTÉ
+  arrayUnion, // ✅ AJOUTÉ
+  increment,
+  arrayRemove,
+  serverTimestamp
 } from '@angular/fire/firestore';
 import { Observable, from, map, switchMap, of, combineLatest } from 'rxjs';
 import { take } from 'rxjs/operators';
@@ -65,7 +70,7 @@ export class ParticipantsService {
   
     console.log('🔵 joinEvent appelé pour eventId:', eventId, 'userId:', userId);
   
-    // ✅ MODIFIÉ : Récupère le profil utilisateur pour obtenir la photo
+    // Récupère le profil utilisateur pour obtenir la photo
     return this.usersService.getUserProfileOnce(userId).pipe(
       switchMap(userProfile => {
         const userPhoto = userProfile?.photoURL || '';
@@ -80,34 +85,46 @@ export class ParticipantsService {
             }
   
             // Étape 2 : Vérifie que l'événement n'est pas complet
-            return this.getParticipantCount(eventId).pipe(
-              take(1),
-              switchMap(count => {
-                console.log(`🔢 Participants actuels: ${count}/${event.maxParticipants}`);
+            // ✅ MODIFIÉ : Utilise event.currentParticipants au lieu de compter
+            console.log(`📢 Participants actuels: ${event.currentParticipants}/${event.maxParticipants}`);
   
-                if (count >= event.maxParticipants) {
-                  console.warn('⚠️ Événement complet');
-                  throw new Error('Événement complet');
-                }
+            if (event.currentParticipants >= event.maxParticipants) {
+              console.warn('⚠️ Événement complet');
+              throw new Error('Événement complet');
+            }
   
-                // Étape 3 : Crée le document participant
-                const participantData: Omit<Participant, 'id'> = {
-                  eventId,
-                  userId,
-                  userName: userName || userEmail || 'Utilisateur',
-                  userEmail,
-                  userPhoto, // ✅ MODIFIÉ : Photo du profil
-                  joinedAt: Timestamp.now(),
-                  status: event.requiresApproval 
-                    ? ParticipantStatus.PENDING 
-                    : ParticipantStatus.APPROVED
+            // Étape 3 : Crée le document participant
+            const participantData: Omit<Participant, 'id'> = {
+              eventId,
+              userId,
+              userName: userName || userEmail || 'Utilisateur',
+              userEmail,
+              userPhoto,
+              joinedAt: Timestamp.now(),
+              status: event.requiresApproval 
+                ? ParticipantStatus.PENDING 
+                : ParticipantStatus.APPROVED
+            };
+  
+            const participantsRef = collection(this.firestore, this.participantsCollection);
+  
+            // Étape 4 : Ajoute participant ET synchronise Event
+            return from(addDoc(participantsRef, participantData)).pipe(
+              switchMap(() => {
+                console.log('✅ Participant ajouté à la collection');
+  
+                // ✅ AJOUTÉ : Synchronise Event.currentParticipants et Event.participants[]
+                const eventRef = doc(this.firestore, 'events', eventId);
+                
+                const updateData = {
+                  currentParticipants: increment(1),        // Incrémente compteur
+                  participants: arrayUnion(userId),         // Ajoute userId au array
+                  updatedAt: serverTimestamp()
                 };
   
-                const participantsRef = collection(this.firestore, this.participantsCollection);
-  
-                return from(addDoc(participantsRef, participantData)).pipe(
+                return from(updateDoc(eventRef, updateData)).pipe(
                   map(() => {
-                    console.log('✅ Participant ajouté');
+                    console.log('✅ Event.currentParticipants et Event.participants[] synchronisés');
                   })
                 );
               })
@@ -129,25 +146,47 @@ export class ParticipantsService {
    * @param eventId - ID de l'événement à quitter
    * @returns Observable<void> qui se complète après la suppression
    */
-  leaveEvent(eventId: string): Observable<void> {
-    const userId = this.authService.getCurrentUserId();
-
-    if (!userId) {
+  leaveEvent(eventId: string, userId?: string): Observable<void> {
+    const userIdToLeave = userId || this.authService.getCurrentUserId();
+    
+    if (!userIdToLeave) {
       throw new Error('Utilisateur non connecté');
     }
-
-    console.log('🔴 leaveEvent appelé pour eventId:', eventId, 'userId:', userId);
-
-    // Trouve le document de participation puis le supprime
-    return this.getParticipantDocumentOneTime(eventId, userId).pipe(
+  
+    console.log('🔴 leaveEvent appelé pour eventId:', eventId, 'userId:', userIdToLeave);
+  
+    // Étape 1 : Trouver et supprimer le document participant
+    return this.getParticipantDocumentOneTime(eventId, userIdToLeave).pipe(
       switchMap(participantDoc => {
-        if (!participantDoc) {
-          throw new Error('Vous ne participez pas à cet événement');
+        if (!participantDoc || !participantDoc.id) {
+          throw new Error('Participation non trouvée');
         }
-
-        console.log('🗑️ Suppression du document participant:', participantDoc.id);
-        const participantRef = doc(this.firestore, this.participantsCollection, participantDoc.id!);
-        return from(deleteDoc(participantRef));
+  
+        const participantRef = doc(this.firestore, this.participantsCollection, participantDoc.id);
+        
+        return from(deleteDoc(participantRef)).pipe(
+          switchMap(() => {
+            console.log('✅ Document participant supprimé');
+  
+            // ✅ AJOUTÉ : Synchronise Event.currentParticipants et Event.participants[]
+            const eventRef = doc(this.firestore, 'events', eventId);
+            
+            // Importer arrayRemove au début du fichier si pas déjà fait
+            // import { arrayRemove } from '@angular/fire/firestore';
+            
+            const updateData = {
+              currentParticipants: increment(-1),           // Décrémente compteur
+              participants: arrayRemove(userIdToLeave),    // Retire userId du array
+              updatedAt: serverTimestamp()
+            };
+  
+            return from(updateDoc(eventRef, updateData)).pipe(
+              map(() => {
+                console.log('✅ Event.currentParticipants et Event.participants[] synchronisés');
+              })
+            );
+          })
+        );
       })
     );
   }
