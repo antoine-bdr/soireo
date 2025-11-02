@@ -471,6 +471,25 @@ export class ParticipantsService {
     );
   }
 
+  getUserParticipationStatus(eventId: string): Observable<ParticipantStatus | undefined> {
+    const userId = this.authService.getCurrentUserId();
+    
+    if (!userId) {
+      return of(undefined);
+    }
+
+    return this.getParticipantDocumentOneTime(eventId, userId).pipe(
+      map(participant => {
+        if (!participant) {
+          console.log('👤 getUserParticipationStatus: Non participant');
+          return undefined;
+        }
+        console.log('👤 getUserParticipationStatus:', participant.status);
+        return participant.status;
+      })
+    );
+  }
+
   /**
    * Récupère les statistiques complètes de participation (TEMPS RÉEL)
    * 

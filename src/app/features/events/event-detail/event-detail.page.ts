@@ -1,3 +1,6 @@
+// src/app/features/events/event-detail/event-detail.page.ts
+// ✅ VERSION AVEC GESTION DE LA CONFIDENTIALITÉ DES ADRESSES
+
 import { Component, OnInit, OnDestroy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
@@ -26,7 +29,8 @@ import {
   IonLabel,
   AlertController,
   ToastController,
-  LoadingController
+  LoadingController,
+  ModalController  // ✅ AJOUTÉ pour le modal
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import {
@@ -43,15 +47,37 @@ import {
   personAddOutline,
   ellipsisVertical,
   exitOutline,
-  closeCircleOutline, warningOutline, arrowBack, documentTextOutline } from 'ionicons/icons';
+  closeCircleOutline, 
+  warningOutline, 
+  arrowBack, 
+  documentTextOutline,
+  eyeOffOutline,  // ✅ pour l'icône adresse masquée
+  notificationsOutline,
+  globeOutline,
+  mailOutline  // ✅ AJOUTÉ pour l'icône demandes
+} from 'ionicons/icons';
+
+import { getEventAccessType, EventAccessType } from '../../../core/helpers/event-type.helper';
+
+// ✅ AJOUT : Import du modal
+import { PendingRequestsModalComponent } from '../../../shared/components/pending-requests-modal/pending-requests-modal.component';
 
 import { EventsService } from '../../../core/services/events.service';
 import { AuthenticationService } from '../../../core/services/authentication.service';
 import { ParticipantsService } from '../../../core/services/participants.service';
-import { Event } from '../../../core/models/event.model';
-import { Participant } from '../../../core/models/participant.model';
-import { take } from 'rxjs/operators';
-import { Subscription } from 'rxjs';
+// ✅ AJOUT : Service de visibilité des adresses
+import { EventLocationVisibilityService } from '../../../core/services/event-location-visibility.service';
+
+// ✅ MODIFICATION : Import des interfaces avec gestion de masquage
+import { 
+  Event, 
+  EventWithConditionalLocation,
+  EventLocation,
+  MaskedEventLocation 
+} from '../../../core/models/event.model';
+import { Participant, ParticipantStatus } from '../../../core/models/participant.model';
+import { take, switchMap } from 'rxjs/operators';
+import { Subscription, of } from 'rxjs';
 
 @Component({
   selector: 'app-event-detail',
@@ -80,13 +106,18 @@ export class EventDetailPage implements OnInit, OnDestroy {
   private readonly eventsService = inject(EventsService);
   private readonly authService = inject(AuthenticationService);
   private readonly participantsService = inject(ParticipantsService);
+  // ✅ AJOUT : Service de visibilité
+  private readonly locationVisibilityService = inject(EventLocationVisibilityService);
   private readonly alertCtrl = inject(AlertController);
   private readonly toastCtrl = inject(ToastController);
   private readonly loadingCtrl = inject(LoadingController);
+  // ✅ AJOUT : Modal controller
+  private readonly modalCtrl = inject(ModalController);
 
   // État de la page
   eventId: string = '';
-  event: Event | null = null;
+  // ✅ MODIFICATION : Type avec gestion de masquage
+  event: EventWithConditionalLocation | null = null;
   isLoading = true;
   isOrganizer = false;
 
@@ -97,15 +128,45 @@ export class EventDetailPage implements OnInit, OnDestroy {
   canJoin = true;
   canJoinReason = '';
   
+  // ✅ AJOUT : Statut du participant pour la visibilité
+  participantStatus?: ParticipantStatus;
+  
+  // ✅ AJOUT : Compteur demandes en attente
+  pendingCount = 0;
+  
   // Protection contre les clics multiples
   isJoining = false;
   isLeaving = false;
 
-  // 🆕 GESTION DES SUBSCRIPTIONS POUR CLEANUP
+  // Gestion des subscriptions pour cleanup
   private subscriptions: Subscription[] = [];
 
+  eventTypeInfo: EventAccessType | null = null;
+
   constructor() {
-    addIcons({arrowBack,peopleOutline,calendarOutline,locationOutline,personAddOutline,exitOutline,warningOutline,personOutline,documentTextOutline,createOutline,trashOutline,checkmarkCircleOutline,closeCircleOutline,ellipsisVertical,shareOutline,lockClosedOutline,timeOutline});
+    addIcons({
+      arrowBack,
+      peopleOutline,
+      calendarOutline,
+      locationOutline,
+      personAddOutline,
+      exitOutline,
+      warningOutline,
+      personOutline,
+      documentTextOutline,
+      createOutline,
+      trashOutline,
+      checkmarkCircleOutline,
+      closeCircleOutline,
+      ellipsisVertical,
+      shareOutline,
+      lockClosedOutline,
+      timeOutline,
+      eyeOffOutline,
+      notificationsOutline,
+      globeOutline,
+      mailOutline  // ✅ AJOUTÉ
+    });
   }
 
   ngOnInit() {
@@ -120,7 +181,6 @@ export class EventDetailPage implements OnInit, OnDestroy {
     this.loadEvent();
   }
 
-  // 🆕 CLEANUP DES SUBSCRIPTIONS
   ngOnDestroy() {
     this.subscriptions.forEach(sub => {
       if (sub && !sub.closed) {
@@ -131,46 +191,75 @@ export class EventDetailPage implements OnInit, OnDestroy {
   }
 
   /**
-   * Charge l'événement depuis Firestore
-   * 🆕 VERSION avec stockage de la subscription
+   * ✅ VERSION AVEC MASQUAGE CONDITIONNEL
+   * Charge l'événement et applique le masquage selon les permissions
    */
   loadEvent() {
     this.isLoading = true;
+    const currentUserId = this.authService.getCurrentUserId();
 
-    const eventSub = this.eventsService.getEventById(this.eventId).subscribe({
-      next: (event) => {
-        if (!event) {
-          this.showToast('Événement introuvable', 'danger');
-          this.router.navigate(['/events']);
-          return;
+    if (!currentUserId) {
+      this.showToast('Vous devez être connecté', 'warning');
+      this.router.navigate(['/login']);
+      return;
+    }
+
+    const eventSub = this.eventsService.getEventById(this.eventId).pipe(
+      switchMap((rawEvent) => {
+        if (!rawEvent) {
+          throw new Error('Événement introuvable');
         }
 
-        this.event = event;
-        this.checkIfOrganizer();
+        // 1️⃣ Vérifier si organisateur
+        const isOrganizer = rawEvent.organizerId === currentUserId;
+        this.isOrganizer = isOrganizer;
+
+        // 2️⃣ Récupérer le statut du participant
+        return this.participantsService.getUserParticipationStatus(this.eventId).pipe(
+          take(1),
+          switchMap((status: ParticipantStatus | undefined) => {
+            this.participantStatus = status;
+            console.log('👤 Statut participant:', status || 'Non inscrit');
+
+            // 3️⃣ Appliquer le masquage conditionnel
+            const eventWithMaskedLocation = this.locationVisibilityService
+              .getEventWithMaskedLocation(
+                rawEvent,
+                currentUserId,
+                status
+              );
+
+            return of(eventWithMaskedLocation);
+          })
+        );
+      })
+    ).subscribe({
+      next: (eventWithLocation) => {
+        this.event = eventWithLocation;
+        
+        // Log pour debug
+        if (eventWithLocation.canSeeFullAddress) {
+          console.log('✅ Adresse visible:', eventWithLocation.location);
+        } else {
+          console.log('🔒 Adresse masquée:', eventWithLocation.location);
+        }
+
         this.loadParticipationInfo();
         this.isLoading = false;
       },
       error: (error) => {
-        console.error('Erreur lors du chargement de l\'événement:', error);
+        console.error('❌ Erreur chargement événement:', error);
         this.showToast('Erreur lors du chargement', 'danger');
         this.isLoading = false;
         this.router.navigate(['/events']);
       }
     });
+
     this.subscriptions.push(eventSub);
   }
 
   /**
-   * Vérifie si l'utilisateur connecté est l'organisateur
-   */
-  checkIfOrganizer() {
-    const currentUserId = this.authService.getCurrentUserId();
-    this.isOrganizer = this.event?.organizerId === currentUserId;
-  }
-
-  /**
    * Charge les informations de participation (compteur, statut utilisateur)
-   * 🆕 VERSION avec stockage des subscriptions pour réactivité temps réel
    */
   loadParticipationInfo() {
     if (!this.event) return;
@@ -196,7 +285,13 @@ export class EventDetailPage implements OnInit, OnDestroy {
     this.subscriptions.push(participatingSub);
 
     // Vérification possibilité de rejoindre (temps réel)
-    const canJoinSub = this.participantsService.canJoinEventReactive(this.event).subscribe({
+    // ⚠️ On passe l'événement sans le masquage pour la vérification
+    const eventForCheck = { 
+      ...this.event, 
+      location: this.getOriginalLocation() 
+    } as Event;
+    
+    const canJoinSub = this.participantsService.canJoinEventReactive(eventForCheck).subscribe({
       next: (result) => {
         this.canJoin = result.allowed;
         this.canJoinReason = result.reason || '';
@@ -208,12 +303,13 @@ export class EventDetailPage implements OnInit, OnDestroy {
     // Liste participants (organisateur uniquement, temps réel)
     if (this.isOrganizer) {
       this.loadParticipants();
+      // ✅ AJOUT : Charger le compteur de demandes en attente
+      this.loadPendingCount();
     }
   }
 
   /**
    * Charge la liste complète des participants (organisateur uniquement)
-   * 🆕 VERSION avec stockage de la subscription
    */
   loadParticipants() {
     const participantsSub = this.participantsService.getParticipants(this.eventId).subscribe({
@@ -231,7 +327,6 @@ export class EventDetailPage implements OnInit, OnDestroy {
    * Permet à l'utilisateur de rejoindre l'événement
    */
   async joinEvent() {
-    // Protection contre les clics multiples
     if (this.isJoining) {
       console.log('⚠️ Inscription déjà en cours, ignoré');
       return;
@@ -241,13 +336,11 @@ export class EventDetailPage implements OnInit, OnDestroy {
       return;
     }
 
-    // Vérifie une dernière fois avant de rejoindre
     if (!this.canJoin) {
       this.showToast(this.canJoinReason || 'Impossible de rejoindre cet événement', 'warning');
       return;
     }
 
-    // Active le flag de protection
     this.isJoining = true;
     console.log('🔵 Début inscription...');
 
@@ -257,47 +350,62 @@ export class EventDetailPage implements OnInit, OnDestroy {
     });
     await loading.present();
 
-    this.participantsService.joinEvent(this.eventId, this.event).subscribe({
+    // Utiliser l'événement original sans masquage
+    const eventForJoin = { 
+      ...this.event, 
+      location: this.getOriginalLocation() 
+    } as Event;
+
+    this.participantsService.joinEvent(this.eventId, eventForJoin).subscribe({
       next: async () => {
         await loading.dismiss();
         this.isParticipating = true;
         this.isJoining = false;
         
         const message = this.event!.requiresApproval 
-          ? 'Demande envoyée ! En attente d\'approbation de l\'organisateur.'
-          : 'Vous participez maintenant à cet événement ! 🎉';
+          ? '📨 Demande envoyée ! En attente d\'approbation.\n🔓 L\'adresse sera dévoilée après acceptation.'
+          : '🎉 Vous participez maintenant à cet événement !';
         
         await this.showToast(message, 'success');
         console.log('✅ Inscription réussie');
         
-        // 🆕 Plus besoin de recharger - les observables temps réel mettent à jour automatiquement !
+        // ⚠️ IMPORTANT : Recharger l'événement pour mettre à jour la visibilité de l'adresse
+        // Car le statut du participant vient de changer
+        this.loadEvent();
       },
       error: async (error) => {
         await loading.dismiss();
         this.isJoining = false;
         console.error('❌ Erreur lors de l\'inscription:', error);
-        this.showToast(error.message || 'Erreur lors de l\'inscription', 'danger');
+        
+        let errorMessage = 'Erreur lors de l\'inscription';
+        if (error.code === 'permission-denied') {
+          errorMessage = 'Vous n\'avez pas la permission de rejoindre cet événement';
+        } else if (error.message) {
+          errorMessage = error.message;
+        }
+        
+        this.showToast(errorMessage, 'danger');
       }
     });
   }
 
   /**
-   * Permet à l'utilisateur d'annuler sa participation
+   * Permet à l'utilisateur de quitter l'événement
    */
   async leaveEvent() {
-    // Protection contre les clics multiples
     if (this.isLeaving) {
       console.log('⚠️ Annulation déjà en cours, ignoré');
       return;
     }
 
-    if (!this.isParticipating) {
+    if (!this.event || !this.isParticipating) {
       return;
     }
 
     const alert = await this.alertCtrl.create({
-      header: 'Annuler votre participation',
-      message: 'Êtes-vous sûr de vouloir annuler votre participation à cet événement ?',
+      header: 'Annuler la participation',
+      message: 'Êtes-vous sûr de vouloir annuler votre participation ?',
       buttons: [
         {
           text: 'Non',
@@ -305,10 +413,9 @@ export class EventDetailPage implements OnInit, OnDestroy {
         },
         {
           text: 'Oui, annuler',
-          role: 'confirm',
+          role: 'destructive',
           handler: async () => {
             this.isLeaving = true;
-            console.log('🔴 Début annulation...');
 
             const loading = await this.loadingCtrl.create({
               message: 'Annulation en cours...',
@@ -324,12 +431,62 @@ export class EventDetailPage implements OnInit, OnDestroy {
                 await this.showToast('Participation annulée', 'success');
                 console.log('✅ Annulation réussie');
                 
-                // 🆕 Plus besoin de recharger - les observables temps réel mettent à jour automatiquement !
+                // ⚠️ IMPORTANT : Recharger l'événement pour masquer l'adresse
+                this.loadEvent();
               },
               error: async (error) => {
                 await loading.dismiss();
                 this.isLeaving = false;
                 console.error('❌ Erreur lors de l\'annulation:', error);
+                this.showToast('Erreur lors de l\'annulation', 'danger');
+              }
+            });
+          }
+        }
+      ]
+    });
+
+    await alert.present();
+  }
+
+  /**
+   * ✅ NOUVEAU : Vérifie si l'utilisateur a une demande en attente (PENDING)
+   */
+  isPending(): boolean {
+    return this.participantStatus === ParticipantStatus.PENDING;
+  }
+
+  /**
+   * ✅ NOUVEAU : Annuler une demande de participation en attente
+   */
+  async cancelRequest() {
+    const alert = await this.alertCtrl.create({
+      header: 'Annuler la demande',
+      message: 'Êtes-vous sûr de vouloir annuler votre demande de participation ?',
+      buttons: [
+        {
+          text: 'Non',
+          role: 'cancel'
+        },
+        {
+          text: 'Oui, annuler',
+          role: 'destructive',
+          handler: async () => {
+            const loading = await this.loadingCtrl.create({
+              message: 'Annulation en cours...',
+              spinner: 'crescent'
+            });
+            await loading.present();
+
+            this.participantsService.leaveEvent(this.eventId).subscribe({
+              next: async () => {
+                await loading.dismiss();
+                this.showToast('Demande annulée', 'success');
+                console.log('✅ Demande annulée');
+              },
+              error: async (error) => {
+                await loading.dismiss();
+                console.error('❌ Erreur annulation demande:', error);
                 this.showToast('Erreur lors de l\'annulation', 'danger');
               }
             });
@@ -367,8 +524,6 @@ export class EventDetailPage implements OnInit, OnDestroy {
               next: async () => {
                 await loading.dismiss();
                 await this.showToast('Participant retiré', 'success');
-                
-                // 🆕 Plus besoin de recharger - l'observable temps réel met à jour la liste automatiquement !
               },
               error: async (error) => {
                 await loading.dismiss();
@@ -441,11 +596,72 @@ export class EventDetailPage implements OnInit, OnDestroy {
         `Fonctionnalité "Voir le profil" à venir prochainement !`, 
         'success'
       );
-      
-      // TODO : Créer page public-profile/:userId
-      // this.router.navigate(['/public-profile', this.event.organizerId]);
     }
   }
+
+  // ========================================
+  // ✅ MÉTHODES POUR GESTION DE L'ADRESSE
+  // ========================================
+
+  /**
+   * Vérifie si l'adresse est masquée
+   */
+  isAddressMasked(): boolean {
+    if (!this.event) return false;
+    return !this.event.canSeeFullAddress;
+  }
+
+  /**
+   * Retourne l'adresse formatée pour l'affichage
+   */
+  getAddressDisplay(): string {
+    if (!this.event) return '';
+    
+    return this.locationVisibilityService.formatAddressForDisplay(
+      this.event.location
+    );
+  }
+
+  /**
+   * Retourne le message explicatif si l'adresse est masquée
+   */
+  getLocationMessage(): string {
+    if (!this.event || this.event.canSeeFullAddress) return '';
+    
+    const location = this.event.location as MaskedEventLocation;
+    return location.message || '';
+  }
+
+  /**
+   * Récupère la localisation originale (utilisé pour les opérations internes)
+   */
+  private getOriginalLocation(): EventLocation {
+    if (!this.event) {
+      throw new Error('Event not loaded');
+    }
+
+    // Si l'adresse est visible, on retourne la location telle quelle
+    if (this.event.canSeeFullAddress) {
+      return this.event.location as EventLocation;
+    }
+
+    // Si masquée, on reconstruit une EventLocation partielle
+    // (Normalement, on ne devrait jamais avoir besoin de ça dans un flow correct)
+    const masked = this.event.location as MaskedEventLocation;
+    return {
+      address: '',
+      city: masked.city,
+      zipCode: masked.zipCode || '',
+      latitude: masked.approximateLatitude || 0,
+      longitude: masked.approximateLongitude || 0,
+      country: masked.country,
+      visibility: masked.visibility
+    };
+  }
+
+  // ========================================
+  // MÉTHODES UTILITAIRES
+  // ========================================
 
   /**
    * Retourne la couleur de la catégorie
@@ -492,95 +708,177 @@ export class EventDetailPage implements OnInit, OnDestroy {
     this.showToast('Fonctionnalité de partage à venir', 'warning');
   }
 
+  /**
+   * Retourne le label de la catégorie avec emoji
+   */
+  getCategoryLabel(category: any): string {
+    const categoryStr = String(category).toUpperCase();
+    
+    const labels: Record<string, string> = {
+      'PARTY': '🎉 Soirée',
+      'CONCERT': '🎵 Concert',
+      'FESTIVAL': '🎪 Festival',
+      'BAR': '🍺 Bar',
+      'CLUB': '💃 Club',
+      'OUTDOOR': '🌳 Extérieur',
+      'PRIVATE': '🔒 Privé',
+      'OTHER': '📌 Autre'
+    };
+    
+    return labels[categoryStr] || `📌 ${category}`;
+  }
+
+  /**
+   * Formate la date pour l'affichage
+   */
+  formatDate(dateValue: any): string {
+    if (!dateValue) return 'Date inconnue';
+    
+    try {
+      let date: Date;
+      
+      if (dateValue?.toDate) {
+        date = dateValue.toDate();
+      } 
+      else if (typeof dateValue === 'string') {
+        date = new Date(dateValue);
+      } 
+      else {
+        date = dateValue;
+      }
+      
+      if (isNaN(date.getTime())) {
+        return 'Date invalide';
+      }
+      
+      return date.toLocaleDateString('fr-FR', {
+        weekday: 'long',
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    } catch (error) {
+      console.error('Erreur formatDate:', error);
+      return 'Erreur de date';
+    }
+  }
+
+  /**
+   * Retourne le status du badge participants
+   */
+  getParticipantBadgeStatus(): string {
+    if (this.isEventFull()) {
+      return 'danger';
+    }
+    
+    const percentage = (this.participantCount / this.event!.maxParticipants) * 100;
+    
+    if (percentage >= 80) {
+      return 'warning';
+    }
+    
+    return 'success';
+  }
+
+  getEventAccessType(): string {
+    if (!this.event) return 'public';
+    
+    // Récupérer le type réel depuis l'événement original
+    const originalEvent = this.event as any; // Cast pour accéder aux props originales
+    
+    if (originalEvent.isPrivate) {
+      return 'private';
+    }
+    
+    if (originalEvent.requiresApproval) {
+      return 'invitation';
+    }
+    
+    return 'public';
+  }
+  
+  /**
+   * Retourne le label du type d'accès
+   */
+  getAccessTypeLabel(): string {
+    const type = this.getEventAccessType();
+    
+    switch (type) {
+      case 'public':
+        return 'Public';
+      case 'invitation':
+        return 'Sur invitation';
+      case 'private':
+        return 'Privé';
+      default:
+        return 'Public';
+    }
+  }
+  
+  /**
+   * Retourne l'icône correspondant au type d'accès
+   */
+  getAccessTypeIcon(): string {
+    const type = this.getEventAccessType();
+    
+    switch (type) {
+      case 'public':
+        return 'globe-outline';
+      case 'invitation':
+        return 'mail-outline';
+      case 'private':
+        return 'lock-closed-outline';
+      default:
+        return 'globe-outline';
+    }
+  }
+
+  /**
+   * Retour à la page précédente
+   */
+  goBack() {
+    this.router.navigate(['/tabs/events']);
+  }
+
   // ========================================
-// 🎨 AJOUTS POUR EVENT DETAIL - TypeScript
-// ========================================
-// À ajouter dans event-detail.page.ts (à la fin de la classe, avant le dernier })
+  // ✅ NOUVELLES MÉTHODES : GESTION DES DEMANDES
+  // ========================================
 
-/**
- * Retourne le label de la catégorie avec emoji
- */
-getCategoryLabel(category: any): string {
-  const categoryStr = String(category).toUpperCase();
-  
-  const labels: Record<string, string> = {
-    'PARTY': '🎉 Soirée',
-    'CONCERT': '🎵 Concert',
-    'FESTIVAL': '🎪 Festival',
-    'BAR': '🍺 Bar',
-    'CLUB': '💃 Club',
-    'OUTDOOR': '🌳 Extérieur',
-    'PRIVATE': '🔒 Privé',
-    'OTHER': '📌 Autre'
-  };
-  
-  return labels[categoryStr] || `📌 ${category}`;
-}
-
-/**
- * Formate la date pour l'affichage
- */
-formatDate(dateValue: any): string {
-  if (!dateValue) return 'Date inconnue';
-  
-  try {
-    let date: Date;
-    
-    // Gère les Timestamp Firebase
-    if (dateValue?.toDate) {
-      date = dateValue.toDate();
-    } 
-    // Gère les strings ISO
-    else if (typeof dateValue === 'string') {
-      date = new Date(dateValue);
-    } 
-    // Déjà une Date
-    else {
-      date = dateValue;
-    }
-    
-    // Vérifie validité
-    if (isNaN(date.getTime())) {
-      return 'Date invalide';
-    }
-    
-    // Formate en français
-    return date.toLocaleDateString('fr-FR', {
-      weekday: 'long',
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
+  /**
+   * Charge le compteur de demandes en attente (temps réel)
+   */
+  loadPendingCount() {
+    const pendingSub = this.participantsService.getPendingParticipants(this.eventId).subscribe({
+      next: (pending) => {
+        this.pendingCount = pending.length;
+        console.log(`🔔 ${this.pendingCount} demande(s) en attente`);
+      },
+      error: (error) => {
+        console.error('❌ Erreur chargement demandes:', error);
+      }
     });
-  } catch (error) {
-    console.error('Erreur formatDate:', error);
-    return 'Erreur de date';
+    this.subscriptions.push(pendingSub);
   }
-}
 
-/**
- * Retourne le status du badge participants
- * Pour appliquer les couleurs dynamiques
- */
-getParticipantBadgeStatus(): string {
-  if (this.isEventFull()) {
-    return 'danger';
-  }
-  
-  const percentage = (this.participantCount / this.event!.maxParticipants) * 100;
-  
-  if (percentage >= 80) {
-    return 'warning';
-  }
-  
-  return 'success';
-}
+  /**
+   * Ouvre le modal de gestion des demandes en attente
+   */
+  async openPendingRequestsModal() {
+    if (!this.event) return;
 
-/**
- * Retour à la page précédente
- */
-goBack() {
-  this.router.navigate(['/tabs/events']);
-}
+    const modal = await this.modalCtrl.create({
+      component: PendingRequestsModalComponent,
+      componentProps: {
+        eventId: this.eventId,
+        eventTitle: this.event.title
+      },
+      breakpoints: [0, 0.5, 0.75, 1],
+      initialBreakpoint: 0.75
+    });
+
+    await modal.present();
+  }
+
 }

@@ -1,142 +1,174 @@
 <!-- ========================================
-     ✨ EVENT LIST - VERSION CORRIGÉE AVEC DEBUG
+     ✨ EVENT LIST - VERSION DEBUG
      ======================================== -->
-
-<ion-header [translucent]="true">
-  <ion-toolbar>
-    <!-- Titre -->
-    <ion-title>🎉 Événements</ion-title>
-    
-    <!-- Bouton filtres -->
-    <ion-buttons slot="end">
-      <ion-button (click)="openFiltersModal()">
-        <ion-badge 
-          *ngIf="activeFiltersCount() > 0" 
-          color="danger"
-          class="filter-badge">
-          {{ activeFiltersCount() }}
-        </ion-badge>
-        <ion-icon name="funnel-outline"></ion-icon>
-      </ion-button>
-    </ion-buttons>
-  </ion-toolbar>
-
-  <!-- ✅ CORRIGÉ : Searchbar avec searchValue au lieu de searchTerm() -->
-  <ion-toolbar>
-    <ion-searchbar
-      placeholder="Rechercher un événement..."
-      (ionInput)="onSearchChange($event)"
-      [debounce]="500"
-      [value]="searchValue()">
-    </ion-searchbar>
-  </ion-toolbar>
-
-  <!-- ========================================
-       CHIPS DES FILTRES ACTIFS
-       ======================================== -->
-  <app-active-filters-chips></app-active-filters-chips>
-
-  <!-- Segments -->
-  <ion-toolbar>
-    <ion-segment 
-      [value]="selectedSegment()" 
-      (ionChange)="onSegmentChange($event)">
-      <ion-segment-button value="upcoming">
-        <ion-label>À venir</ion-label>
-      </ion-segment-button>
-      <ion-segment-button value="all">
-        <ion-label>Tous</ion-label>
-      </ion-segment-button>
-      <ion-segment-button value="past">
-        <ion-label>Passés</ion-label>
-      </ion-segment-button>
-    </ion-segment>
-  </ion-toolbar>
-</ion-header>
-
-<ion-content [fullscreen]="true">
-  
-  <!-- Pull-to-refresh -->
-  <ion-refresher slot="fixed" (ionRefresh)="handleRefresh($event)">
-    <ion-refresher-content></ion-refresher-content>
-  </ion-refresher>
-
-  <!-- ========================================
-       COMPTEUR DE RÉSULTATS
-       ======================================== -->
-  <div class="results-counter" *ngIf="!isLoading()">
-    <ion-text>
-      <p>
-        <strong>{{ filteredEvents().length }}</strong> 
-        événement{{ filteredEvents().length > 1 ? 's' : '' }} trouvé{{ filteredEvents().length > 1 ? 's' : '' }}
-        <span *ngIf="allEvents().length > 0" class="total-count">
-          sur {{ allEvents().length }} total
-        </span>
-      </p>
-    </ion-text>
-  </div>
-
-  <!-- ========================================
-       LOADING STATE
-       ======================================== -->
-  <div class="loading-container" *ngIf="isLoading()">
-    <ion-spinner name="crescent" color="primary"></ion-spinner>
-    <p>Chargement des événements...</p>
-  </div>
-
-  <!-- ========================================
-       EVENTS LIST
-       ======================================== -->
-  <div class="events-container" *ngIf="!isLoading()">
-    
-    <!-- ========================================
-         EMPTY STATE
-         ======================================== -->
-    <div class="empty-state" *ngIf="filteredEvents().length === 0">
-      <ion-icon name="calendar-outline"></ion-icon>
-      <h2>Aucun événement</h2>
+     <ion-header>
+      <ion-toolbar>
+        <!-- Bouton ajout d'amis (gauche) -->
+        <ion-buttons slot="start">
+          <ion-button (click)="goToFriendSearch()">
+            <ion-icon name="person-add-outline"></ion-icon>
+          </ion-button>
+        </ion-buttons>
       
-      <!-- Message différent selon contexte -->
-      <p *ngIf="activeFiltersCount() > 0">
-        Aucun résultat ne correspond à vos critères.
-        <br>
-        <small>Essayez de modifier ou supprimer certains filtres.</small>
-      </p>
-      <p *ngIf="activeFiltersCount() === 0 && searchValue()">
-        Aucun résultat pour "{{ searchValue() }}"
-      </p>
-      <p *ngIf="activeFiltersCount() === 0 && !searchValue()">
-        Sois le premier à créer un événement !
-      </p>
-      
-      <!-- Actions -->
-      <div class="empty-actions">
-        <ion-button 
-          *ngIf="activeFiltersCount() > 0"
-          fill="outline"
-          (click)="clearFilters()">
-          <ion-icon name="close-circle" slot="start"></ion-icon>
-          Effacer les filtres
-        </ion-button>
+        <!-- Titre centré -->
+        <ion-title>🎉 Événements</ion-title>
         
-        <ion-button 
-          (click)="goToCreateEvent()">
-          <ion-icon name="add-outline" slot="start"></ion-icon>
-          Créer un événement
-        </ion-button>
+        <!-- Boutons notifications et messages (droite) -->
+        <ion-buttons slot="end">
+          <!-- 🐛 BOUTON DEBUG - À RETIRER EN PRODUCTION -->
+          <ion-button (click)="debugNotifications()" color="warning">
+            <ion-icon name="bug-outline"></ion-icon>
+          </ion-button>
+    
+          <ion-button (click)="goToNotifications()">
+            <ion-badge 
+              *ngIf="unreadNotificationsCount() > 0" 
+              color="danger"
+              class="notification-badge">
+              {{ unreadNotificationsCount() }}
+            </ion-badge>
+            <ion-icon name="notifications-outline"></ion-icon>
+          </ion-button>
+      
+          <ion-button (click)="goToMessages()">
+            <ion-badge 
+              *ngIf="unreadMessagesCount() > 0" 
+              color="danger"
+              class="message-badge">
+              {{ unreadMessagesCount() }}
+            </ion-badge>
+            <ion-icon name="chatbubbles-outline"></ion-icon>
+          </ion-button>
+        </ion-buttons>
+      </ion-toolbar>
+    
+      <!-- Searchbar -->
+      <ion-toolbar class="search-toolbar">
+        <ion-searchbar
+          placeholder="Rechercher un événement..."
+          (ionInput)="onSearchChange($event)"
+          [debounce]="500"
+          [value]="searchValue()">
+        </ion-searchbar>
+        
+        <!-- Bouton filtres avec badge -->
+        <ion-buttons slot="end">
+          <ion-button (click)="openFiltersModal()" class="filter-button">
+            <ion-badge 
+              *ngIf="activeFiltersCount() > 0" 
+              color="danger"
+              class="filter-badge">
+              {{ activeFiltersCount() }}
+            </ion-badge>
+            <ion-icon name="funnel-outline"></ion-icon>
+          </ion-button>
+        </ion-buttons>
+      </ion-toolbar>
+    
+      <!-- ========================================
+           CHIPS DES FILTRES ACTIFS
+           ======================================== -->
+      <app-active-filters-chips></app-active-filters-chips>
+    
+      <!-- Segments -->
+      <ion-toolbar>
+        <ion-segment 
+          [value]="selectedSegment()" 
+          (ionChange)="onSegmentChange($event)">
+          <ion-segment-button value="upcoming">
+            <ion-label>À venir</ion-label>
+          </ion-segment-button>
+          <ion-segment-button value="all">
+            <ion-label>Tous</ion-label>
+          </ion-segment-button>
+          <ion-segment-button value="past">
+            <ion-label>Passés</ion-label>
+          </ion-segment-button>
+        </ion-segment>
+      </ion-toolbar>
+    </ion-header>
+    
+    <ion-content [fullscreen]="true">
+      
+      <!-- Pull-to-refresh -->
+      <ion-refresher slot="fixed" (ionRefresh)="handleRefresh($event)">
+        <ion-refresher-content></ion-refresher-content>
+      </ion-refresher>
+    
+      <!-- ========================================
+           COMPTEUR DE RÉSULTATS
+           ======================================== -->
+      <div class="results-counter" *ngIf="!isLoading()">
+        <ion-text>
+          <p>
+            <strong>{{ filteredEvents().length }}</strong> 
+            événement{{ filteredEvents().length > 1 ? 's' : '' }} trouvé{{ filteredEvents().length > 1 ? 's' : '' }}
+            <span *ngIf="allEvents().length > 0" class="total-count">
+              sur {{ allEvents().length }} total
+            </span>
+          </p>
+        </ion-text>
       </div>
-    </div>
-
-    <!-- ========================================
-         ✨ EVENT CARDS - COMPOSANT RÉUTILISABLE
-         ======================================== -->
-    <app-event-card
-      *ngFor="let event of filteredEvents(); trackBy: trackByEventId"
-      [event]="event"
-      [participantCount]="getParticipantCount(event.id!)"
-      (cardClick)="goToEventDetail($event)">
-    </app-event-card>
-
-  </div>
-
-</ion-content>
+    
+      <!-- ========================================
+           LOADING STATE
+           ======================================== -->
+      <div class="loading-container" *ngIf="isLoading()">
+        <ion-spinner name="crescent" color="primary"></ion-spinner>
+        <p>Chargement des événements...</p>
+      </div>
+    
+      <!-- ========================================
+           EVENTS LIST
+           ======================================== -->
+      <div class="events-container" *ngIf="!isLoading()">
+        
+        <!-- ========================================
+             EMPTY STATE
+             ======================================== -->
+        <div class="empty-state" *ngIf="filteredEvents().length === 0">
+          <ion-icon name="calendar-outline"></ion-icon>
+          <h2>Aucun événement</h2>
+          
+          <p *ngIf="activeFiltersCount() > 0">
+            Aucun résultat ne correspond à vos critères.
+            <br>
+            <small>Essayez de modifier ou supprimer certains filtres.</small>
+          </p>
+          <p *ngIf="activeFiltersCount() === 0 && searchValue()">
+            Aucun résultat pour "{{ searchValue() }}"
+          </p>
+          <p *ngIf="activeFiltersCount() === 0 && !searchValue()">
+            Sois le premier à créer un événement !
+          </p>
+          
+          <div class="empty-actions">
+            <ion-button 
+              *ngIf="activeFiltersCount() > 0"
+              fill="outline"
+              (click)="clearFilters()">
+              <ion-icon name="close-circle" slot="start"></ion-icon>
+              Effacer les filtres
+            </ion-button>
+            
+            <ion-button 
+              (click)="goToCreateEvent()">
+              <ion-icon name="add-outline" slot="start"></ion-icon>
+              Créer un événement
+            </ion-button>
+          </div>
+        </div>
+    
+        <!-- ========================================
+             ✨ EVENT CARDS
+             ======================================== -->
+        <app-event-card
+          *ngFor="let event of filteredEvents(); trackBy: trackByEventId"
+          [event]="event"
+          [participantCount]="getParticipantCount(event.id!)"
+          (cardClick)="goToEventDetail($event)">
+        </app-event-card>
+    
+      </div>
+    
+    </ion-content>

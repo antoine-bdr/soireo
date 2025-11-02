@@ -1,0 +1,223 @@
+// src/app/features/social/friend-search/friend-search.page.scss
+// 🔍 Styles de la page recherche d'amis
+
+// ========================================
+// ÉTATS VIDES & CHARGEMENT
+// ========================================
+.loading-container,
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  padding: 2rem;
+  text-align: center;
+
+  ion-spinner {
+    width: 48px;
+    height: 48px;
+    margin-bottom: 1rem;
+  }
+
+  .empty-icon {
+    font-size: 80px;
+    opacity: 0.3;
+    margin-bottom: 1rem;
+  }
+
+  h2 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin: 0 0 0.5rem 0;
+    color: var(--ion-color-dark);
+  }
+
+  p {
+    font-size: 0.9rem;
+    color: var(--ion-color-medium);
+    margin: 0;
+    max-width: 280px;
+  }
+}
+
+// ========================================
+// BARRE DE RECHERCHE
+// ========================================
+ion-searchbar {
+  --background: var(--ion-color-light);
+  --border-radius: 12px;
+  --box-shadow: none;
+  
+  padding: 0.5rem 1rem;
+}
+
+// ========================================
+// SEGMENTS
+// ========================================
+ion-segment {
+  --background: transparent;
+  padding: 0.5rem 1rem;
+
+  ion-segment-button {
+    --indicator-color: var(--ion-color-primary);
+    --color-checked: var(--ion-color-primary);
+    min-height: 40px;
+
+    ion-label {
+      display: flex;
+      align-items: center;
+      gap: 0.25rem;
+      font-size: 0.9rem;
+
+      ion-icon {
+        font-size: 1.1rem;
+      }
+
+      .request-badge {
+        margin-left: 0.25rem;
+        font-size: 0.7rem;
+        padding: 2px 6px;
+      }
+    }
+  }
+}
+
+// ========================================
+// LISTE DES RÉSULTATS DE RECHERCHE
+// ========================================
+.search-results-list {
+  padding: 0.5rem 0;
+
+  .user-item {
+    --padding-start: 1rem;
+    --padding-end: 1rem;
+    --inner-padding-end: 0;
+    margin-bottom: 0.5rem;
+
+    ion-avatar {
+      width: 56px;
+      height: 56px;
+      margin-right: 1rem;
+    }
+
+    ion-label {
+      h2 {
+        font-size: 1rem;
+        font-weight: 600;
+        color: var(--ion-color-dark);
+        margin: 0 0 0.25rem 0;
+      }
+
+      p {
+        font-size: 0.85rem;
+        color: var(--ion-color-medium);
+        margin: 0.125rem 0;
+        
+        &.bio {
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+          max-width: 200px;
+        }
+
+        &.location {
+          display: flex;
+          align-items: center;
+          gap: 0.25rem;
+
+          ion-icon {
+            font-size: 0.9rem;
+          }
+        }
+      }
+    }
+
+    ion-button {
+      --padding-start: 0.75rem;
+      --padding-end: 0.75rem;
+      margin: 0;
+      height: 32px;
+      font-size: 0.85rem;
+
+      ion-icon {
+        font-size: 1rem;
+      }
+    }
+  }
+}
+
+// ========================================
+// LISTE DES DEMANDES EN ATTENTE
+// ========================================
+.pending-requests-list {
+  padding: 0.5rem 0;
+
+  .request-item {
+    --padding-start: 1rem;
+    --padding-end: 1rem;
+    --inner-padding-end: 0;
+    margin-bottom: 0.5rem;
+    border-left: 3px solid var(--ion-color-primary);
+
+    ion-avatar {
+      width: 56px;
+      height: 56px;
+      margin-right: 1rem;
+    }
+
+    ion-label {
+      h2 {
+        font-size: 1rem;
+        font-weight: 600;
+        color: var(--ion-color-dark);
+        margin: 0 0 0.25rem 0;
+      }
+
+      p {
+        font-size: 0.85rem;
+        color: var(--ion-color-medium);
+        margin: 0;
+      }
+    }
+
+    .action-buttons {
+      display: flex;
+      gap: 0.5rem;
+
+      ion-button {
+        --padding-start: 0.5rem;
+        --padding-end: 0.5rem;
+        margin: 0;
+        width: 40px;
+        height: 40px;
+
+        ion-icon {
+          font-size: 1.25rem;
+        }
+      }
+    }
+  }
+}
+
+// ========================================
+// BADGE (compteur de demandes)
+// ========================================
+.request-badge {
+  position: relative;
+  top: -2px;
+  border-radius: 10px;
+  font-size: 0.7rem;
+  font-weight: 600;
+}
+
+// ========================================
+// RESPONSIVE
+// ========================================
+@media (max-width: 576px) {
+  .search-results-list .user-item {
+    ion-label p.bio {
+      max-width: 150px;
+    }
+  }
+}

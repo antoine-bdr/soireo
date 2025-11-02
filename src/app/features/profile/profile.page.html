@@ -1,6 +1,7 @@
 <!-- ========================================
-     👤 PROFILE PAGE - DARK PREMIUM GLASSMORPHISM
+     💎 PROFILE PAGE - PREMIUM DARK GLASSMORPHISM ENRICHI
      Design cohérent avec event-list et my-events
+     Nouvelles sections : Badges, Progression, Galerie, Intérêts, Langues
      ======================================== -->
 
 <!-- ========================================
@@ -75,6 +76,51 @@
     
           <h2 class="profile-name">{{ user.displayName }}</h2>
           <p class="profile-email">{{ user.email }}</p>
+    
+          <!-- ========================================
+               🆕 BADGES UTILISATEUR
+               ======================================== -->
+          <div class="badges-container" *ngIf="userBadges.length > 0">
+            <ion-badge 
+              *ngFor="let badge of userBadges" 
+              [color]="badge.color"
+              class="user-badge">
+              <ion-icon [name]="badge.icon"></ion-icon>
+              {{ badge.label }}
+            </ion-badge>
+          </div>
+        </div>
+    
+        <!-- ========================================
+             🆕 PROGRESSION DU PROFIL
+             ======================================== -->
+        <div class="completion-card glassmorphism" *ngIf="!isEditing">
+          <div class="completion-header">
+            <h3>
+              <ion-icon name="star"></ion-icon>
+              Complétude du profil
+            </h3>
+            <span class="completion-percentage">{{ profileCompletion.percentage }}%</span>
+          </div>
+    
+          <!-- Barre de progression -->
+          <div class="progress-bar-container">
+            <div class="progress-bar">
+              <div 
+                class="progress-fill" 
+                [style.width.%]="profileCompletion.percentage"
+                [class.complete]="profileCompletion.percentage === 100">
+              </div>
+            </div>
+          </div>
+    
+          <!-- Message d'encouragement -->
+          <p class="completion-message" *ngIf="profileCompletion.percentage < 100">
+            {{ profileCompletion.completedCount }} / {{ profileCompletion.totalFields }} champs complétés
+          </p>
+          <p class="completion-message success" *ngIf="profileCompletion.percentage === 100">
+            🎉 Profil 100% complété !
+          </p>
         </div>
     
         <!-- ========================================
@@ -102,6 +148,60 @@
              ======================================== -->
         <div class="info-section" *ngIf="!isEditing">
           
+          <!-- ========================================
+               🆕 GALERIE PHOTOS
+               ======================================== -->
+          <div class="gallery-card glassmorphism" *ngIf="galleryPhotos.length > 0">
+            <h3 class="section-title">
+              <ion-icon name="images-outline"></ion-icon>
+              Photos ({{ galleryPhotos.length }})
+            </h3>
+    
+            <div class="photo-gallery">
+              <div 
+                *ngFor="let photo of galleryPhotos; let i = index" 
+                class="gallery-item">
+                <img [src]="photo" [alt]="'Photo ' + (i + 1)">
+              </div>
+            </div>
+          </div>
+    
+          <!-- ========================================
+               🆕 CENTRES D'INTÉRÊT
+               ======================================== -->
+          <div class="interests-card glassmorphism" *ngIf="selectedInterests.length > 0">
+            <h3 class="section-title">
+              <ion-icon name="heart-outline"></ion-icon>
+              Centres d'intérêt
+            </h3>
+    
+            <div class="interests-chips">
+              <ion-chip 
+                *ngFor="let interest of selectedInterests" 
+                color="primary">
+                <ion-label>{{ interest }}</ion-label>
+              </ion-chip>
+            </div>
+          </div>
+    
+          <!-- ========================================
+               🆕 STYLES DE MUSIQUE
+               ======================================== -->
+          <div class="music-styles-card glassmorphism" *ngIf="selectedMusicStyles.length > 0">
+            <h3 class="section-title">
+              <ion-icon name="musical-note"></ion-icon>
+              Styles de musique
+            </h3>
+    
+            <div class="music-styles-chips">
+              <ion-chip 
+                *ngFor="let style of selectedMusicStyles" 
+                color="secondary">
+                <ion-label>{{ style }}</ion-label>
+              </ion-chip>
+            </div>
+          </div>
+    
           <!-- Card informations -->
           <div class="info-card glassmorphism">
             <h3 class="section-title">
@@ -116,6 +216,29 @@
                 <div class="info-content">
                   <span class="info-label">Nom complet</span>
                   <span class="info-value">{{ user.firstName }} {{ user.lastName }}</span>
+                </div>
+              </div>
+    
+              <!-- 🆕 Âge -->
+              <div class="info-item" *ngIf="userAge">
+                <ion-icon name="calendar-outline"></ion-icon>
+                <div class="info-content">
+                  <span class="info-label">Âge</span>
+                  <span class="info-value">{{ userAge }} ans</span>
+                </div>
+              </div>
+    
+              <!-- 🆕 Genre -->
+              <div class="info-item" *ngIf="user.gender">
+                <ion-icon name="person-outline"></ion-icon>
+                <div class="info-content">
+                  <span class="info-label">Genre</span>
+                  <span class="info-value">
+                    <span *ngIf="user.gender === 'male'">Homme</span>
+                    <span *ngIf="user.gender === 'female'">Femme</span>
+                    <span *ngIf="user.gender === 'other'">Autre</span>
+                    <span *ngIf="user.gender === 'prefer-not-to-say'">Non renseigné</span>
+                  </span>
                 </div>
               </div>
     
@@ -156,64 +279,65 @@
               </div>
             </div>
           </div>
-
+    
+          <!-- Sécurité du compte -->
           <div class="profile-section">
-              <h3 class="section-title">
-                <ion-icon name="shield-checkmark-outline"></ion-icon>
-                Sécurité du compte
-              </h3>
-            
-              <!-- Card Email Verification -->
-              <ion-card class="verification-card glassmorphism">
-                <ion-card-content>
-                  <!-- Email vérifié ✅ -->
-                  <div class="verification-status" *ngIf="isEmailVerified">
-                    <div class="status-icon verified">
-                      <ion-icon name="checkmark-circle"></ion-icon>
-                    </div>
-                    <div class="status-content">
-                      <p class="status-title">Email vérifié</p>
-                      <p class="status-description">
-                        Votre adresse email <strong>{{ userEmail }}</strong> a été vérifiée.
-                      </p>
+            <h3 class="section-title">
+              <ion-icon name="shield-checkmark-outline"></ion-icon>
+              Sécurité du compte
+            </h3>
+          
+            <!-- Card Email Verification -->
+            <ion-card class="verification-card glassmorphism">
+              <ion-card-content>
+                <!-- Email vérifié ✅ -->
+                <div class="verification-status" *ngIf="isEmailVerified">
+                  <div class="status-icon verified">
+                    <ion-icon name="checkmark-circle"></ion-icon>
+                  </div>
+                  <div class="status-content">
+                    <p class="status-title">Email vérifié</p>
+                    <p class="status-description">
+                      Votre adresse email <strong>{{ userEmail }}</strong> a été vérifiée.
+                    </p>
+                  </div>
+                </div>
+          
+                <!-- Email non vérifié ⚠️ -->
+                <div class="verification-status" *ngIf="!isEmailVerified">
+                  <div class="status-icon unverified">
+                    <ion-icon name="alert-circle"></ion-icon>
+                  </div>
+                  <div class="status-content">
+                    <p class="status-title">Email non vérifié</p>
+                    <p class="status-description">
+                      Vérifiez votre email <strong>{{ userEmail }}</strong> pour sécuriser votre compte.
+                    </p>
+                    
+                    <!-- Boutons d'action -->
+                    <div class="verification-actions">
+                      <ion-button 
+                        expand="block" 
+                        (click)="sendVerificationEmail()"
+                        [disabled]="isLoadingVerification">
+                        <ion-icon slot="start" name="mail-outline"></ion-icon>
+                        {{ isLoadingVerification ? 'Envoi...' : 'Envoyer l\'email de vérification' }}
+                      </ion-button>
+          
+                      <ion-button 
+                        expand="block" 
+                        fill="outline"
+                        (click)="refreshEmailStatus()"
+                        [disabled]="isLoadingVerification">
+                        <ion-icon slot="start" name="refresh-outline"></ion-icon>
+                        J'ai vérifié mon email
+                      </ion-button>
                     </div>
                   </div>
-            
-                  <!-- Email non vérifié ⚠️ -->
-                  <div class="verification-status" *ngIf="!isEmailVerified">
-                    <div class="status-icon unverified">
-                      <ion-icon name="alert-circle"></ion-icon>
-                    </div>
-                    <div class="status-content">
-                      <p class="status-title">Email non vérifié</p>
-                      <p class="status-description">
-                        Vérifiez votre email <strong>{{ userEmail }}</strong> pour sécuriser votre compte.
-                      </p>
-                      
-                      <!-- Boutons d'action -->
-                      <div class="verification-actions">
-                        <ion-button 
-                          expand="block" 
-                          (click)="sendVerificationEmail()"
-                          [disabled]="isLoadingVerification">
-                          <ion-icon slot="start" name="mail-outline"></ion-icon>
-                          {{ isLoadingVerification ? 'Envoi...' : 'Envoyer l\'email de vérification' }}
-                        </ion-button>
-            
-                        <ion-button 
-                          expand="block" 
-                          fill="outline"
-                          (click)="refreshEmailStatus()"
-                          [disabled]="isLoadingVerification">
-                          <ion-icon slot="start" name="refresh-outline"></ion-icon>
-                          J'ai vérifié mon email
-                        </ion-button>
-                      </div>
-                    </div>
-                  </div>
-                </ion-card-content>
-              </ion-card>
-            </div>
+                </div>
+              </ion-card-content>
+            </ion-card>
+          </div>
     
           <!-- Bouton déconnexion -->
           <ion-button 
@@ -270,6 +394,31 @@
                 </ion-input>
               </ion-item>
     
+              <!-- 🆕 Date de naissance -->
+              <ion-item class="custom-item" lines="none">
+                <ion-input
+                  label="Date de naissance"
+                  labelPlacement="stacked"
+                  formControlName="dateOfBirth"
+                  type="date"
+                  placeholder="JJ/MM/AAAA">
+                </ion-input>
+              </ion-item>
+    
+              <!-- 🆕 Genre -->
+              <ion-item class="custom-item" lines="none">
+                <ion-select
+                  label="Genre"
+                  labelPlacement="stacked"
+                  formControlName="gender"
+                  placeholder="Sélectionnez votre genre">
+                  <ion-select-option value="male">Homme</ion-select-option>
+                  <ion-select-option value="female">Femme</ion-select-option>
+                  <ion-select-option value="other">Autre</ion-select-option>
+                  <ion-select-option value="prefer-not-to-say">Je préfère ne pas dire</ion-select-option>
+                </ion-select>
+              </ion-item>
+    
               <!-- Bio -->
               <ion-item class="custom-item" lines="none">
                 <ion-textarea
@@ -313,6 +462,116 @@
                   placeholder="France">
                 </ion-input>
               </ion-item>
+            </div>
+          </div>
+    
+          <!-- ========================================
+               🆕 ÉDITION GALERIE PHOTOS
+               ======================================== -->
+          <div class="edit-card glassmorphism">
+            <h3 class="section-title">
+              <ion-icon name="images-outline"></ion-icon>
+              Galerie photos (max {{ maxPhotos }})
+            </h3>
+            
+            <p class="gallery-description">
+              📸 Ajoute des photos de tes soirées pour montrer ton expérience !
+            </p>
+    
+            <!-- Photos existantes -->
+            <div class="photo-gallery-edit" *ngIf="galleryPhotos.length > 0">
+              <div 
+                *ngFor="let photo of galleryPhotos; let i = index" 
+                class="gallery-item-edit">
+                <img [src]="photo" [alt]="'Photo ' + (i + 1)">
+                <ion-button 
+                  class="delete-photo-btn" 
+                  fill="clear" 
+                  color="danger"
+                  (click)="removeGalleryPhoto(i)">
+                  <ion-icon name="close-circle" slot="icon-only"></ion-icon>
+                </ion-button>
+              </div>
+            </div>
+    
+            <!-- Nouvelles photos (preview) -->
+            <div class="photo-gallery-edit" *ngIf="galleryPreviews.length > 0">
+              <div 
+                *ngFor="let preview of galleryPreviews; let i = index" 
+                class="gallery-item-edit new">
+                <img [src]="preview" [alt]="'Nouvelle photo ' + (i + 1)">
+                <ion-button 
+                  class="delete-photo-btn" 
+                  fill="clear" 
+                  color="danger"
+                  (click)="removeGalleryPreview(i)">
+                  <ion-icon name="close-circle" slot="icon-only"></ion-icon>
+                </ion-button>
+              </div>
+            </div>
+    
+            <!-- Bouton ajouter photos -->
+            <ion-button 
+              expand="block" 
+              fill="outline"
+              (click)="triggerGalleryInput()"
+              [disabled]="(galleryPhotos.length + galleryPreviews.length) >= maxPhotos">
+              <ion-icon name="add-circle" slot="start"></ion-icon>
+              Ajouter des photos ({{ galleryPhotos.length + galleryPreviews.length }}/{{ maxPhotos }})
+            </ion-button>
+    
+            <input 
+              type="file" 
+              id="galleryInput" 
+              accept="image/*" 
+              multiple
+              (change)="onGalleryFilesSelected($event)"
+              style="display: none;">
+          </div>
+    
+          <!-- ========================================
+               🆕 ÉDITION CENTRES D'INTÉRÊT
+               ======================================== -->
+          <div class="edit-card glassmorphism">
+            <h3 class="section-title">
+              <ion-icon name="heart-outline"></ion-icon>
+              Centres d'intérêt ({{ selectedInterests.length }}/10)
+            </h3>
+    
+            <div class="interests-picker">
+              <ion-chip 
+                *ngFor="let interest of suggestedInterests"
+                [color]="isInterestSelected(interest) ? 'primary' : 'medium'"
+                (click)="toggleInterest(interest)">
+                <ion-label>{{ interest }}</ion-label>
+                <ion-icon 
+                  *ngIf="isInterestSelected(interest)" 
+                  name="checkmark-circle">
+                </ion-icon>
+              </ion-chip>
+            </div>
+          </div>
+    
+          <!-- ========================================
+               🆕 ÉDITION STYLES DE MUSIQUE
+               ======================================== -->
+          <div class="edit-card glassmorphism">
+            <h3 class="section-title">
+              <ion-icon name="musical-note"></ion-icon>
+              Styles de musique ({{ selectedMusicStyles.length }}/5)
+            </h3>
+    
+            <div class="music-styles-picker">
+              <ion-chip 
+                *ngFor="let style of musicStyles"
+                [color]="isMusicStyleSelected(style) ? 'secondary' : 'medium'"
+                (click)="toggleMusicStyle(style)">
+                <ion-label>{{ style }}</ion-label>
+                <ion-icon 
+                  *ngIf="isMusicStyleSelected(style)" 
+                  name="checkmark-circle">
+                </ion-icon>
+              </ion-chip>
             </div>
           </div>
     

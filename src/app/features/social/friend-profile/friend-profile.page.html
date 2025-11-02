@@ -1,0 +1,218 @@
+<!-- src/app/features/social/friend-profile/friend-profile.page.html -->
+<!-- 👤 Template du profil public d'un utilisateur -->
+
+<ion-header [translucent]="true">
+  <ion-toolbar color="primary">
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/social/friend-search"></ion-back-button>
+    </ion-buttons>
+    <ion-title>Profil</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true">
+  <!-- Pull-to-refresh -->
+  <ion-refresher slot="fixed" (ionRefresh)="handleRefresh($event)">
+    <ion-refresher-content></ion-refresher-content>
+  </ion-refresher>
+
+  <!-- ========================================
+       CHARGEMENT
+       ======================================== -->
+  @if (isLoading()) {
+    <div class="loading-container">
+      <ion-spinner name="crescent" color="primary"></ion-spinner>
+      <p>Chargement du profil...</p>
+    </div>
+  }
+
+  <!-- ========================================
+       PROFIL CHARGÉ
+       ======================================== -->
+  @else if (profile()) {
+    <!-- Header avec photo de profil -->
+    <div class="profile-header">
+      <div class="profile-avatar-container">
+        <ion-avatar class="profile-avatar">
+          <img [src]="getPhotoUrl(profile()?.photoURL)" [alt]="profile()?.displayName" />
+        </ion-avatar>
+      </div>
+
+      <h1 class="profile-name">{{ profile()?.displayName }}</h1>
+      
+      @if (profile()?.age) {
+        <p class="profile-age">{{ profile()?.age }} ans</p>
+      }
+
+      @if (profile()?.city) {
+        <p class="profile-location">
+          <ion-icon name="location-outline"></ion-icon>
+          {{ profile()?.city }}
+        </p>
+      }
+
+      <!-- Badges -->
+      @if (profile()?.badges && profile()!.badges!.length > 0) {
+        <div class="badges-container">
+          @for (badge of profile()!.badges; track badge.type) {
+            <ion-chip [color]="badge.color" class="badge-chip">
+              <ion-icon [name]="badge.icon"></ion-icon>
+              <ion-label>{{ badge.label }}</ion-label>
+            </ion-chip>
+          }
+        </div>
+      }
+
+      <!-- Boutons d'action -->
+      <div class="action-buttons">
+        <ion-button
+          expand="block"
+          [color]="getActionButtonColor()"
+          (click)="onActionButtonClick()">
+          <ion-icon [name]="getActionButtonIcon()" slot="start"></ion-icon>
+          {{ getActionButtonText() }}
+        </ion-button>
+
+        @if (friendshipStatus() === 'accepted') {
+          <ion-button
+            expand="block"
+            color="medium"
+            (click)="goToMessages()">
+            <ion-icon name="chatbubble-outline" slot="start"></ion-icon>
+            Message
+          </ion-button>
+        }
+      </div>
+    </div>
+
+    <!-- Statistiques -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-number">{{ profile()?.eventsCreatedCount || 0 }}</div>
+        <div class="stat-label">Créés</div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-number">{{ profile()?.eventsJoinedCount || 0 }}</div>
+        <div class="stat-label">Participations</div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-number">{{ getMemberSince(profile()?.memberSince) }}</div>
+        <div class="stat-label">Membre</div>
+      </div>
+    </div>
+
+    <!-- ========================================
+         GALERIE PHOTOS
+         ======================================== -->
+    @if (profile()?.profilePhotos && profile()!.profilePhotos!.length > 0) {
+      <ion-card class="gallery-card">
+        <ion-card-header>
+          <ion-card-title>
+            <ion-icon name="images-outline"></ion-icon>
+            Photos ({{ profile()!.profilePhotos!.length }})
+          </ion-card-title>
+        </ion-card-header>
+        <ion-card-content>
+          <div class="photo-gallery">
+            @for (photo of profile()!.profilePhotos; track photo; let i = $index) {
+              <div class="gallery-item">
+                <img [src]="photo" [alt]="'Photo ' + (i + 1)" />
+              </div>
+            }
+          </div>
+        </ion-card-content>
+      </ion-card>
+    }
+
+    <!-- ========================================
+         BIOGRAPHIE
+         ======================================== -->
+    @if (profile()?.bio) {
+      <ion-card>
+        <ion-card-header>
+          <ion-card-title>À propos</ion-card-title>
+        </ion-card-header>
+        <ion-card-content>
+          <p class="bio-text">{{ profile()?.bio }}</p>
+        </ion-card-content>
+      </ion-card>
+    }
+
+    <!-- ========================================
+         CENTRES D'INTÉRÊT
+         ======================================== -->
+    @if (profile()?.interests && profile()!.interests!.length > 0) {
+      <ion-card>
+        <ion-card-header>
+          <ion-card-title>
+            <ion-icon name="heart-outline"></ion-icon>
+            Centres d'intérêt
+          </ion-card-title>
+        </ion-card-header>
+        <ion-card-content>
+          <div class="chips-container">
+            @for (interest of profile()!.interests; track interest) {
+              <ion-chip color="primary" outline="true">
+                <ion-label>{{ interest }}</ion-label>
+              </ion-chip>
+            }
+          </div>
+        </ion-card-content>
+      </ion-card>
+    }
+
+    <!-- ========================================
+         STYLES DE MUSIQUE
+         ======================================== -->
+    @if (profile()?.musicStyles && profile()!.musicStyles!.length > 0) {
+      <ion-card>
+        <ion-card-header>
+          <ion-card-title>
+            <ion-icon name="musical-notes-outline"></ion-icon>
+            Styles de musique
+          </ion-card-title>
+        </ion-card-header>
+        <ion-card-content>
+          <div class="chips-container">
+            @for (style of profile()!.musicStyles; track style) {
+              <ion-chip color="secondary" outline="true">
+                <ion-label>{{ style }}</ion-label>
+              </ion-chip>
+            }
+          </div>
+        </ion-card-content>
+      </ion-card>
+    }
+
+    <!-- Actions spéciales si demande en attente reçue -->
+    @if (friendshipStatus() === 'pending' && !isSentByMe) {
+      <ion-card class="pending-request-card">
+        <ion-card-header>
+          <ion-card-title>Demande d'ami</ion-card-title>
+        </ion-card-header>
+        <ion-card-content>
+          <p>{{ profile()?.displayName }} vous a envoyé une demande d'ami.</p>
+          <div class="request-actions">
+            <ion-button
+              expand="block"
+              color="success"
+              (click)="acceptFriendRequest()">
+              <ion-icon name="checkmark-circle-outline" slot="start"></ion-icon>
+              Accepter
+            </ion-button>
+            <ion-button
+              expand="block"
+              color="danger"
+              fill="outline"
+              (click)="rejectFriendRequest()">
+              <ion-icon name="close-circle-outline" slot="start"></ion-icon>
+              Refuser
+            </ion-button>
+          </div>
+        </ion-card-content>
+      </ion-card>
+    }
+  }
+</ion-content>

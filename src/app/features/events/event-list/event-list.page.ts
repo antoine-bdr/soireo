@@ -1,5 +1,5 @@
 // src/app/features/events/event-list/event-list.page.ts
-// ✅ VERSION FINALE - Setup filters listener GARANTI
+// ✅ VERSION DEBUG - Avec outils de diagnostic
 
 import { Component, OnInit, OnDestroy, inject, signal, computed, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
@@ -24,7 +24,8 @@ import {
   IonButtons,
   IonBadge,
   IonText,
-  ModalController
+  ModalController,
+  AlertController  // ✅ AJOUTÉ pour le debug
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import { 
@@ -34,16 +35,22 @@ import {
   searchOutline,
   funnelOutline,
   funnel,
-  closeCircle
+  closeCircle,
+  personAddOutline,
+  notificationsOutline,
+  chatbubblesOutline,
+  bugOutline  // ✅ AJOUTÉ pour le bouton debug
 } from 'ionicons/icons';
 
 import { EventsService } from '../../../core/services/events.service';
 import { ParticipantsService } from '../../../core/services/participants.service';
 import { SearchFiltersService } from '../../../core/services/search-filters.service';
+import { NotificationsService } from '../../../core/services/notifications.service';
+import { AuthenticationService } from '../../../core/services/authentication.service';
+import { MessagesService } from '../../../core/services/messages.service';
 import { Event } from '../../../core/models/event.model';
 import { Subscription } from 'rxjs';
 
-// ✨ IMPORTS DES COMPOSANTS
 import { EventCardComponent } from '../../../shared/event-card/event-card.component';
 import { ActiveFiltersChipsComponent } from '../../../shared/components/active-filters-chips/active-filters-chips.component';
 import { FilterModalComponent } from '../../../shared/components/filter-modal/filter-modal.component';
@@ -69,8 +76,6 @@ import { FilterModalComponent } from '../../../shared/components/filter-modal/fi
     IonSpinner,
     IonRefresher,
     IonRefresherContent,
-    IonFab,
-    IonFabButton,
     IonButtons,
     IonBadge,
     IonText,
@@ -85,7 +90,11 @@ export class EventListPage implements OnInit, OnDestroy {
   private readonly eventsService = inject(EventsService);
   private readonly participantsService = inject(ParticipantsService);
   private readonly filtersService = inject(SearchFiltersService);
+  private readonly notificationsService = inject(NotificationsService);
+  private readonly authService = inject(AuthenticationService);
+  private readonly messagesService = inject(MessagesService);
   private readonly modalCtrl = inject(ModalController);
+  private readonly alertCtrl = inject(AlertController);  // ✅ AJOUTÉ
   private readonly router = inject(Router);
 
   // ========================================
@@ -94,6 +103,10 @@ export class EventListPage implements OnInit, OnDestroy {
   
   allEvents = signal<Event[]>([]);
   private filtersVersion = signal(0);
+
+  // ✅ COMPTEURS RÉELS
+  unreadNotificationsCount = signal(0);
+  unreadMessagesCount = signal<number>(0);
   
   filteredEvents = computed(() => {
     const version = this.filtersVersion();
@@ -140,17 +153,22 @@ export class EventListPage implements OnInit, OnDestroy {
   // ========================================
   // 🧹 GESTION DES SUBSCRIPTIONS
   // ========================================
+  // ✅ CORRECT
   private subscriptions: Subscription[] = [];
 
   constructor() {
     addIcons({
+      personAddOutline,
+      notificationsOutline,
+      chatbubblesOutline,
+      funnelOutline,
       calendarOutline,
+      closeCircle,
       addOutline,
       add,
       searchOutline,
-      funnelOutline,
       funnel,
-      closeCircle
+      bugOutline  // ✅ AJOUTÉ
     });
     
     effect(() => {
@@ -165,13 +183,20 @@ export class EventListPage implements OnInit, OnDestroy {
   ngOnInit() {
     console.log('🚀 [EventListPage] ngOnInit START');
     
-    // ✅ CRITIQUE : Appeler setupFiltersListener() EN PREMIER
     console.log('📡 [EventListPage] Étape 1: Setup filters listener...');
     this.setupFiltersListener();
     
-    // Ensuite charger les événements
     console.log('📡 [EventListPage] Étape 2: Load events...');
     this.loadEvents();
+
+    this.loadMessagesCount();
+    
+    // ✅ SOLUTION : Retarder loadCounters pour laisser le temps à l'auth de s'initialiser
+    console.log('📡 [EventListPage] Étape 3: Load counters (delayed)...');
+    setTimeout(() => {
+      console.log('⏰ [EventListPage] Timeout exécuté - appel de loadCounters()');
+      this.loadCounters();
+    }, 300); // 300ms de délai
     
     console.log('✅ [EventListPage] ngOnInit END');
   }
@@ -210,6 +235,27 @@ export class EventListPage implements OnInit, OnDestroy {
     this.subscriptions.push(eventsSub);
   }
 
+  /**
+ * 📨 Charge le compteur de messages non lus en temps réel
+ */
+private loadMessagesCount() {
+  const currentUser = this.authService.currentUser();
+  if (!currentUser) return;
+
+  const sub = this.messagesService.getUnreadMessagesCount(currentUser.uid).subscribe({
+    next: (count) => {
+      this.unreadMessagesCount.set(count);
+      console.log(`📨 Messages non lus: ${count}`);
+    },
+    error: (err) => {
+      console.error('❌ Erreur chargement compteur messages:', err);
+      this.unreadMessagesCount.set(0);
+    }
+  });
+
+  this.subscriptions.push(sub);
+}
+
   loadParticipantCounts(events: Event[]) {
     console.log(`👥 [EventListPage] Chargement des compteurs de participants pour ${events.length} événements`);
     
@@ -234,17 +280,153 @@ export class EventListPage implements OnInit, OnDestroy {
   }
 
   /**
+   * ✅ Charge les compteurs de notifications et messages
+   */
+  loadCounters() {
+    const userId = this.authService.getCurrentUserId();
+    
+    console.log('═══════════════════════════════════════════════════');
+    console.log('🎬 [EventListPage] loadCounters() START');
+    console.log('🎬 [EventListPage] userId connecté:', userId);
+    console.log('🎬 [EventListPage] Type du userId:', typeof userId);
+    console.log('🎬 [EventListPage] userId est null?', userId === null);
+    console.log('🎬 [EventListPage] userId est undefined?', userId === undefined);
+    console.log('🎬 [EventListPage] userId est falsy?', !userId);
+    console.log('═══════════════════════════════════════════════════');
+    
+    if (!userId) {
+      console.warn('⚠️ [EventListPage] ⚠️ ATTENTION: Utilisateur non connecté - ARRÊT');
+      console.warn('⚠️ [EventListPage] Le badge ne peut pas s\'afficher sans userId');
+      return;
+    }
+
+    console.log('🔔 [EventListPage] ✅ UserId OK, appel de notificationsService.getUnreadCount()');
+
+    // Compteur de notifications (temps réel)
+    const notifSub = this.notificationsService.getUnreadCount(userId).subscribe({
+      next: (count) => {
+        console.log('═══════════════════════════════════════════════════');
+        console.log(`🔔 [EventListPage] 🎯 NEXT APPELÉ avec count=${count}`);
+        console.log(`🔔 [EventListPage] Type du count: ${typeof count}`);
+        console.log(`🔔 [EventListPage] Avant set: unreadNotificationsCount=${this.unreadNotificationsCount()}`);
+        this.unreadNotificationsCount.set(count);
+        console.log(`🔔 [EventListPage] Après set: unreadNotificationsCount=${this.unreadNotificationsCount()}`);
+        console.log(`🔔 [EventListPage] Le badge devrait s'afficher? ${count > 0 ? 'OUI ✅' : 'NON ❌'}`);
+        console.log('═══════════════════════════════════════════════════');
+      },
+      error: (error) => {
+        console.error('═══════════════════════════════════════════════════');
+        console.error('❌ [EventListPage] ERREUR dans subscribe notifications:', error);
+        console.error('❌ [EventListPage] Type d\'erreur:', error.constructor.name);
+        console.error('❌ [EventListPage] Message:', error.message);
+        console.error('❌ [EventListPage] Stack:', error.stack);
+        console.error('═══════════════════════════════════════════════════');
+      },
+      complete: () => {
+        console.log('✅ [EventListPage] Subscribe notifications COMPLETE');
+      }
+    });
+    
+    console.log('🔔 [EventListPage] Subscription créée:', notifSub);
+    console.log('🔔 [EventListPage] Subscription closed?', notifSub.closed);
+    this.subscriptions.push(notifSub);
+    console.log('🔔 [EventListPage] loadCounters() END');
+    console.log('═══════════════════════════════════════════════════');
+  }
+
+  // ========================================
+  // 🐛 MÉTHODES DE DEBUG
+  // ========================================
+
+  /**
+   * 🐛 Méthode de debug pour vérifier le userId et les compteurs
+   */
+  async debugNotifications() {
+    const userId = this.authService.getCurrentUserId();
+    
+    const debugInfo = `
+═══════════════════════════════════════
+🐛 DEBUG - INFORMATIONS NOTIFICATIONS
+═══════════════════════════════════════
+
+📋 UTILISATEUR:
+• UserId: ${userId || 'NULL / UNDEFINED'}
+• Type: ${typeof userId}
+• Est null: ${userId === null}
+• Est undefined: ${userId === undefined}
+
+📊 COMPTEURS:
+• unreadNotificationsCount(): ${this.unreadNotificationsCount()}
+• unreadMessagesCount(): ${this.unreadMessagesCount()}
+
+🔗 SUBSCRIPTIONS:
+• Nombre total: ${this.subscriptions.length}
+• Actives: ${this.subscriptions.filter(s => !s.closed).length}
+• Fermées: ${this.subscriptions.filter(s => s.closed).length}
+
+⚙️ SERVICE:
+• NotificationsService injecté: ${!!this.notificationsService}
+
+═══════════════════════════════════════
+    `.trim();
+
+    console.log(debugInfo);
+
+    const alert = await this.alertCtrl.create({
+      header: '🐛 Debug Notifications',
+      message: debugInfo,
+      buttons: [
+        {
+          text: 'Annuler',
+          role: 'cancel'
+        },
+        {
+          text: 'Forcer compteur à 5',
+          handler: () => {
+            console.log('🧪 TEST: Forçage du compteur à 5');
+            this.unreadNotificationsCount.set(5);
+            console.log('✅ Compteur forcé. Le badge devrait s\'afficher avec "5"');
+          }
+        },
+        {
+          text: 'Recharger compteurs',
+          handler: () => {
+            console.log('🔄 Rechargement des compteurs...');
+            this.loadCounters();
+          }
+        }
+      ]
+    });
+
+    await alert.present();
+  }
+
+  /**
+   * 🧪 Test simple pour vérifier si le badge s'affiche
+   */
+  testBadge() {
+    console.log('🧪 TEST: Forçage du compteur à 999');
+    this.unreadNotificationsCount.set(999);
+    console.log('✅ Si le badge "999" apparaît maintenant, le template fonctionne');
+    console.log('✅ Si le badge n\'apparaît pas, problème dans le template ou CSS');
+    
+    setTimeout(() => {
+      console.log('🔄 Reset du compteur à 0 dans 5 secondes...');
+      this.unreadNotificationsCount.set(0);
+      this.loadCounters();
+    }, 5000);
+  }
+
+  /**
    * ✅ CRITIQUE : Setup du listener sur filters$
-   * Cette méthode DOIT être appelée pour que les filtres fonctionnent !
    */
   setupFiltersListener() {
     console.log('👂 [EventListPage] Setup filters listener START');
     
     const filtersSub = this.filtersService.filters$.subscribe((filters) => {
-      console.log('🔔 [EventListPage] ✨✨✨ NOTIFICATION DE CHANGEMENT DE FILTRES ✨✨✨');
-      console.log('🔔 [EventListPage] Nouveaux filtres:', filters);
+      console.log('📢 [EventListPage] ✨✨✨ NOTIFICATION DE CHANGEMENT DE FILTRES ✨✨✨');
+      console.log('📢 [EventListPage] Nouveaux filtres:', filters);
       
-      // Incrémente filtersVersion pour déclencher les recalculs
       const newVersion = this.filtersVersion() + 1;
       this.filtersVersion.set(newVersion);
       
@@ -281,8 +463,27 @@ export class EventListPage implements OnInit, OnDestroy {
     this.filtersService.setSegment(segment);
   }
 
+  // ========================================
+  // 🧭 NAVIGATION SOCIAL
+  // ========================================
+
+  goToFriendSearch() {
+    console.log('👥 [EventListPage] Navigation vers recherche d\'amis');
+    this.router.navigate(['/social/friend-search']);
+  }
+
+  goToNotifications() {
+    console.log('🔔 [EventListPage] Navigation vers notifications');
+    this.router.navigate(['/social/notifications']);
+  }
+
+  goToMessages() {
+    console.log('💬 [EventListPage] Navigation vers messages');
+    this.router.navigate(['/social/messages']);
+  }
+
   async openFiltersModal() {
-    console.log('🎚️ [EventListPage] Ouverture de la modal des filtres');
+    console.log('🎛️ [EventListPage] Ouverture de la modal des filtres');
     
     const modal = await this.modalCtrl.create({
       component: FilterModalComponent,
@@ -312,9 +513,9 @@ export class EventListPage implements OnInit, OnDestroy {
     this.subscriptions.forEach(sub => sub.unsubscribe());
     this.subscriptions = [];
     
-    // ✅ Recréer le listener après le refresh
     this.setupFiltersListener();
     this.loadEvents();
+    this.loadCounters();
     
     setTimeout(() => {
       event.target.complete();

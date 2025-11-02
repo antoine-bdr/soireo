@@ -1,0 +1,77 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/tabs/events"></ion-back-button>
+    </ion-buttons>
+    <ion-title>💬 Messages</ion-title>
+  </ion-toolbar>
+
+  <!-- Searchbar -->
+  <ion-toolbar>
+    <ion-searchbar
+      placeholder="Rechercher une conversation..."
+      (ionInput)="onSearchChange($event)"
+      [value]="searchValue()"
+      [debounce]="300">
+    </ion-searchbar>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content>
+  <!-- Pull-to-refresh -->
+  <ion-refresher slot="fixed" (ionRefresh)="handleRefresh($event)">
+    <ion-refresher-content></ion-refresher-content>
+  </ion-refresher>
+
+  <!-- Loading -->
+  <div class="loading-container" *ngIf="isLoading()">
+    <ion-spinner name="crescent" color="primary"></ion-spinner>
+    <p>Chargement des conversations...</p>
+  </div>
+
+  <!-- Empty state -->
+  <div class="empty-state" *ngIf="!isLoading() && filteredConversations().length === 0">
+    <ion-icon name="chatbubbles-outline"></ion-icon>
+    <h2>Aucune conversation</h2>
+    <p *ngIf="searchValue()">
+      Aucun résultat pour "{{ searchValue() }}"
+    </p>
+    <p *ngIf="!searchValue()">
+      Commence une discussion avec tes amis !
+    </p>
+  </div>
+
+  <!-- Liste des conversations -->
+  <ion-list *ngIf="!isLoading() && filteredConversations().length > 0">
+    <ion-item 
+      *ngFor="let conv of filteredConversations(); trackBy: trackByConversationId"
+      button
+      (click)="openConversation(conv)"
+      [class.unread]="conv.unreadCount > 0">
+      
+      <!-- Avatar -->
+      <ion-avatar slot="start">
+        <img [src]="conv.friendPhotoURL || 'assets/default-avatar.png'" 
+             [alt]="conv.friendDisplayName">
+      </ion-avatar>
+
+      <!-- Contenu -->
+      <ion-label>
+        <h2>{{ conv.friendDisplayName }}</h2>
+        <p [class.unread-text]="conv.unreadCount > 0">
+          {{ truncate(conv.lastMessageText) }}
+        </p>
+      </ion-label>
+
+      <!-- Heure + Badge -->
+      <div slot="end" class="conversation-end">
+        <span class="time">{{ formatTime(conv.lastMessageTime) }}</span>
+        <ion-badge 
+          *ngIf="conv.unreadCount > 0" 
+          color="danger">
+          {{ conv.unreadCount }}
+        </ion-badge>
+      </div>
+    </ion-item>
+  </ion-list>
+</ion-content>

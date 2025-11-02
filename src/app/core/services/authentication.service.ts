@@ -18,10 +18,10 @@ import {
   sendEmailVerification,
   onAuthStateChanged
 } from '@angular/fire/auth';
-import { from, Observable, BehaviorSubject, throwError, of } from 'rxjs'; // ✅ Ajout de throwError et of
+import { from, Observable, BehaviorSubject, throwError, of } from 'rxjs';
 import { map, tap, switchMap, catchError } from 'rxjs/operators';
-import { UsersService } from './users.service'; // ✅ AJOUTÉ
-import { CreateUserDto } from '../models/user.model'; // ✅ AJOUTÉ
+import { UsersService } from './users.service';
+import { CreateUserDto } from '../models/user.model';
 
 @Injectable({
   providedIn: 'root'
@@ -31,7 +31,7 @@ export class AuthenticationService {
   // INJECTION DES DÉPENDANCES
   // ========================================
   private readonly auth = inject(Auth);
-  private readonly usersService = inject(UsersService); // ✅ AJOUTÉ
+  private readonly usersService = inject(UsersService);
   
   // Signal pour suivre l'utilisateur courant
   currentUser = signal<User | null>(null);
@@ -132,8 +132,6 @@ export class AuthenticationService {
       })
     );
   }
-
-  
 
   // ========================================
   // ✅ CONNEXION (MODIFIÉE)
@@ -237,6 +235,13 @@ export class AuthenticationService {
   // ========================================
 
   /**
+   * ✅ NOUVEAU : Récupère l'utilisateur courant (objet User complet)
+   */
+  getCurrentUser(): User | null {
+    return this.auth.currentUser;
+  }
+
+  /**
    * Récupère l'ID de l'utilisateur courant
    */
   getCurrentUserId(): string | null {
@@ -324,11 +329,10 @@ export class AuthenticationService {
   }
 
   /**
- * Rafraîchit le statut de vérification de l'email
- * ✅ À appeler après que l'utilisateur ait cliqué sur le lien dans l'email
- * 
- * @returns Observable<boolean> - true si email vérifié, false sinon
- */
+   * Envoie un email de vérification à l'utilisateur courant
+   * 
+   * @returns Observable<void>
+   */
   sendEmailVerification(): Observable<void> {
     const user = this.auth.currentUser;
     
@@ -354,8 +358,31 @@ export class AuthenticationService {
   }
   
   /**
-   * Rafraîchit le statut de vérification de l'email
-   * ✅ À appeler après que l'utilisateur ait cliqué sur le lien dans l'email
+   * ✅ NOUVEAU : Rafraîchit le statut de vérification de l'email
+   * À appeler après que l'utilisateur ait cliqué sur le lien dans l'email
+   * 
+   * @returns Promise<boolean> - true si email vérifié, false sinon
+   */
+  async checkEmailVerified(): Promise<boolean> {
+    const user = this.auth.currentUser;
+    
+    if (!user) {
+      return false;
+    }
+  
+    try {
+      await user.reload();
+      const isVerified = this.auth.currentUser?.emailVerified || false;
+      console.log('🔄 Statut email vérifié:', isVerified);
+      return isVerified;
+    } catch (error) {
+      console.error('❌ Erreur lors du rafraîchissement:', error);
+      return false;
+    }
+  }
+  
+  /**
+   * Rafraîchit le statut de vérification de l'email (version Observable)
    * 
    * @returns Observable<boolean> - true si email vérifié, false sinon
    */
@@ -388,4 +415,3 @@ export class AuthenticationService {
     return this.auth.currentUser?.emailVerified || false;
   }
 }
-

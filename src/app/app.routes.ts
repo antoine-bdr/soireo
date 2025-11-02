@@ -11,6 +11,7 @@ import { authGuard } from '../app/core/guards/auth-guard';
  *   ├── My-Events (mes créations + participations)
  *   └── Profile
  * - Events (CRUD) - Protégé par AuthGuard
+ * - Social (amis, messages, notifications) - Protégé par AuthGuard ✅ NOUVEAU
  */
 export const routes: Routes = [
   // 🏠 Redirection racine → Tabs (Événements)
@@ -88,6 +89,45 @@ export const routes: Routes = [
       {
         path: ':id/edit',
         loadComponent: () => import('./features/events/event-edit/event-edit.page').then(m => m.EventEditPage)
+      }
+    ]
+  },
+
+  // ========================================
+  // 👥 ROUTES SOCIALES (NOUVEAU) - PROTÉGÉ
+  // ========================================
+  {
+    path: 'social',
+    canActivate: [authGuard],
+    children: [
+      // 🔔 Notifications
+      {
+        path: 'notifications',
+        loadComponent: () => import('./features/social/notifications/notifications.page').then(m => m.NotificationsPage)
+      },
+      
+      // 👥 Recherche d'amis
+      {
+        path: 'friend-search',
+        loadComponent: () => import('./features/social/friend-search/friend-search.page').then(m => m.FriendSearchPage)
+      },
+      
+      // 💬 Liste des conversations
+      {
+        path: 'messages',
+        loadComponent: () => import('./features/social/messages/messages.page').then(m => m.MessagesPage)
+      },
+      
+      // 💬 Conversation avec un ami
+      {
+        path: 'messages/:userId',
+        loadComponent: () => import('./features/social/conversation/conversation.page').then(m => m.ConversationPage)
+      },
+      
+      // 👤 Profil public d'un ami
+      {
+        path: 'friend-profile/:userId',
+        loadComponent: () => import('./features/social/friend-profile/friend-profile.page').then(m => m.FriendProfilePage)
       }
     ]
   },

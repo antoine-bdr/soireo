@@ -1,6 +1,7 @@
 // ========================================
-// 👤 PROFILE PAGE - DARK PREMIUM GLASSMORPHISM
+// 💎 PROFILE PAGE - DARK PREMIUM GLASSMORPHISM ENRICHI
 // Design cohérent avec event-list et my-events
+// Nouvelles sections : Badges, Progression, Galerie, Intérêts, Langues
 // ========================================
 
 // ========================================
@@ -48,31 +49,32 @@ ion-header {
 
   ion-button {
     --color: #FFFFFF;
-    --background-hover: rgba(255, 255, 255, 0.1);
+    --padding-start: 12px;
+    --padding-end: 12px;
+    font-size: 20px;
   }
 }
 
 // ========================================
-// ⏳ LOADING STATE
+// 🔄 LOADING STATE
 // ========================================
 .loading-container {
-  height: 60vh;
-  gap: 16px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  height: 60vh;
+  gap: 16px;
 
   ion-spinner {
-    --color: #FF2D55;
-    transform: scale(1.8);
-    filter: drop-shadow(0 0 16px rgba(255, 45, 85, 0.6));
+    --color: #FF577F;
+    width: 48px;
+    height: 48px;
   }
 
   p {
+    color: rgba(255, 255, 255, 0.6);
     font-size: 14px;
-    color: #CBD5E1;
-    font-weight: 500;
   }
 }
 
@@ -82,146 +84,284 @@ ion-header {
 .profile-container {
   padding: 16px;
   padding-bottom: 80px;
+  max-width: 800px;
+  margin: 0 auto;
 }
 
 // ========================================
-// 🎨 GLASSMORPHISM BASE
+// 🎨 GLASSMORPHISM MIXIN
 // ========================================
 .glassmorphism {
   background: linear-gradient(
     135deg,
-    rgba(37, 40, 55, 0.95) 0%,
-    rgba(45, 49, 66, 0.95) 100%
-  ) !important;
+    rgba(255, 255, 255, 0.08) 0%,
+    rgba(255, 255, 255, 0.04) 100%
+  );
   backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 20px;
   box-shadow: 
     0 8px 32px rgba(0, 0, 0, 0.3),
-    0 2px 8px rgba(0, 0, 0, 0.2),
-    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
 }
 
 // ========================================
-// 👤 HEADER AVEC PHOTO
+// 👤 HEADER PROFIL
 // ========================================
 .profile-header-card {
-  padding: 32px 24px;
-  margin-bottom: 20px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+  padding: 32px 20px;
   text-align: center;
+  margin-bottom: 16px;
+  position: relative;
+  overflow: hidden;
+
+  // Animation d'entrée
+  animation: slideInDown 0.5s ease-out;
 
   .profile-avatar-wrapper {
     position: relative;
+    display: inline-block;
     margin-bottom: 16px;
+  }
 
-    .profile-avatar {
-      width: 120px;
-      height: 120px;
-      border: 3px solid rgba(255, 45, 85, 0.5);
-      box-shadow: 
-        0 8px 24px rgba(0, 0, 0, 0.3),
-        0 0 20px rgba(255, 45, 85, 0.3);
+  .profile-avatar {
+    width: 120px;
+    height: 120px;
+    border: 4px solid rgba(255, 87, 127, 0.3);
+    box-shadow: 
+      0 8px 24px rgba(255, 87, 127, 0.4),
+      0 0 40px rgba(255, 87, 127, 0.2);
+    position: relative;
+    overflow: hidden;
 
-      img {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-      }
-
-      .default-avatar {
-        width: 100%;
-        height: 100%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        background: rgba(255, 255, 255, 0.1);
-
-        ion-icon {
-          font-size: 56px;
-          color: #94A3B8;
-        }
-      }
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
     }
 
-    .change-photo-btn {
-      position: absolute;
-      bottom: 0;
-      right: 0;
-      width: 40px;
-      height: 40px;
-      --padding-start: 0;
-      --padding-end: 0;
-      --border-radius: 50%;
-      --background: linear-gradient(
-        135deg,
-        rgba(255, 45, 85, 0.9) 0%,
-        rgba(255, 107, 157, 0.9) 100%
-      );
-      --box-shadow: 
-        0 4px 12px rgba(255, 45, 85, 0.4),
-        inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    .default-avatar {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, #FF577F 0%, #FF8FA3 100%);
 
       ion-icon {
-        font-size: 20px;
+        font-size: 56px;
+        color: white;
       }
     }
+  }
+
+  .change-photo-btn {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    --background: linear-gradient(135deg, #FF577F 0%, #FF8FA3 100%);
+    --box-shadow: 0 4px 16px rgba(255, 87, 127, 0.4);
+    width: 40px;
+    height: 40px;
+    --border-radius: 50%;
   }
 
   .profile-name {
     font-size: 24px;
-    font-weight: 800;
-    margin: 0 0 8px 0;
+    font-weight: 700;
     color: #FFFFFF;
-    background: linear-gradient(
-      135deg,
-      #FFFFFF 0%,
-      #FFB3C6 100%
-    );
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+    margin: 12px 0 4px 0;
   }
 
   .profile-email {
     font-size: 14px;
-    color: #94A3B8;
-    margin: 0;
-    font-weight: 500;
+    color: rgba(255, 255, 255, 0.6);
+    margin: 0 0 16px 0;
+  }
+
+  // ========================================
+  // 🆕 BADGES CONTAINER
+  // ========================================
+  .badges-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: center;
+    margin-top: 16px;
+    animation: fadeIn 0.8s ease-out 0.2s both;
+
+    .user-badge {
+      font-size: 12px;
+      font-weight: 600;
+      padding: 6px 12px;
+      border-radius: 12px;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      animation: bounceIn 0.6s ease-out;
+
+      ion-icon {
+        font-size: 16px;
+      }
+
+      &[color="success"] {
+        --background: linear-gradient(135deg, #10B981 0%, #059669 100%);
+        box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+      }
+
+      &[color="warning"] {
+        --background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);
+        box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+      }
+
+      &[color="primary"] {
+        --background: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%);
+        box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+      }
+
+      &[color="secondary"] {
+        --background: linear-gradient(135deg, #8B5CF6 0%, #7C3AED 100%);
+        box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
+      }
+
+      &[color="tertiary"] {
+        --background: linear-gradient(135deg, #EC4899 0%, #DB2777 100%);
+        box-shadow: 0 4px 12px rgba(236, 72, 153, 0.3);
+      }
+    }
   }
 }
 
 // ========================================
-// 📊 STATISTIQUES GRID
+// 🆕 CARTE PROGRESSION
+// ========================================
+.completion-card {
+  padding: 20px;
+  margin-bottom: 16px;
+  animation: fadeInUp 0.5s ease-out 0.1s both;
+
+  .completion-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+
+    h3 {
+      font-size: 18px;
+      font-weight: 700;
+      color: #FFFFFF;
+      margin: 0;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+
+      ion-icon {
+        font-size: 20px;
+        color: #F59E0B;
+      }
+    }
+
+    .completion-percentage {
+      font-size: 24px;
+      font-weight: 800;
+      background: linear-gradient(135deg, #F59E0B 0%, #FBBF24 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+  }
+
+  .progress-bar-container {
+    margin-bottom: 12px;
+  }
+
+  .progress-bar {
+    width: 100%;
+    height: 12px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    overflow: hidden;
+    position: relative;
+
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #FF577F 0%, #F59E0B 50%, #10B981 100%);
+      border-radius: 10px;
+      transition: width 1s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
+      overflow: hidden;
+
+      &::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: linear-gradient(
+          90deg,
+          transparent,
+          rgba(255, 255, 255, 0.3),
+          transparent
+        );
+        animation: shimmer 2s infinite;
+      }
+
+      &.complete {
+        background: linear-gradient(90deg, #10B981 0%, #059669 100%);
+        box-shadow: 0 0 20px rgba(16, 185, 129, 0.6);
+      }
+    }
+  }
+
+  .completion-message {
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.7);
+    margin: 0;
+    text-align: center;
+
+    &.success {
+      color: #10B981;
+      font-weight: 600;
+    }
+  }
+}
+
+// ========================================
+// 📊 STATISTIQUES
 // ========================================
 .stats-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 12px;
-  margin-bottom: 20px;
+  margin-bottom: 16px;
+  animation: fadeInUp 0.5s ease-out 0.2s both;
 
   .stat-card {
-    padding: 20px 12px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
+    padding: 20px 16px;
     text-align: center;
-    min-height: 90px;
+    transition: all 0.3s ease;
+
+    &:hover {
+      transform: translateY(-4px);
+      box-shadow: 
+        0 12px 40px rgba(0, 0, 0, 0.4),
+        inset 0 1px 0 rgba(255, 255, 255, 0.15);
+    }
 
     .stat-number {
-      font-size: 28px;
+      font-size: 32px;
       font-weight: 800;
-      color: #FF2D55;
+      background: linear-gradient(135deg, #FF577F 0%, #FFB3C6 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
       margin-bottom: 4px;
-      text-shadow: 0 0 16px rgba(255, 45, 85, 0.5);
     }
 
     .stat-label {
       font-size: 12px;
-      color: #94A3B8;
+      color: rgba(255, 255, 255, 0.6);
       text-transform: uppercase;
       letter-spacing: 0.5px;
       font-weight: 600;
@@ -230,29 +370,262 @@ ion-header {
 }
 
 // ========================================
-// 📋 INFO SECTION (MODE LECTURE)
+// 🆕 GALERIE PHOTOS
 // ========================================
-.info-section {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.info-card {
-  padding: 24px;
+.gallery-card {
+  padding: 20px;
+  margin-bottom: 16px;
+  animation: fadeInUp 0.5s ease-out 0.3s both;
 
   .section-title {
-    margin: 0 0 20px 0;
     font-size: 16px;
     font-weight: 700;
     color: #FFFFFF;
+    margin: 0 0 16px 0;
     display: flex;
     align-items: center;
     gap: 8px;
 
     ion-icon {
       font-size: 20px;
-      color: #FF2D55;
+      color: #FF577F;
+    }
+  }
+
+  .photo-gallery {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    gap: 12px;
+
+    .gallery-item {
+      aspect-ratio: 1;
+      border-radius: 12px;
+      overflow: hidden;
+      position: relative;
+      cursor: pointer;
+      transition: all 0.3s ease;
+
+      &:hover {
+        transform: scale(1.05);
+        box-shadow: 0 8px 24px rgba(255, 87, 127, 0.4);
+      }
+
+      img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+    }
+  }
+}
+
+// Mode édition galerie
+.photo-gallery-edit {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+
+  .gallery-item-edit {
+    aspect-ratio: 1;
+    border-radius: 12px;
+    overflow: hidden;
+    position: relative;
+
+    &.new {
+      border: 2px dashed rgba(255, 87, 127, 0.5);
+    }
+
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .delete-photo-btn {
+      position: absolute;
+      top: 4px;
+      right: 4px;
+      --background: rgba(239, 68, 68, 0.9);
+      --border-radius: 50%;
+      width: 32px;
+      height: 32px;
+      --padding-start: 0;
+      --padding-end: 0;
+
+      ion-icon {
+        font-size: 24px;
+      }
+    }
+  }
+}
+
+// ========================================
+// 🆕 CENTRES D'INTÉRÊT
+// ========================================
+.interests-card {
+  padding: 20px;
+  margin-bottom: 16px;
+  animation: fadeInUp 0.5s ease-out 0.4s both;
+
+  .section-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: #FFFFFF;
+    margin: 0 0 16px 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    ion-icon {
+      font-size: 20px;
+      color: #FF577F;
+    }
+  }
+
+  .interests-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+
+    ion-chip {
+      --background: linear-gradient(135deg, rgba(59, 130, 246, 0.2) 0%, rgba(37, 99, 235, 0.2) 100%);
+      border: 1px solid rgba(59, 130, 246, 0.3);
+      color: #60A5FA;
+      font-weight: 600;
+      font-size: 13px;
+      animation: fadeIn 0.5s ease-out;
+    }
+  }
+}
+
+// Mode édition centres d'intérêt
+.interests-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+
+  ion-chip {
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-size: 13px;
+    font-weight: 600;
+
+    &[color="primary"] {
+      --background: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%);
+      box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+      transform: scale(1.05);
+    }
+
+    &[color="medium"] {
+      --background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      
+      &:hover {
+        --background: rgba(255, 255, 255, 0.15);
+        transform: scale(1.05);
+      }
+    }
+
+    ion-icon {
+      font-size: 18px;
+    }
+  }
+}
+
+// ========================================
+// 🆕 STYLES DE MUSIQUE
+// ========================================
+.music-styles-card {
+  padding: 20px;
+  margin-bottom: 16px;
+  animation: fadeInUp 0.5s ease-out 0.5s both;
+
+  .section-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: #FFFFFF;
+    margin: 0 0 16px 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    ion-icon {
+      font-size: 20px;
+      color: #FF577F;
+    }
+  }
+
+  .music-styles-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+
+    ion-chip {
+      --background: linear-gradient(135deg, rgba(139, 92, 246, 0.2) 0%, rgba(124, 58, 237, 0.2) 100%);
+      border: 1px solid rgba(139, 92, 246, 0.3);
+      color: #A78BFA;
+      font-weight: 600;
+      font-size: 13px;
+      animation: fadeIn 0.5s ease-out;
+    }
+  }
+}
+
+// Mode édition styles de musique
+.music-styles-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+
+  ion-chip {
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-size: 13px;
+    font-weight: 600;
+
+    &[color="secondary"] {
+      --background: linear-gradient(135deg, #8B5CF6 0%, #7C3AED 100%);
+      box-shadow: 0 4px 12px rgba(139, 92, 246, 0.4);
+      transform: scale(1.05);
+    }
+
+    &[color="medium"] {
+      --background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      
+      &:hover {
+        --background: rgba(255, 255, 255, 0.15);
+        transform: scale(1.05);
+      }
+    }
+
+    ion-icon {
+      font-size: 18px;
+    }
+  }
+}
+
+// ========================================
+// ℹ️ CARD INFORMATIONS
+// ========================================
+.info-card {
+  padding: 20px;
+  margin-bottom: 16px;
+  animation: fadeInUp 0.5s ease-out 0.6s both;
+
+  .section-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: #FFFFFF;
+    margin: 0 0 16px 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    ion-icon {
+      font-size: 20px;
+      color: #FF577F;
     }
   }
 
@@ -263,19 +636,14 @@ ion-header {
 
     .info-item {
       display: flex;
-      align-items: flex-start;
       gap: 12px;
-      padding: 12px;
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      border-radius: 12px;
-      backdrop-filter: blur(10px);
+      align-items: flex-start;
 
-      ion-icon {
+      > ion-icon {
         font-size: 20px;
-        color: #FF2D55;
-        flex-shrink: 0;
+        color: #FF577F;
         margin-top: 2px;
+        flex-shrink: 0;
       }
 
       .info-content {
@@ -285,8 +653,8 @@ ion-header {
         gap: 4px;
 
         .info-label {
-          font-size: 11px;
-          color: #94A3B8;
+          font-size: 12px;
+          color: rgba(255, 255, 255, 0.5);
           text-transform: uppercase;
           letter-spacing: 0.5px;
           font-weight: 600;
@@ -295,13 +663,12 @@ ion-header {
         .info-value {
           font-size: 15px;
           color: #FFFFFF;
-          font-weight: 600;
+          font-weight: 500;
+          line-height: 1.5;
 
           &.bio-text {
-            white-space: pre-wrap;
+            color: rgba(255, 255, 255, 0.9);
             line-height: 1.6;
-            font-weight: 500;
-            color: #CBD5E1;
           }
         }
       }
@@ -310,100 +677,242 @@ ion-header {
 }
 
 // ========================================
-// ✏️ EDIT CARD (MODE ÉDITION)
+// 🔒 SÉCURITÉ DU COMPTE
 // ========================================
-.edit-card {
-  padding: 24px;
+.profile-section {
   margin-bottom: 16px;
+  animation: fadeInUp 0.5s ease-out 0.7s both;
 
   .section-title {
-    margin: 0 0 20px 0;
     font-size: 16px;
     font-weight: 700;
     color: #FFFFFF;
+    margin: 0 0 12px 0;
     display: flex;
     align-items: center;
     gap: 8px;
+    padding-left: 4px;
 
     ion-icon {
       font-size: 20px;
-      color: #FF2D55;
+      color: #FF577F;
     }
   }
+}
 
-  .form-fields {
+.verification-card {
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.08) 0%,
+    rgba(255, 255, 255, 0.04) 100%
+  );
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  margin: 0;
+  box-shadow: 
+    0 8px 32px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+
+  ion-card-content {
+    padding: 20px;
+  }
+
+  .verification-status {
     display: flex;
-    flex-direction: column;
-    gap: 12px;
+    gap: 16px;
+    align-items: flex-start;
 
-    .custom-item {
-      --background: rgba(255, 255, 255, 0.05);
-      --border-radius: 12px;
-      --padding-start: 16px;
-      --padding-end: 16px;
-      --inner-padding-end: 16px;
-      --min-height: 56px;
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      border-radius: 12px;
-      margin-bottom: 4px;
+    .status-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
 
-      ion-input,
-      ion-textarea {
-        --color: #FFFFFF;
-        --placeholder-color: #64748B;
-        --placeholder-opacity: 1;
+      ion-icon {
+        font-size: 28px;
       }
 
-      ion-label {
-        color: #94A3B8 !important;
-        font-size: 12px !important;
-        font-weight: 600 !important;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        margin-bottom: 8px !important;
+      &.verified {
+        background: linear-gradient(135deg, #10B981 0%, #059669 100%);
+        box-shadow: 0 4px 16px rgba(16, 185, 129, 0.4);
+
+        ion-icon {
+          color: white;
+        }
+      }
+
+      &.unverified {
+        background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);
+        box-shadow: 0 4px 16px rgba(245, 158, 11, 0.4);
+
+        ion-icon {
+          color: white;
+        }
+      }
+    }
+
+    .status-content {
+      flex: 1;
+
+      .status-title {
+        font-size: 16px;
+        font-weight: 700;
+        color: #FFFFFF;
+        margin: 0 0 8px 0;
+      }
+
+      .status-description {
+        font-size: 14px;
+        color: rgba(255, 255, 255, 0.7);
+        line-height: 1.5;
+        margin: 0 0 16px 0;
+
+        strong {
+          color: #FFFFFF;
+          font-weight: 600;
+        }
+      }
+
+      .verification-actions {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+
+        ion-button {
+          margin: 0;
+          font-size: 14px;
+          font-weight: 600;
+          --border-radius: 12px;
+          height: 44px;
+
+          &[expand="block"] {
+            --background: linear-gradient(135deg, #FF577F 0%, #FF8FA3 100%);
+            --background-hover: linear-gradient(135deg, #FF8FA3 0%, #FFB3C6 100%);
+            --box-shadow: 0 4px 16px rgba(255, 87, 127, 0.4);
+          }
+
+          &[fill="outline"] {
+            --border-color: rgba(255, 255, 255, 0.2);
+            --color: #FFFFFF;
+
+            &:hover {
+              --background: rgba(255, 255, 255, 0.05);
+            }
+          }
+        }
       }
     }
   }
 }
 
 // ========================================
-// 🎯 BOUTONS D'ACTION
+// ✏️ MODE ÉDITION
 // ========================================
-.action-buttons {
-  display: flex;
-  gap: 12px;
-  margin-top: 8px;
+.edit-card {
+  padding: 20px;
+  margin-bottom: 16px;
+  animation: fadeInUp 0.5s ease-out;
 
-  ion-button {
-    flex: 1;
-    height: 48px;
-    font-size: 14px;
-    font-weight: 600;
-    text-transform: none;
-  }
-
-  .cancel-button {
-    --border-radius: 14px;
-    --border-width: 2px;
-    --border-color: rgba(255, 255, 255, 0.2);
-    --color: #FFFFFF;
-  }
-
-  .save-button {
-    --background: linear-gradient(
-      135deg,
-      rgba(255, 45, 85, 0.9) 0%,
-      rgba(255, 107, 157, 0.9) 100%
-    );
-    --border-radius: 14px;
-    border-radius: 14px;
-    --box-shadow: 
-      0 6px 20px rgba(255, 45, 85, 0.3),
-      inset 0 1px 0 rgba(255, 255, 255, 0.2);
-    border: 1px solid rgba(255, 107, 157, 0.3);
+  .section-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: #FFFFFF;
+    margin: 0 0 20px 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
 
     ion-icon {
-      font-size: 18px;
+      font-size: 20px;
+      color: #FF577F;
+    }
+  }
+
+  .gallery-description {
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.7);
+    margin: -8px 0 16px 0;
+    padding: 12px;
+    background: rgba(255, 87, 127, 0.1);
+    border-left: 3px solid #FF577F;
+    border-radius: 8px;
+  }
+
+  .form-fields {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .custom-item {
+    --background: rgba(255, 255, 255, 0.05);
+    --border-radius: 12px;
+    --padding-start: 16px;
+    --padding-end: 16px;
+    --inner-padding-end: 0;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+
+    ion-input,
+    ion-textarea,
+    ion-select {
+      --color: #FFFFFF;
+      --placeholder-color: rgba(255, 255, 255, 0.4);
+      font-size: 15px;
+    }
+
+    ion-label {
+      color: rgba(255, 255, 255, 0.7);
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+  }
+}
+
+// ========================================
+// 🔘 BOUTONS D'ACTION
+// ========================================
+.action-buttons {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-top: 24px;
+  animation: fadeInUp 0.5s ease-out 0.2s both;
+
+  ion-button {
+    margin: 0;
+    height: 50px;
+    font-size: 16px;
+    font-weight: 700;
+    --border-radius: 14px;
+
+    &.cancel-button {
+      --border-color: rgba(255, 255, 255, 0.2);
+      --color: #FFFFFF;
+
+      &:hover:not([disabled]) {
+        --background: rgba(255, 255, 255, 0.05);
+      }
+    }
+
+    &.save-button {
+      --background: linear-gradient(135deg, #FF577F 0%, #FF8FA3 100%);
+      --background-hover: linear-gradient(135deg, #FF8FA3 0%, #FFB3C6 100%);
+      --box-shadow: 0 4px 16px rgba(255, 87, 127, 0.4);
+
+      &:hover:not([disabled]) {
+        transform: translateY(-2px);
+        --box-shadow: 0 6px 20px rgba(255, 87, 127, 0.5);
+      }
+
+      &[disabled] {
+        opacity: 0.5;
+      }
     }
   }
 }
@@ -412,88 +921,73 @@ ion-header {
 // 🚪 BOUTON DÉCONNEXION
 // ========================================
 .logout-button {
-  margin-top: 24px;
-  height: 48px;
-  font-size: 14px;
-  font-weight: 600;
+  margin: 16px 0 0 0;
+  height: 50px;
+  font-size: 16px;
+  font-weight: 700;
   --border-radius: 14px;
-  --border-width: 2px;
-  text-transform: none;
+  --background: linear-gradient(135deg, #EF4444 0%, #DC2626 100%);
+  --background-hover: linear-gradient(135deg, #DC2626 0%, #B91C1C 100%);
+  --box-shadow: 0 4px 16px rgba(239, 68, 68, 0.4);
+  animation: fadeInUp 0.5s ease-out 0.8s both;
 
-  ion-icon {
-    font-size: 18px;
+  &:hover {
+    transform: translateY(-2px);
+    --box-shadow: 0 6px 20px rgba(239, 68, 68, 0.5);
   }
 }
 
 // ========================================
-// 🔭 ÉTAT VIDE
+// 🚫 ÉTAT VIDE
 // ========================================
 .empty-state {
-  padding: 60px 24px;
-  min-height: 60vh;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  padding: 60px 20px;
   text-align: center;
+  min-height: 60vh;
 
   .empty-icon {
-    font-size: 100px;
-    color: #475569;
-    opacity: 0.4;
-    margin-bottom: 20px;
-    filter: drop-shadow(0 0 20px rgba(255, 45, 85, 0.3));
-    animation: float 3s ease-in-out infinite;
+    font-size: 80px;
+    margin-bottom: 24px;
+    opacity: 0.5;
   }
 
   h3 {
-    font-size: 26px;
-    margin-bottom: 12px;
+    font-size: 24px;
     font-weight: 700;
-    background: linear-gradient(
-      135deg,
-      #FFFFFF 0%,
-      #FFB3C6 100%
-    );
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+    color: #FFFFFF;
+    margin: 0 0 12px 0;
   }
 
   p {
     font-size: 15px;
-    margin-bottom: 20px;
-    color: #94A3B8;
-    line-height: 1.6;
+    color: rgba(255, 255, 255, 0.6);
+    margin: 0 0 32px 0;
   }
 
   .cta-button {
-    height: 44px;
-    font-size: 14px;
-    font-weight: 700;
-    --background: linear-gradient(
-      135deg,
-      rgba(255, 45, 85, 0.9) 0%,
-      rgba(255, 107, 157, 0.9) 100%
-    );
+    --background: linear-gradient(135deg, #FF577F 0%, #FF8FA3 100%);
+    --box-shadow: 0 4px 16px rgba(255, 87, 127, 0.4);
     --border-radius: 14px;
-    --box-shadow: 
-      0 8px 24px rgba(255, 45, 85, 0.3),
-      inset 0 1px 0 rgba(255, 255, 255, 0.2);
-    border: 1px solid rgba(255, 107, 157, 0.3);
-    text-transform: none;
+    height: 50px;
+    font-size: 16px;
+    font-weight: 700;
+    padding: 0 32px;
   }
 }
 
 // ========================================
-// ✨ ANIMATIONS
+// 🎬 ANIMATIONS
 // ========================================
-@keyframes float {
-  0%, 100% {
-    transform: translateY(0);
+@keyframes fadeIn {
+  from {
+    opacity: 0;
   }
-  50% {
-    transform: translateY(-10px);
+  to {
+    opacity: 1;
   }
 }
 
@@ -508,175 +1002,101 @@ ion-header {
   }
 }
 
-.profile-header-card,
-.stats-grid,
-.info-card,
-.edit-card {
-  animation: fadeInUp 0.4s cubic-bezier(0.4, 0, 0.2, 1) backwards;
-
-  &:nth-child(1) { animation-delay: 0.05s; }
-  &:nth-child(2) { animation-delay: 0.1s; }
-  &:nth-child(3) { animation-delay: 0.15s; }
-}
-
-// ========================================
-// SECTION EMAIL VERIFICATION
-// À ajouter dans profile.page.scss
-// ========================================
-
-.profile-section {
-  margin-bottom: 16px;
-}
-
-.verification-card {
-  background: linear-gradient(
-    135deg,
-    rgba(255, 255, 255, 0.05),
-    rgba(255, 255, 255, 0.02)
-  );
-  backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 16px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
-  margin: 0;
-}
-
-.verification-status {
-  display: flex;
-  gap: 16px;
-  align-items: flex-start;
-}
-
-// ========================================
-// ICÔNES DE STATUT
-// ========================================
-.status-icon {
-  width: 56px;
-  height: 56px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  
-  ion-icon {
-    font-size: 32px;
+@keyframes fadeInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
   }
-  
-  // Email vérifié (vert)
-  &.verified {
-    background: linear-gradient(135deg, #10b981, #059669);
-    color: white;
-    box-shadow: 0 4px 16px rgba(16, 185, 129, 0.4);
-  }
-  
-  // Email non vérifié (orange/rouge)
-  &.unverified {
-    background: linear-gradient(135deg, #f59e0b, #ea580c);
-    color: white;
-    box-shadow: 0 4px 16px rgba(245, 158, 11, 0.4);
-    
-    // Animation pulse
-    animation: pulse 2s infinite;
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 
-@keyframes pulse {
-  0%, 100% {
-    box-shadow: 0 4px 16px rgba(245, 158, 11, 0.4);
+@keyframes slideInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes bounceIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.3);
   }
   50% {
-    box-shadow: 0 4px 24px rgba(245, 158, 11, 0.6);
+    opacity: 1;
+    transform: scale(1.05);
+  }
+  70% {
+    transform: scale(0.9);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
   }
 }
 
 // ========================================
-// CONTENU DU STATUT
+// 📱 RESPONSIVE
 // ========================================
-.status-content {
-  flex: 1;
-  
-  .status-title {
-    font-size: 18px;
-    font-weight: 600;
-    color: rgba(255, 255, 255, 0.95);
-    margin: 0 0 8px 0;
-  }
-  
-  .status-description {
-    font-size: 14px;
-    color: rgba(255, 255, 255, 0.7);
-    line-height: 1.5;
-    margin: 0 0 16px 0;
-    
-    strong {
-      color: var(--ion-color-primary, #FF2D55);
-      font-weight: 500;
+@media (max-width: 768px) {
+  .stats-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+
+    .stat-card {
+      padding: 16px 12px;
+
+      .stat-number {
+        font-size: 28px;
+      }
+
+      .stat-label {
+        font-size: 11px;
+      }
     }
+  }
+
+  .action-buttons {
+    grid-template-columns: 1fr;
   }
 }
 
-// ========================================
-// ACTIONS
-// ========================================
-.verification-actions {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  margin-top: 16px;
-  
-  ion-button {
-    margin: 0;
-    text-transform: none;
-    font-weight: 500;
-    
-    // Bouton principal
-    &:not([fill="outline"]) {
-      --background: linear-gradient(135deg, var(--ion-color-primary), var(--ion-color-secondary));
-      --box-shadow: 0 4px 16px rgba(255, 45, 85, 0.3);
+@media (max-width: 360px) {
+  .profile-header-card {
+    padding: 24px 16px;
+
+    .profile-avatar {
+      width: 100px;
+      height: 100px;
     }
-    
-    // Bouton secondaire
-    &[fill="outline"] {
-      --border-color: rgba(255, 255, 255, 0.2);
-      --color: rgba(255, 255, 255, 0.9);
-    }
-    
-    // État désactivé
-    &[disabled] {
-      opacity: 0.5;
-      cursor: not-allowed;
+  }
+
+  .stats-grid {
+    .stat-card {
+      padding: 12px 8px;
+
+      .stat-number {
+        font-size: 24px;
+      }
+
+      .stat-label {
+        font-size: 10px;
+      }
     }
   }
 }
-
-// ========================================
-// RESPONSIVE
-// ========================================
-@media (max-width: 576px) {
-  .verification-status {
-    flex-direction: column;
-    text-align: center;
-    align-items: center;
-  }
-  
-  .status-icon {
-    width: 48px;
-    height: 48px;
-    
-    ion-icon {
-      font-size: 28px;
-    }
-  }
-  
-  .status-content {
-    .status-title {
-      font-size: 16px;
-    }
-    
-    .status-description {
-      font-size: 13px;
-    }
-  }
-}
-

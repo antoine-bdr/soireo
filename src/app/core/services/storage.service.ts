@@ -6,12 +6,16 @@ import {
   Storage,
   ref,
   uploadBytesResumable,
+  uploadBytes,
   getDownloadURL,
   deleteObject,
   UploadTask
 } from '@angular/fire/storage';
+import { camera } from 'ionicons/icons';
 import { Observable, from, throwError, firstValueFrom } from 'rxjs';
 import { switchMap, catchError } from 'rxjs/operators';
+import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
+import { v4 as uuidv4 } from 'uuid';
 
 @Injectable({
   providedIn: 'root'
@@ -225,4 +229,103 @@ export class StorageService {
       reader.readAsDataURL(file);
     });
   }
+
+    /**
+   * 📸 Sélectionne une image depuis la galerie ou l'appareil photo
+   * @param source 'camera' ou 'gallery'
+   * @returns Promise<Blob | null>
+   */
+    async selectImage(source: 'camera' | 'gallery' = 'gallery'): Promise<Blob | null> {
+      try {
+        const image = await Camera.getPhoto({
+          quality: 80,
+          allowEditing: false,
+          resultType: CameraResultType.Uri,
+          source: source === 'camera' ? CameraSource.Camera : CameraSource.Photos
+        });
+  
+        if (!image.webPath) {
+          return null;
+        }
+  
+        // Convertir en Blob
+        const response = await fetch(image.webPath);
+        const blob = await response.blob();
+  
+        return blob;
+      } catch (error) {
+        console.error('❌ Erreur sélection image:', error);
+        return null;
+      }
+    }
+  
+    /**
+     * ⬆️ Upload une image vers Firebase Storage
+     * @param blob Image à uploader
+     * @param userId ID de l'utilisateur
+     * @param conversationId ID de la conversation
+     * @returns Promise<string> URL de l'image uploadée
+     */
+    async uploadMessageImage(
+      blob: Blob,
+      userId: string,
+      conversationId: string
+    ): Promise<string> {
+      try {
+        // Générer un nom de fichier unique
+        const fileName = `${uuidv4()}.jpg`;
+        const filePath = `messages/${conversationId}/${fileName}`;
+        
+        // Créer la référence
+        const storageRef = ref(this.storage, filePath);
+  
+        console.log('⬆️ Upload image vers:', filePath);
+  
+        // Upload
+        const snapshot = await uploadBytes(storageRef, blob, {
+          contentType: 'image/jpeg'
+        });
+  
+        // Récupérer l'URL
+        const downloadURL = await getDownloadURL(snapshot.ref);
+        
+        console.log('✅ Image uploadée:', downloadURL);
+        return downloadURL;
+      } catch (error) {
+        console.error('❌ Erreur upload image:', error);
+        throw error;
+      }
+    }
+  
+    /**
+     * 🗑️ Supprime une image de Firebase Storage
+     * @param imageUrl URL de l'image à supprimer
+     */
+    async deleteMessageImage(imageUrl: string): Promise<void> {
+      try {
+        const storageRef = ref(this.storage, imageUrl);
+        await deleteObject(storageRef);
+        console.log('✅ Image supprimée');
+      } catch (error) {
+        console.error('❌ Erreur suppression image:', error);
+        throw error;
+      }
+    }
+  
+    /**
+     * 🖼️ Crée une URL locale temporaire pour preview
+     * @param blob Image en Blob
+     * @returns string URL temporaire
+     */
+    createLocalImageUrl(blob: Blob): string {
+      return URL.createObjectURL(blob);
+    }
+  
+    /**
+     * 🧹 Libère une URL temporaire
+     * @param url URL à libérer
+     */
+    revokeLocalImageUrl(url: string): void {
+      URL.revokeObjectURL(url);
+    }
 }

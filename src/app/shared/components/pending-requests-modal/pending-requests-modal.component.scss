@@ -1,0 +1,290 @@
+// src/app/features/events/components/pending-requests-modal/pending-requests-modal.component.scss
+// 🔔 Styles pour le modal de gestion des demandes
+
+// ========================================
+// 🎨 HEADER
+// ========================================
+ion-header {
+    ion-toolbar {
+      --background: linear-gradient(
+        135deg,
+        rgba(37, 40, 55, 0.98) 0%,
+        rgba(45, 49, 66, 0.98) 100%
+      );
+      --border-width: 0 0 1px 0;
+      --border-color: rgba(255, 255, 255, 0.1);
+    }
+  
+    .modal-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 18px;
+      font-weight: 700;
+      color: #FFFFFF;
+  
+      ion-icon {
+        font-size: 22px;
+        color: #FF2D55;
+      }
+    }
+  }
+  
+  // ========================================
+  // 📦 CONTENT
+  // ========================================
+  ion-content {
+    --background: linear-gradient(
+      180deg,
+      #0A0E27 0%,
+      #12162E 100%
+    );
+  }
+  
+  // ========================================
+  // ⏳ LOADING STATE
+  // ========================================
+  .loading-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 20px;
+    gap: 16px;
+  
+    ion-spinner {
+      --color: #FF2D55;
+      transform: scale(1.5);
+    }
+  
+    p {
+      color: #94A3B8;
+      font-size: 14px;
+      font-weight: 500;
+    }
+  }
+  
+  // ========================================
+  // 📭 EMPTY STATE
+  // ========================================
+  .empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 20px;
+    text-align: center;
+  
+    .empty-icon {
+      width: 80px;
+      height: 80px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(
+        135deg,
+        rgba(16, 185, 129, 0.15) 0%,
+        rgba(5, 150, 105, 0.15) 100%
+      );
+      border: 2px solid rgba(16, 185, 129, 0.3);
+      border-radius: 50%;
+      margin-bottom: 20px;
+  
+      ion-icon {
+        font-size: 40px;
+        color: #10B981;
+      }
+    }
+  
+    h3 {
+      margin: 0 0 8px 0;
+      font-size: 18px;
+      font-weight: 700;
+      color: #FFFFFF;
+    }
+  
+    p {
+      margin: 0;
+      font-size: 14px;
+      color: #94A3B8;
+    }
+  }
+  
+  // ========================================
+  // 📋 LISTE DES DEMANDES
+  // ========================================
+  ion-list {
+    background: transparent;
+    padding: 16px;
+  
+    .request-item {
+      --background: linear-gradient(
+        135deg,
+        rgba(37, 40, 55, 0.95) 0%,
+        rgba(45, 49, 66, 0.95) 100%
+      );
+      --border-radius: 16px;
+      --padding-start: 16px;
+      --padding-end: 16px;
+      --inner-padding-end: 0;
+      
+      margin-bottom: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      box-shadow: 
+        0 4px 16px rgba(0, 0, 0, 0.2),
+        inset 0 1px 0 rgba(255, 255, 255, 0.05);
+      backdrop-filter: blur(10px);
+      
+      // Animation d'entrée
+      animation: slideInUp 0.3s ease-out;
+  
+      // État en cours de traitement
+      &.processing {
+        opacity: 0.6;
+        pointer-events: none;
+      }
+  
+      // Avatar
+      .participant-avatar {
+        width: 50px;
+        height: 50px;
+        border: 2px solid rgba(255, 45, 85, 0.3);
+        box-shadow: 0 0 12px rgba(255, 45, 85, 0.2);
+      }
+  
+      // Informations
+      ion-label {
+        margin: 12px 0;
+  
+        .participant-name {
+          margin: 0 0 4px 0;
+          font-size: 16px;
+          font-weight: 700;
+          color: #FFFFFF;
+        }
+  
+        .participant-email {
+          margin: 0 0 6px 0;
+          font-size: 13px;
+          color: #94A3B8;
+        }
+  
+        .joined-time {
+          margin: 0;
+          font-size: 12px;
+          color: #64748B;
+          display: flex;
+          align-items: center;
+          gap: 4px;
+  
+          ion-icon {
+            font-size: 14px;
+          }
+        }
+      }
+  
+      // Boutons d'action
+      .actions-buttons {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        margin-left: 8px;
+  
+        ion-button {
+          --padding-start: 12px;
+          --padding-end: 12px;
+          height: 36px;
+          font-size: 13px;
+          font-weight: 600;
+          text-transform: none;
+          min-width: 100px;
+  
+          ion-icon {
+            font-size: 18px;
+          }
+        }
+  
+        .approve-button {
+          --background: linear-gradient(
+            135deg,
+            rgba(16, 185, 129, 0.9) 0%,
+            rgba(5, 150, 105, 0.9) 100%
+          );
+          --background-hover: linear-gradient(
+            135deg,
+            rgba(16, 185, 129, 1) 0%,
+            rgba(5, 150, 105, 1) 100%
+          );
+          --border-radius: 10px;
+          --box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+          border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+  
+        .reject-button {
+          --border-radius: 10px;
+          --border-width: 2px;
+        }
+      }
+  
+      // Spinner
+      ion-spinner {
+        --color: #FF2D55;
+      }
+    }
+  }
+  
+  // ========================================
+  // 📊 FOOTER INFO
+  // ========================================
+  .footer-info {
+    padding: 16px 20px;
+    margin-top: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    background: rgba(255, 45, 85, 0.1);
+    border-top: 1px solid rgba(255, 45, 85, 0.2);
+  
+    ion-icon {
+      font-size: 18px;
+      color: #FF2D55;
+    }
+  
+    span {
+      font-size: 14px;
+      font-weight: 600;
+      color: #FF6B9D;
+    }
+  }
+  
+  // ========================================
+  // ✨ ANIMATIONS
+  // ========================================
+  @keyframes slideInUp {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  // ========================================
+  // 📱 RESPONSIVE
+  // ========================================
+  @media (min-width: 768px) {
+    ion-list {
+      .request-item {
+        .actions-buttons {
+          flex-direction: row;
+          
+          ion-button {
+            min-width: 110px;
+          }
+        }
+      }
+    }
+  }

@@ -1,0 +1,147 @@
+<!-- ========================================
+     🔔 NOTIFICATIONS PAGE
+     ======================================== -->
+
+<!-- ========================================
+     HEADER
+     ======================================== -->
+     <ion-header>
+      <ion-toolbar>
+        <!-- Bouton retour -->
+        <ion-buttons slot="start">
+          <ion-button (click)="goBack()">
+            <ion-icon name="arrow-back-outline"></ion-icon>
+          </ion-button>
+        </ion-buttons>
+    
+        <!-- Titre avec badge -->
+        <ion-title>
+          Notifications
+          <ion-badge 
+            *ngIf="unreadCount() > 0" 
+            color="danger"
+            class="title-badge">
+            {{ unreadCount() }}
+          </ion-badge>
+        </ion-title>
+    
+        <!-- Actions -->
+        <ion-buttons slot="end">
+          <!-- Marquer tout comme lu -->
+          <ion-button 
+            *ngIf="unreadCount() > 0"
+            (click)="markAllAsRead()"
+            fill="clear">
+            <ion-icon name="checkmark-done-outline"></ion-icon>
+          </ion-button>
+    
+          <!-- Supprimer les notifications lues -->
+          <ion-button 
+            *ngIf="hasReadNotifications()"
+            (click)="deleteReadNotifications()"
+            fill="clear"
+            color="danger">
+            <ion-icon name="trash-outline"></ion-icon>
+          </ion-button>
+        </ion-buttons>
+      </ion-toolbar>
+    </ion-header>
+    
+    <!-- ========================================
+         CONTENT
+         ======================================== -->
+    <ion-content>
+    
+      <!-- Pull-to-refresh -->
+      <ion-refresher slot="fixed" (ionRefresh)="handleRefresh($event)">
+        <ion-refresher-content></ion-refresher-content>
+      </ion-refresher>
+    
+      <!-- ========================================
+           LOADING STATE
+           ======================================== -->
+      <div class="loading-container" *ngIf="isLoading()">
+        <ion-spinner name="crescent" color="primary"></ion-spinner>
+        <p>Chargement des notifications...</p>
+      </div>
+    
+      <!-- ========================================
+           EMPTY STATE
+           ======================================== -->
+      <div class="empty-state" *ngIf="!isLoading() && notifications().length === 0">
+        <div class="empty-icon">
+          <ion-icon name="notifications-outline"></ion-icon>
+        </div>
+        <h2>Aucune notification</h2>
+        <p>Vous n'avez pas encore de notifications.<br>Revenez plus tard !</p>
+      </div>
+    
+      <!-- ========================================
+           LISTE DES NOTIFICATIONS
+           ======================================== -->
+      <ion-list *ngIf="!isLoading() && notifications().length > 0" lines="full">
+        
+        <ion-item-sliding 
+          *ngFor="let notification of notifications(); trackBy: trackByNotificationId"
+          #slidingItem>
+          
+          <!-- Item principal -->
+          <ion-item 
+            button 
+            (click)="onNotificationClick(notification)"
+            [class.unread]="!notification.isRead"
+            detail="false">
+            
+            <!-- Avatar avec icône -->
+            <ion-avatar slot="start" [class.unread-avatar]="!notification.isRead">
+              <!-- Photo de l'expéditeur si disponible -->
+              <img 
+                *ngIf="notification.senderPhotoURL" 
+                [src]="notification.senderPhotoURL" 
+                [alt]="notification.senderDisplayName || 'Avatar'" />
+              
+              <!-- Icône par défaut -->
+              <ion-icon 
+                *ngIf="!notification.senderPhotoURL"
+                [name]="notification.icon || 'notifications-outline'"
+                [color]="getBadgeColor(notification)">
+              </ion-icon>
+            </ion-avatar>
+    
+            <!-- Contenu -->
+            <ion-label>
+              <h2>
+                {{ notification.title }}
+                <ion-badge 
+                  *ngIf="!notification.isRead" 
+                  color="primary" 
+                  class="unread-badge">
+                  Nouveau
+                </ion-badge>
+              </h2>
+              <p>{{ notification.message }}</p>
+              <ion-note>{{ getTimeAgo(notification) }}</ion-note>
+            </ion-label>
+    
+            <!-- Badge de type (optionnel) -->
+            <ion-badge 
+              slot="end" 
+              [color]="getBadgeColor(notification)">
+              <ion-icon [name]="notification.icon || 'information-circle-outline'"></ion-icon>
+            </ion-badge>
+          </ion-item>
+    
+          <!-- Actions de swipe -->
+          <ion-item-options side="end">
+            <ion-item-option 
+              color="danger" 
+              (click)="deleteNotification(notification, slidingItem)">
+              <ion-icon name="trash-outline" slot="icon-only"></ion-icon>
+            </ion-item-option>
+          </ion-item-options>
+    
+        </ion-item-sliding>
+    
+      </ion-list>
+    
+    </ion-content>

@@ -291,3 +291,26 @@ input,
 ion-input input {
   caret-color: #FF2D55 !important;
 }
+
+// 🔴 BADGES HEADER (Notifications & Messages)
+ion-header ion-toolbar ion-buttons ion-button {
+  position: relative;
+  
+  ion-badge.notification-badge,
+  ion-badge.message-badge {
+    position: absolute;
+    top: 4px !important;
+    right: 4px !important;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    font-size: 10px;
+    font-weight: 700;
+    border-radius: 9px;
+    background: linear-gradient(135deg, #ff2d55 0%, #ff6b9d 100%);
+    color: #FFFFFF;
+    box-shadow: 0 2px 8px rgba(255, 45, 85, 0.6);
+    z-index: 10;
+    pointer-events: none;
+  }
+}

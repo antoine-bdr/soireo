@@ -16,6 +16,31 @@ export interface EventLocation {
   longitude: number;
   country?: string;
   placeId?: string; // Google Places ID
+
+  visibility: AddressVisibility;
+  approximateLatitude?: number;
+  approximateLongitude?: number;
+}
+
+export enum AddressVisibility {
+  PUBLIC = 'public',
+  CITY_ONLY = 'city',
+  PARTICIPANTS_ONLY = 'participants'
+}
+
+export interface MaskedEventLocation {
+  city: string;
+  zipCode?: string;
+  country?: string;
+  approximateLatitude?: number;
+  approximateLongitude?: number;
+  visibility: AddressVisibility;
+  message: string; // Ex: "Adresse révélée après acceptation"
+}
+
+export interface EventWithConditionalLocation extends Omit<Event, 'location'> {
+  location: EventLocation | MaskedEventLocation;
+  canSeeFullAddress: boolean;
 }
 
 /**

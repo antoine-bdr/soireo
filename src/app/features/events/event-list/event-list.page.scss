@@ -512,3 +512,751 @@ ion-fab {
   --height: 100%;
   --border-radius: 0;
 }
+
+ion-buttons ion-button {
+  position: relative;
+}
+
+// src/app/features/events/event-list/event-list.page.scss
+// ✅ VERSION AMÉLIORÉE - Badge filtre à côté de la searchbar
+
+// ========================================
+// 🎨 VARIABLES
+// ========================================
+
+$gradient-primary: linear-gradient(
+  135deg,
+  rgba(255, 45, 85, 0.9) 0%,
+  rgba(255, 107, 157, 0.9) 100%
+);
+
+$gradient-title: linear-gradient(
+  135deg,
+  #FFFFFF 0%,
+  #FFB3C6 100%
+);
+
+$bg-dark: linear-gradient(
+  180deg,
+  rgba(10, 14, 25, 1) 0%,
+  rgba(15, 20, 35, 1) 100%
+);
+
+// ========================================
+// 🎭 HEADER
+// ========================================
+
+ion-header {
+  ion-toolbar {
+    --background: linear-gradient(
+      180deg,
+      rgba(15, 20, 35, 0.98) 0%,
+      rgba(10, 14, 25, 0.95) 100%
+    );
+    --border-color: rgba(255, 255, 255, 0.05);
+    
+    ion-title {
+      font-size: 22px;
+      font-weight: 700;
+      background: $gradient-title;
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+  }
+  
+  // ========================================
+  // ✅ NOUVEAU : Toolbar avec searchbar + bouton filtre
+  // ========================================
+  .search-toolbar {
+    display: flex;
+    align-items: center;
+    padding: 0 8px;
+    gap: 0;
+    
+    ion-searchbar {
+      --background: rgba(37, 40, 55, 0.8);
+      --color: rgba(255, 255, 255, 0.9);
+      --placeholder-color: rgba(255, 255, 255, 0.5);
+      --icon-color: rgba(255, 179, 198, 1);
+      --clear-button-color: rgba(255, 179, 198, 1);
+      --border-radius: 12px;
+      
+      padding: 8px 0;
+      flex: 1; // Prend tout l'espace disponible
+      
+      &::part(native) {
+        border: 1px solid rgba(255, 255, 255, 0.08);
+      }
+    }
+    
+    // Bouton filtre à droite de la searchbar
+    ion-buttons {
+      margin-left: 4px;
+      flex-shrink: 0; // Ne rétrécit pas
+      
+      .filter-button {
+        --color: rgba(255, 179, 198, 1);
+        --background: rgba(37, 40, 55, 0.8);
+        --border-radius: 12px;
+        position: relative;
+        width: 44px;
+        height: 44px;
+        margin: 0;
+        
+        // Badge de compteur
+        .filter-badge {
+          position: absolute;
+          top: 4px;
+          right: 4px;
+          min-width: 18px;
+          height: 18px;
+          padding: 0 4px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 10px;
+          font-weight: 700;
+          line-height: 1;
+          border-radius: 9px;
+          background: linear-gradient(135deg, #ff2d55 0%, #ff6b9d 100%);
+          color: #FFFFFF;
+          box-shadow: 0 2px 8px rgba(255, 45, 85, 0.6);
+          z-index: 10;
+          pointer-events: none;
+        }
+        
+        ion-icon {
+          font-size: 24px;
+        }
+        
+        &:hover {
+          --color: rgba(255, 107, 157, 1);
+          --background: rgba(47, 50, 65, 0.9);
+        }
+        
+        &:active {
+          transform: scale(0.95);
+        }
+      }
+    }
+  }
+  
+  // Segments
+  ion-segment {
+    --background: rgba(20, 24, 38, 0.6);
+    border-radius: 12px;
+    margin: 8px 16px;
+    padding: 4px;
+    
+    ion-segment-button {
+      --color: rgba(255, 255, 255, 0.6);
+      --color-checked: #FFFFFF;
+      --indicator-color: transparent;
+      --background-checked: rgba(255, 45, 85, 0.2);
+      
+      min-height: 36px;
+      font-size: 14px;
+      font-weight: 600;
+      border-radius: 8px;
+      transition: all 0.3s ease;
+      
+      &::part(indicator-background) {
+        background: linear-gradient(135deg, rgba(255, 45, 85, 0.3) 0%, rgba(255, 107, 157, 0.3) 100%);
+        border-radius: 8px;
+      }
+      
+      &.segment-button-checked {
+        color: #FFFFFF;
+        font-weight: 700;
+      }
+    }
+  }
+}
+
+// ========================================
+// 📱 CONTENT
+// ========================================
+
+ion-content {
+  --background: $bg-dark;
+}
+
+// ========================================
+// 📊 COMPTEUR DE RÉSULTATS
+// ========================================
+
+.results-counter {
+  padding: 12px 20px 8px 20px;
+  background: rgba(15, 20, 35, 0.6);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  
+  ion-text p {
+    margin: 0;
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.8);
+    font-weight: 500;
+    
+    strong {
+      color: rgba(255, 179, 198, 1);
+      font-weight: 700;
+      font-size: 14px;
+    }
+    
+    .total-count {
+      color: rgba(255, 255, 255, 0.5);
+      font-size: 12px;
+      margin-left: 4px;
+    }
+  }
+}
+
+// ========================================
+// 🔄 LOADING
+// ========================================
+
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 60vh;
+  gap: 16px;
+
+  ion-spinner {
+    --color: rgba(255, 107, 157, 1);
+    width: 48px;
+    height: 48px;
+  }
+
+  p {
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 14px;
+  }
+}
+
+// ========================================
+// 📋 LISTE DES ÉVÉNEMENTS
+// ========================================
+
+.events-list {
+  padding: 16px;
+  padding-bottom: 80px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+// ========================================
+// 🚫 ÉTAT VIDE
+// ========================================
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  text-align: center;
+  min-height: 50vh;
+
+  .empty-icon {
+    font-size: 80px;
+    margin-bottom: 24px;
+    opacity: 0.5;
+  }
+
+  h3 {
+    font-size: 24px;
+    font-weight: 700;
+    color: #FFFFFF;
+    margin: 0 0 12px 0;
+  }
+
+  p {
+    font-size: 15px;
+    color: rgba(255, 255, 255, 0.6);
+    margin: 0 0 32px 0;
+    max-width: 400px;
+  }
+
+  .cta-button {
+    --background: linear-gradient(135deg, #FF577F 0%, #FF8FA3 100%);
+    --box-shadow: 0 4px 16px rgba(255, 87, 127, 0.4);
+    --border-radius: 14px;
+    height: 50px;
+    font-size: 16px;
+    font-weight: 700;
+    padding: 0 32px;
+
+    &:hover {
+      transform: translateY(-2px);
+      --box-shadow: 0 6px 20px rgba(255, 87, 127, 0.5);
+    }
+  }
+}
+
+// ========================================
+// 📱 RESPONSIVE
+// ========================================
+
+@media (max-width: 768px) {
+  ion-header {
+    .search-toolbar {
+      padding: 0 4px;
+      
+      ion-searchbar {
+        padding: 8px 0;
+        
+        &::part(native) {
+          padding-left: 12px;
+        }
+      }
+      
+      ion-buttons {
+        margin-left: 2px;
+        
+        .filter-button {
+          width: 40px;
+          height: 40px;
+          
+          ion-icon {
+            font-size: 22px;
+          }
+        }
+      }
+    }
+    
+    ion-segment {
+      margin: 8px 12px;
+      
+      ion-segment-button {
+        font-size: 13px;
+        min-height: 32px;
+      }
+    }
+  }
+  
+  .results-counter {
+    padding: 10px 16px 6px 16px;
+    
+    ion-text p {
+      font-size: 12px;
+      
+      strong {
+        font-size: 13px;
+      }
+      
+      .total-count {
+        font-size: 11px;
+      }
+    }
+  }
+  
+  .events-list {
+    padding: 12px;
+    padding-bottom: 60px;
+  }
+}
+
+@media (max-width: 360px) {
+  ion-header {
+    .search-toolbar {
+      ion-searchbar {
+        &::part(native) {
+          font-size: 13px;
+        }
+      }
+      
+      ion-buttons {
+        .filter-button {
+          width: 36px;
+          height: 36px;
+          
+          .filter-badge {
+            top: 2px;
+            right: 2px;
+            min-width: 16px;
+            height: 16px;
+            font-size: 9px;
+          }
+          
+          ion-icon {
+            font-size: 20px;
+          }
+        }
+      }
+    }
+    
+    ion-segment {
+      ion-segment-button {
+        font-size: 12px;
+      }
+    }
+  }
+  
+  .empty-state {
+    padding: 40px 16px;
+    
+    .empty-icon {
+      font-size: 60px;
+    }
+    
+    h3 {
+      font-size: 20px;
+    }
+    
+    p {
+      font-size: 14px;
+    }
+  }
+}
+
+// ========================================
+// 🎬 ANIMATIONS
+// ========================================
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+// Animation pour les événements
+app-event-card {
+  animation: fadeIn 0.3s ease-out;
+  
+  &:nth-child(1) { animation-delay: 0.05s; }
+  &:nth-child(2) { animation-delay: 0.1s; }
+  &:nth-child(3) { animation-delay: 0.15s; }
+  &:nth-child(4) { animation-delay: 0.2s; }
+  &:nth-child(5) { animation-delay: 0.25s; }
+}
+
+// Animation pour le badge
+.filter-badge {
+  animation: bounceIn 0.4s ease-out;
+}
+
+@keyframes bounceIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.3);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.1);
+  }
+  70% {
+    transform: scale(0.9);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+// Assurer que les boutons sont positionnés relativement
+ion-buttons ion-button {
+  position: relative;
+}
+
+// Style optionnel pour la toolbar de recherche
+.search-toolbar {
+  ion-searchbar {
+    padding-inline-end: 0; // Réduire l'espace entre searchbar et bouton filtre
+  }
+  
+  .filter-button {
+    margin-inline-start: 8px;
+  }
+}
+
+// ========================================
+// 🔴 BADGES NOTIFICATIONS ET MESSAGES
+// ========================================
+
+ion-header ion-toolbar ion-buttons ion-button {
+  position: relative;
+  
+  // Badges notifications et messages
+  ion-badge.notification-badge,
+  ion-badge.message-badge {
+    position: absolute;
+    top: -2px !important;
+    right: -2px !important;
+    
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    
+    font-size: 10px;
+    font-weight: 700;
+    line-height: 1;
+    
+    border-radius: 9px;
+    background: linear-gradient(135deg, #ff2d55 0%, #ff6b9d 100%);
+    color: #FFFFFF;
+    
+    box-shadow: 
+      0 2px 8px rgba(255, 45, 85, 0.6),
+      0 0 0 2px rgba(15, 20, 35, 0.8);
+    
+    z-index: 10;
+    pointer-events: none;
+    animation: badgeBounce 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  }
+}
+
+@keyframes badgeBounce {
+  0% {
+    opacity: 0;
+    transform: scale(0);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.2);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+
+
+// src/app/features/events/event-list/event-list.page.scss
+// ✅ VERSION DEBUG - Avec styles de diagnostic
+
+// ========================================
+// 🐛 PANNEAU DE DEBUG
+// ========================================
+.debug-panel {
+  margin: 16px;
+  
+  ion-card {
+    margin: 0;
+  }
+
+  ion-card-title {
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  ion-card-content {
+    p {
+      margin: 8px 0;
+      font-size: 14px;
+      
+      strong {
+        color: var(--ion-color-dark);
+      }
+    }
+
+    ion-button {
+      margin-top: 8px;
+    }
+  }
+}
+
+// ========================================
+// 🔍 TOOLBAR DE RECHERCHE
+// ========================================
+.search-toolbar {
+  --background: var(--ion-color-light);
+  
+  ion-searchbar {
+    padding: 8px 0;
+  }
+
+  .filter-button {
+    position: relative;
+  }
+}
+
+// ========================================
+// 🎨 ANIMATIONS
+// ========================================
+@keyframes badge-pulse {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+// ========================================
+// 🎨 EVENT LIST - VERSION SIMPLIFIÉE
+// ========================================
+
+// ========================================
+// 🔔 BADGES COMPACTS
+// ========================================
+.notification-badge,
+.message-badge {
+  position: absolute !important;
+  top: 2px !important;
+  right: 2px !important;
+  min-width: 14px !important;
+  height: 14px !important;
+  padding: 0 3px !important;
+  
+  font-size: 9px !important;
+  font-weight: 600 !important;
+  line-height: 14px !important;
+  
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  
+  border-radius: 50% !important;
+  background: #ff2d55 !important;
+  color: white !important;
+  border: 1px solid white !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3) !important;
+  z-index: 10 !important;
+}
+
+.filter-badge {
+  position: absolute !important;
+  top: -2px !important;
+  right: -2px !important;
+  min-width: 12px !important;
+  height: 12px !important;
+  font-size: 8px !important;
+  border-radius: 50% !important;
+  z-index: 10 !important;
+}
+
+// ========================================
+// 📊 COMPTEUR DE RÉSULTATS
+// ========================================
+.results-counter {
+  padding: 12px 16px;
+  text-align: center;
+  
+  p {
+    margin: 0;
+    font-size: 14px;
+    
+    strong {
+      font-size: 18px;
+      font-weight: 700;
+    }
+    
+    .total-count {
+      font-size: 12px;
+      opacity: 0.7;
+      margin-left: 4px;
+    }
+  }
+}
+
+// ========================================
+// ⏳ LOADING
+// ========================================
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 300px;
+  gap: 16px;
+  
+  p {
+    font-size: 14px;
+  }
+}
+
+// ========================================
+// 📦 ÉVÉNEMENTS
+// ========================================
+.events-container {
+  padding: 16px;
+}
+
+// ========================================
+// 📭 EMPTY STATE
+// ========================================
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 32px;
+  text-align: center;
+  min-height: 400px;
+  
+  ion-icon {
+    font-size: 80px;
+    opacity: 0.3;
+    margin-bottom: 24px;
+  }
+  
+  h2 {
+    font-size: 22px;
+    font-weight: 700;
+    margin: 0 0 12px 0;
+  }
+  
+  p {
+    font-size: 15px;
+    margin: 0 0 24px 0;
+    line-height: 1.6;
+    max-width: 350px;
+    
+    small {
+      display: block;
+      margin-top: 8px;
+      font-size: 13px;
+      opacity: 0.8;
+    }
+  }
+  
+  .empty-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    width: 100%;
+    max-width: 300px;
+    
+    ion-button {
+      margin: 0;
+    }
+  }
+}
+
+// ========================================
+// 📱 RESPONSIVE
+// ========================================
+@media (min-width: 768px) {
+  .events-container {
+    padding: 16px;
+  }
+  
+  .empty-state {
+    min-height: 500px;
+  }
+}

@@ -1,3 +1,7 @@
+// src/app/features/profile/profile.page.ts
+// Page de profil utilisateur ENRICHIE
+// 🎯 Sprint 4 - Profil Utilisateur ENRICHI
+
 import { Component, OnInit, OnDestroy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
@@ -19,6 +23,13 @@ import {
   IonSpinner,
   IonRefresher,
   IonRefresherContent,
+  IonBadge,
+  IonChip,
+  IonLabel,
+  IonSelect,
+  IonSelectOption,
+  IonDatetime,
+  IonModal,
   LoadingController,
   ToastController,
   AlertController
@@ -34,11 +45,34 @@ import {
   logOutOutline,
   saveOutline,
   createOutline,
-  checkmarkCircle, shieldCheckmarkOutline, alertCircle, refreshOutline } from 'ionicons/icons';
+  checkmarkCircle, 
+  shieldCheckmarkOutline, 
+  alertCircle, 
+  refreshOutline,
+  star,
+  trophy,
+  sparkles,
+  medal,
+  people,
+  closeCircle,
+  addCircle,
+  imagesOutline,
+  closeOutline,
+  heartOutline,
+  musicalNote
+} from 'ionicons/icons';
 import { Subscription } from 'rxjs';
 import { UsersService } from '../../core/services/users.service';
 import { AuthenticationService } from '../../core/services/authentication.service';
-import { User, UpdateUserDto } from '../../core/models/user.model';
+import { 
+  User, 
+  UpdateUserDto, 
+  UserBadge, 
+  ProfileCompletionStatus,
+  SUGGESTED_INTERESTS,
+  MUSIC_STYLES,
+  calculateAge
+} from '../../core/models/user.model';
 
 @Component({
   selector: 'app-profile',
@@ -64,7 +98,14 @@ import { User, UpdateUserDto } from '../../core/models/user.model';
     IonIcon,
     IonSpinner,
     IonRefresher,
-    IonRefresherContent
+    IonRefresherContent,
+    IonBadge,
+    IonChip,
+    IonLabel,
+    IonSelect,
+    IonSelectOption,
+    IonDatetime,
+    IonModal
   ]
 })
 export class ProfilePage implements OnInit, OnDestroy {
@@ -80,7 +121,7 @@ export class ProfilePage implements OnInit, OnDestroy {
   private readonly alertCtrl = inject(AlertController);
 
   // ========================================
-  // PROPRIÉTÉS
+  // PROPRIÉTÉS DE BASE
   // ========================================
   user: User | null = null;
   userId: string | null = null;
@@ -99,33 +140,79 @@ export class ProfilePage implements OnInit, OnDestroy {
 
   private subscriptions: Subscription[] = [];
 
-  constructor() {
-    // Enregistrement des icônes Ionic
-    addIcons({createOutline,personOutline,cameraOutline,callOutline,locationOutline,calendarOutline,shieldCheckmarkOutline,checkmarkCircle,alertCircle,mailOutline,refreshOutline,logOutOutline,saveOutline});
+  // ========================================
+  // NOUVELLES PROPRIÉTÉS (ENRICHISSEMENT)
+  // ========================================
+  
+  // Badges
+  userBadges: UserBadge[] = [];
+  
+  // Progression du profil
+  profileCompletion: ProfileCompletionStatus = {
+    percentage: 0,
+    completedFields: [],
+    missingFields: [],
+    totalFields: 8,
+    completedCount: 0
+  };
 
-    // Initialisation du formulaire
-    this.initForm();
+  // Âge calculé
+  userAge: number | null = null;
+
+  // Centres d'intérêt
+  suggestedInterests = SUGGESTED_INTERESTS;
+  selectedInterests: string[] = [];
+  showInterestsPicker = false;
+
+  // Styles de musique
+  musicStyles = MUSIC_STYLES;
+  selectedMusicStyles: string[] = [];
+  showMusicStylesPicker = false;
+
+  // Galerie photos
+  galleryPhotos: string[] = [];
+  selectedGalleryFiles: File[] = [];
+  galleryPreviews: string[] = [];
+  maxPhotos = 6;  // 6 photos maximum
+
+  constructor() {
+    // Enregistrement des icônes
+    addIcons({
+      personOutline,
+      mailOutline,
+      callOutline,
+      locationOutline,
+      cameraOutline,
+      calendarOutline,
+      logOutOutline,
+      saveOutline,
+      createOutline,
+      checkmarkCircle,
+      shieldCheckmarkOutline,
+      alertCircle,
+      refreshOutline,
+      star,
+      trophy,
+      sparkles,
+      medal,
+      people,
+      closeCircle,
+      addCircle,
+      imagesOutline,
+      closeOutline,
+      heartOutline,
+      musicalNote
+    });
   }
 
-  // ========================================
-  // CYCLE DE VIE
-  // ========================================
-
   ngOnInit() {
-    this.userId = this.authService.getCurrentUserId();
-    
-    if (!this.userId) {
-      console.error('❌ Aucun utilisateur connecté');
-      this.router.navigate(['/login']);
-      return;
-    }
-
+    this.initializeForm();
     this.loadUserProfile();
-    this.checkEmailVerification();
   }
 
   ngOnDestroy() {
-    this.cleanupSubscriptions();
+    // Nettoie toutes les subscriptions
+    this.subscriptions.forEach(sub => sub.unsubscribe());
   }
 
   // ========================================
@@ -133,34 +220,56 @@ export class ProfilePage implements OnInit, OnDestroy {
   // ========================================
 
   /**
-   * Initialise le formulaire d'édition
+   * Initialise le formulaire avec validation enrichie
    */
-  private initForm() {
+  private initializeForm() {
     this.profileForm = this.fb.group({
-      displayName: ['', [Validators.required, Validators.minLength(2)]],
-      firstName: ['', [Validators.required]],
-      lastName: ['', [Validators.required]],
+      displayName: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(50)]],
+      firstName: ['', [Validators.required, Validators.minLength(2)]],
+      lastName: ['', [Validators.required, Validators.minLength(2)]],
       bio: ['', [Validators.maxLength(500)]],
       phoneNumber: [''],
+      dateOfBirth: [''],  // NOUVEAU
+      gender: [''],        // NOUVEAU
       city: [''],
       country: ['']
     });
   }
 
   /**
-   * Charge le profil utilisateur depuis Firestore
+   * Charge le profil utilisateur et calcule les données enrichies
    */
   private loadUserProfile() {
-    if (!this.userId) return;
+    const currentUser = this.authService.getCurrentUser();
+    
+    if (!currentUser) {
+      console.error('❌ Aucun utilisateur connecté');
+      this.router.navigate(['/login']);
+      return;
+    }
 
-    this.isLoading = true;
+    this.userId = currentUser.uid;
+    this.userEmail = currentUser.email;
+    this.isEmailVerified = currentUser.emailVerified;
 
+    // Vérification de sécurité
+    if (!this.userId) {
+      console.error('❌ userId est null');
+      this.router.navigate(['/login']);
+      return;
+    }
+
+    // Écoute les changements du profil en temps réel
     const sub = this.usersService.getUserProfile(this.userId).subscribe({
       next: (user) => {
         if (user) {
           this.user = user;
           this.patchFormValues(user);
-          console.log('✅ Profil utilisateur chargé:', user.displayName);
+          
+          // NOUVEAU : Calcul des données enrichies
+          this.calculateEnrichedData(user);
+          
+          console.log('✅ Profil utilisateur chargé');
         } else {
           console.warn('⚠️ Profil utilisateur introuvable');
           this.showToast('Profil introuvable', 'danger');
@@ -178,15 +287,50 @@ export class ProfilePage implements OnInit, OnDestroy {
   }
 
   /**
+   * NOUVEAU : Calcule les données enrichies (badges, progression, âge)
+   */
+  private calculateEnrichedData(user: User) {
+    // Calcul des badges
+    this.userBadges = this.usersService.getUserBadges(user);
+
+    // Calcul de la progression
+    this.profileCompletion = this.usersService.calculateProfileCompletion(user);
+
+    // Calcul de l'âge
+    if (user.dateOfBirth) {
+      this.userAge = calculateAge(user.dateOfBirth);
+    }
+
+    // Chargement des centres d'intérêt
+    this.selectedInterests = user.interests || [];
+
+    // Chargement des styles de musique
+    this.selectedMusicStyles = user.musicStyles || [];
+
+    // Chargement de la galerie
+    this.galleryPhotos = user.profilePhotos || [];
+  }
+
+  /**
    * Remplit le formulaire avec les données utilisateur
    */
   private patchFormValues(user: User) {
+    // 🐛 FIX : Convertir la date de naissance en format YYYY-MM-DD pour l'input date
+    let dateOfBirthValue = '';
+    if (user.dateOfBirth) {
+      const date = user.dateOfBirth.toDate();
+      // Format ISO : YYYY-MM-DD
+      dateOfBirthValue = date.toISOString().split('T')[0];
+    }
+
     this.profileForm.patchValue({
       displayName: user.displayName,
       firstName: user.firstName,
       lastName: user.lastName,
       bio: user.bio || '',
       phoneNumber: user.phoneNumber || '',
+      dateOfBirth: dateOfBirthValue,  // Date au format YYYY-MM-DD
+      gender: user.gender || '',
       city: user.city || '',
       country: user.country || ''
     });
@@ -210,13 +354,17 @@ export class ProfilePage implements OnInit, OnDestroy {
     this.isEditing = false;
     if (this.user) {
       this.patchFormValues(this.user);
+      this.selectedInterests = this.user.interests || [];
+      this.selectedMusicStyles = this.user.musicStyles || [];
     }
     this.selectedFile = null;
     this.previewUrl = null;
+    this.selectedGalleryFiles = [];
+    this.galleryPreviews = [];
   }
 
   /**
-   * Sauvegarde les modifications du profil
+   * Sauvegarde les modifications du profil (ENRICHI)
    */
   async saveProfile() {
     if (this.profileForm.invalid || !this.userId) {
@@ -233,77 +381,77 @@ export class ProfilePage implements OnInit, OnDestroy {
     await loading.present();
 
     try {
-      // Étape 1 : Upload photo si nécessaire
+      // Étape 1 : Upload photo principale si nécessaire
       let photoURL = this.user?.photoURL;
       if (this.selectedFile) {
-        photoURL = await this.uploadPhoto();
+        photoURL = await this.usersService.uploadProfilePhoto(this.selectedFile, this.userId);
       }
 
-      // Étape 2 : Prépare les données à mettre à jour
+      // Étape 2 : Upload galerie photos si nécessaire
+      let galleryUrls = this.user?.profilePhotos || [];
+      if (this.selectedGalleryFiles.length > 0) {
+        const newUrls = await this.usersService.uploadMultiplePhotos(
+          this.selectedGalleryFiles, 
+          this.userId
+        );
+        galleryUrls = [...galleryUrls, ...newUrls];
+      }
+
+      // Étape 3 : Prépare les données à mettre à jour (ENRICHI)
+      const formValue = this.profileForm.value;
       const updates: UpdateUserDto = {
-        displayName: this.profileForm.value.displayName,
-        firstName: this.profileForm.value.firstName,
-        lastName: this.profileForm.value.lastName,
-        bio: this.profileForm.value.bio,
-        phoneNumber: this.profileForm.value.phoneNumber,
-        city: this.profileForm.value.city,
-        country: this.profileForm.value.country
+        displayName: formValue.displayName,
+        firstName: formValue.firstName,
+        lastName: formValue.lastName,
+        bio: formValue.bio,
+        phoneNumber: formValue.phoneNumber,
+        dateOfBirth: formValue.dateOfBirth ? new Date(formValue.dateOfBirth) : undefined,
+        gender: formValue.gender || undefined,
+        city: formValue.city,
+        country: formValue.country,
+        interests: this.selectedInterests,        // NOUVEAU
+        musicStyles: this.selectedMusicStyles,    // NOUVEAU
+        profilePhotos: galleryUrls                // NOUVEAU
       };
 
-      // Ajoute la photo si uploadée
-      if (photoURL && photoURL !== this.user?.photoURL) {
+      if (photoURL) {
         updates.photoURL = photoURL;
       }
 
-      // Étape 3 : Met à jour le profil Firestore
-      await new Promise<void>((resolve, reject) => {
-        this.usersService.updateUserProfile(this.userId!, updates).subscribe({
-          next: () => {
-            console.log('✅ Profil mis à jour');
-            resolve();
-          },
-          error: (error) => {
-            console.error('❌ Erreur mise à jour profil:', error);
-            reject(error);
-          }
-        });
+      // Étape 4 : Met à jour le profil
+      this.usersService.updateUserProfile(this.userId, updates).subscribe({
+        next: async () => {
+          await loading.dismiss();
+          this.showToast('Profil mis à jour avec succès', 'success');
+          this.isEditing = false;
+          this.selectedFile = null;
+          this.previewUrl = null;
+          this.selectedGalleryFiles = [];
+          this.galleryPreviews = [];
+          this.isSaving = false;
+        },
+        error: async (error) => {
+          await loading.dismiss();
+          console.error('❌ Erreur mise à jour profil:', error);
+          this.showToast('Erreur lors de la mise à jour', 'danger');
+          this.isSaving = false;
+        }
       });
 
-      // Étape 4 : Met à jour Firebase Auth (displayName + photo)
-      await new Promise<void>((resolve, reject) => {
-        this.authService.updateUserProfile(updates.displayName, photoURL).subscribe({
-          next: () => {
-            console.log('✅ Firebase Auth synchronisé');
-            resolve();
-          },
-          error: (error) => {
-            console.warn('⚠️ Erreur sync Firebase Auth:', error);
-            resolve(); // Continue même si erreur (non bloquant)
-          }
-        });
-      });
-
-      await loading.dismiss();
-      this.isSaving = false;
-      this.isEditing = false;
-      this.selectedFile = null;
-      this.previewUrl = null;
-
-      this.showToast('Profil mis à jour avec succès', 'success');
     } catch (error) {
-      console.error('❌ Erreur sauvegarde profil:', error);
       await loading.dismiss();
+      console.error('❌ Erreur:', error);
+      this.showToast('Erreur lors de l\'upload', 'danger');
       this.isSaving = false;
-      this.showToast('Erreur lors de la sauvegarde', 'danger');
     }
   }
 
   // ========================================
-  // GESTION PHOTO DE PROFIL
+  // GESTION PHOTO PRINCIPALE
   // ========================================
 
   /**
-   * Déclenche la sélection de fichier
+   * Déclenche le sélecteur de fichier
    */
   triggerFileInput() {
     const fileInput = document.getElementById('fileInput') as HTMLInputElement;
@@ -311,91 +459,292 @@ export class ProfilePage implements OnInit, OnDestroy {
   }
 
   /**
-   * Gère la sélection d'une photo
+   * Gère la sélection d'un fichier photo
    */
   onFileSelected(event: Event) {
     const input = event.target as HTMLInputElement;
-    if (!input.files || input.files.length === 0) return;
+    if (input.files && input.files.length > 0) {
+      const file = input.files[0];
+      
+      // Vérifie que c'est une image
+      if (!file.type.startsWith('image/')) {
+        this.showToast('Veuillez sélectionner une image', 'warning');
+        return;
+      }
 
-    const file = input.files[0];
+      // Limite la taille à 5MB
+      if (file.size > 5 * 1024 * 1024) {
+        this.showToast('Image trop volumineuse (max 5MB)', 'warning');
+        return;
+      }
 
-    // Vérifie le type de fichier
-    if (!file.type.startsWith('image/')) {
-      this.showToast('Veuillez sélectionner une image', 'warning');
-      return;
+      this.selectedFile = file;
+
+      // Crée une prévisualisation
+      const reader = new FileReader();
+      reader.onload = () => {
+        this.previewUrl = reader.result as string;
+      };
+      reader.readAsDataURL(file);
     }
+  }
 
-    // Vérifie la taille (max 5MB)
-    if (file.size > 5 * 1024 * 1024) {
-      this.showToast('Image trop volumineuse (max 5MB)', 'warning');
-      return;
-    }
+  // ========================================
+  // GESTION GALERIE PHOTOS (NOUVEAU)
+  // ========================================
 
-    this.selectedFile = file;
-
-    // Génère une prévisualisation
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      this.previewUrl = e.target?.result as string;
-    };
-    reader.readAsDataURL(file);
-
-    console.log('✅ Photo sélectionnée:', file.name);
+  /**
+   * NOUVEAU : Déclenche le sélecteur de fichiers pour la galerie
+   */
+  triggerGalleryInput() {
+    const fileInput = document.getElementById('galleryInput') as HTMLInputElement;
+    fileInput?.click();
   }
 
   /**
-   * Upload la photo vers Firebase Storage
+   * NOUVEAU : Gère la sélection de photos pour la galerie
    */
-  private async uploadPhoto(): Promise<string> {
-    if (!this.selectedFile || !this.userId) {
-      throw new Error('Aucune photo sélectionnée');
-    }
+  onGalleryFilesSelected(event: Event) {
+    const input = event.target as HTMLInputElement;
+    if (input.files && input.files.length > 0) {
+      const files = Array.from(input.files);
+      
+      // Vérifie le nombre total de photos
+      const totalPhotos = this.galleryPhotos.length + this.selectedGalleryFiles.length + files.length;
+      if (totalPhotos > this.maxPhotos) {
+        this.showToast(`Maximum ${this.maxPhotos} photos autorisées`, 'warning');
+        return;
+      }
 
-    this.isUploadingPhoto = true;
+      // Vérifie que ce sont des images
+      const validFiles = files.filter(file => file.type.startsWith('image/'));
+      if (validFiles.length !== files.length) {
+        this.showToast('Certains fichiers ne sont pas des images', 'warning');
+      }
+
+      // Vérifie la taille
+      const oversizedFiles = validFiles.filter(file => file.size > 5 * 1024 * 1024);
+      if (oversizedFiles.length > 0) {
+        this.showToast('Certaines images sont trop volumineuses (max 5MB)', 'warning');
+        return;
+      }
+
+      // Ajoute les fichiers et crée les prévisualisations
+      validFiles.forEach(file => {
+        this.selectedGalleryFiles.push(file);
+
+        const reader = new FileReader();
+        reader.onload = () => {
+          this.galleryPreviews.push(reader.result as string);
+        };
+        reader.readAsDataURL(file);
+      });
+    }
+  }
+
+  /**
+   * NOUVEAU : Supprime une photo de la galerie (prévisualisation)
+   */
+  removeGalleryPreview(index: number) {
+    this.galleryPreviews.splice(index, 1);
+    this.selectedGalleryFiles.splice(index, 1);
+  }
+
+  /**
+   * NOUVEAU : Supprime une photo existante de la galerie
+   */
+  async removeGalleryPhoto(index: number) {
+    const alert = await this.alertCtrl.create({
+      header: 'Supprimer la photo',
+      message: 'Êtes-vous sûr de vouloir supprimer cette photo ?',
+      buttons: [
+        { text: 'Annuler', role: 'cancel' },
+        {
+          text: 'Supprimer',
+          role: 'destructive',
+          handler: () => {
+            if (this.user && this.userId) {
+              const updatedPhotos = [...this.galleryPhotos];
+              updatedPhotos.splice(index, 1);
+              
+              this.usersService.updateUserProfile(this.userId, {
+                profilePhotos: updatedPhotos
+              }).subscribe({
+                next: () => {
+                  this.showToast('Photo supprimée', 'success');
+                },
+                error: (error) => {
+                  console.error('❌ Erreur suppression:', error);
+                  this.showToast('Erreur lors de la suppression', 'danger');
+                }
+              });
+            }
+          }
+        }
+      ]
+    });
+
+    await alert.present();
+  }
+
+  // ========================================
+  // GESTION CENTRES D'INTÉRÊT (NOUVEAU)
+  // ========================================
+
+  /**
+   * NOUVEAU : Toggle un centre d'intérêt
+   */
+  toggleInterest(interest: string) {
+    const index = this.selectedInterests.indexOf(interest);
+    if (index > -1) {
+      this.selectedInterests.splice(index, 1);
+    } else {
+      if (this.selectedInterests.length >= 10) {
+        this.showToast('Maximum 10 centres d\'intérêt', 'warning');
+        return;
+      }
+      this.selectedInterests.push(interest);
+    }
+  }
+
+  /**
+   * NOUVEAU : Vérifie si un intérêt est sélectionné
+   */
+  isInterestSelected(interest: string): boolean {
+    return this.selectedInterests.includes(interest);
+  }
+
+  // ========================================
+  // GESTION STYLES DE MUSIQUE (NOUVEAU)
+  // ========================================
+
+  /**
+   * NOUVEAU : Toggle un style de musique
+   */
+  toggleMusicStyle(style: string) {
+    const index = this.selectedMusicStyles.indexOf(style);
+    if (index > -1) {
+      this.selectedMusicStyles.splice(index, 1);
+    } else {
+      if (this.selectedMusicStyles.length >= 5) {
+        this.showToast('Maximum 5 styles de musique', 'warning');
+        return;
+      }
+      this.selectedMusicStyles.push(style);
+    }
+  }
+
+  /**
+   * NOUVEAU : Vérifie si un style de musique est sélectionné
+   */
+  isMusicStyleSelected(style: string): boolean {
+    return this.selectedMusicStyles.includes(style);
+  }
+
+  // ========================================
+  // VÉRIFICATION EMAIL
+  // ========================================
+
+  /**
+   * Envoie un email de vérification
+   */
+  async sendVerificationEmail() {
+    this.isLoadingVerification = true;
 
     try {
-      const photoURL = await this.usersService.uploadProfilePhoto(
-        this.selectedFile,
-        this.userId
-      );
-      
-      console.log('✅ Photo uploadée:', photoURL);
-      this.isUploadingPhoto = false;
-      return photoURL;
+      await this.authService.sendEmailVerification();
+      this.showToast('Email de vérification envoyé', 'success');
     } catch (error) {
-      this.isUploadingPhoto = false;
-      throw error;
+      console.error('❌ Erreur envoi email:', error);
+      this.showToast('Erreur lors de l\'envoi', 'danger');
+    } finally {
+      this.isLoadingVerification = false;
+    }
+  }
+
+  /**
+   * Rafraîchit le statut de vérification email
+   */
+  async refreshEmailStatus() {
+    this.isLoadingVerification = true;
+
+    try {
+      const isVerified = await this.authService.checkEmailVerified();
+      
+      if (isVerified) {
+        this.isEmailVerified = true;
+        this.showToast('Email vérifié avec succès !', 'success');
+        
+        // Met à jour Firestore
+        if (this.userId) {
+          this.usersService.updateUserProfile(this.userId, {}).subscribe();
+        }
+      } else {
+        this.showToast('Email non encore vérifié', 'warning');
+      }
+    } catch (error) {
+      console.error('❌ Erreur vérification:', error);
+      this.showToast('Erreur lors de la vérification', 'danger');
+    } finally {
+      this.isLoadingVerification = false;
     }
   }
 
   // ========================================
-  // DÉCONNEXION
+  // UTILITAIRES
   // ========================================
 
   /**
-   * Déconnecte l'utilisateur
+   * Gère le rafraîchissement
+   */
+  handleRefresh(event: any) {
+    if (this.userId) {
+      this.loadUserProfile();
+    }
+    setTimeout(() => {
+      event.target.complete();
+    }, 1000);
+  }
+
+  /**
+   * Calcule l'ancienneté du membre
+   */
+  getMemberSince(): string {
+    if (!this.user?.createdAt) return '0';
+    
+    const now = Date.now();
+    const createdAt = this.user.createdAt.toMillis();
+    const diffDays = Math.floor((now - createdAt) / (1000 * 60 * 60 * 24));
+    
+    if (diffDays === 0) return 'Aujourd\'hui';
+    if (diffDays === 1) return '1 jour';
+    if (diffDays < 7) return `${diffDays} jours`;
+    if (diffDays < 30) return `${Math.floor(diffDays / 7)} sem.`;
+    if (diffDays < 365) return `${Math.floor(diffDays / 30)} mois`;
+    return `${Math.floor(diffDays / 365)} an${Math.floor(diffDays / 365) > 1 ? 's' : ''}`;
+  }
+
+  /**
+   * Déconnexion
    */
   async logout() {
     const alert = await this.alertCtrl.create({
       header: 'Déconnexion',
-      message: 'Voulez-vous vraiment vous déconnecter ?',
+      message: 'Êtes-vous sûr de vouloir vous déconnecter ?',
       buttons: [
+        { text: 'Annuler', role: 'cancel' },
         {
-          text: 'Annuler',
-          role: 'cancel'
-        },
-        {
-          text: 'Déconnexion',
+          text: 'Se déconnecter',
           role: 'destructive',
           handler: () => {
             this.authService.logout().subscribe({
               next: () => {
-                console.log('👋 Déconnexion réussie');
+                console.log('✅ Déconnexion réussie');
                 this.router.navigate(['/login']);
               },
               error: (error) => {
                 console.error('❌ Erreur déconnexion:', error);
-                this.showToast('Erreur de déconnexion', 'danger');
+                this.showToast('Erreur lors de la déconnexion', 'danger');
               }
             });
           }
@@ -406,163 +755,16 @@ export class ProfilePage implements OnInit, OnDestroy {
     await alert.present();
   }
 
-  // ========================================
-  // UTILITAIRES
-  // ========================================
-
   /**
-   * Pull-to-refresh
-   */
-  handleRefresh(event: any) {
-    this.loadUserProfile();
-    setTimeout(() => {
-      event.target.complete();
-    }, 1000);
-  }
-
-  /**
-   * Calcule la durée depuis la création du compte
-   */
-  getMemberSince(): string {
-    if (!this.user?.createdAt) return '';
-
-    const createdDate = this.user.createdAt.toDate();
-    const now = new Date();
-    const diffTime = Math.abs(now.getTime() - createdDate.getTime());
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-    if (diffDays < 30) {
-      return `${diffDays} jour${diffDays > 1 ? 's' : ''}`;
-    } else if (diffDays < 365) {
-      const months = Math.floor(diffDays / 30);
-      return `${months} mois`;
-    } else {
-      const years = Math.floor(diffDays / 365);
-      return `${years} an${years > 1 ? 's' : ''}`;
-    }
-  }
-
-  /**
-   * Affiche un toast
+   * Affiche un message toast
    */
   private async showToast(message: string, color: 'success' | 'danger' | 'warning') {
     const toast = await this.toastCtrl.create({
       message,
       duration: 3000,
-      color,
-      position: 'bottom',
-      buttons: [{ icon: 'close', role: 'cancel' }]
+      position: 'top',
+      color
     });
     await toast.present();
-  }
-
-
-  checkEmailVerification() {
-  const user = this.authService.currentUser();
-  
-  if (user) {
-    this.isEmailVerified = user.emailVerified;
-    this.userEmail = user.email;
-    console.log('📧 Statut email vérifié:', this.isEmailVerified);
-  }
-}
-
-/**
- * Envoie un email de vérification
- */
-async sendVerificationEmail() {
-  this.isLoadingVerification = true;
-
-  this.authService.sendEmailVerification().subscribe({
-    next: async () => {
-      this.isLoadingVerification = false;
-      
-      const toast = await this.toastCtrl.create({
-        message: `📧 Email de vérification envoyé à ${this.userEmail}`,
-        duration: 3000,
-        position: 'top',
-        color: 'success',
-        icon: 'checkmark-circle'
-      });
-      await toast.present();
-    },
-    error: async (error) => {
-      this.isLoadingVerification = false;
-      console.error('❌ Erreur lors de l\'envoi:', error);
-      
-      const toast = await this.toastCtrl.create({
-        message: '❌ Erreur lors de l\'envoi. Réessayez plus tard.',
-        duration: 3000,
-        position: 'top',
-        color: 'danger',
-        icon: 'close-circle'
-      });
-      await toast.present();
-    }
-  });
-}
-
-/**
- * Rafraîchit le statut de vérification de l'email
- * ✅ À utiliser après que l'utilisateur ait cliqué sur le lien dans l'email
- */
-async refreshEmailStatus() {
-  this.isLoadingVerification = true;
-
-  this.authService.reloadEmailVerificationStatus().subscribe({
-    next: async (isVerified) => {
-      this.isLoadingVerification = false;
-      this.isEmailVerified = isVerified;
-      
-      if (isVerified) {
-        // Email vérifié avec succès
-        const toast = await this.toastCtrl.create({
-          message: '✅ Email vérifié avec succès !',
-          duration: 3000,
-          position: 'top',
-          color: 'success',
-          icon: 'checkmark-circle'
-        });
-        await toast.present();
-        
-        // Recharger le profil pour mettre à jour Firestore
-        this.loadUserProfile();
-      } else {
-        // Email toujours non vérifié
-        const toast = await this.toastCtrl.create({
-          message: '⚠️ Email non vérifié. Vérifiez votre boîte mail et cliquez sur le lien.',
-          duration: 4000,
-          position: 'top',
-          color: 'warning',
-          icon: 'alert-circle'
-        });
-        await toast.present();
-      }
-    },
-    error: async (error) => {
-      this.isLoadingVerification = false;
-      console.error('❌ Erreur lors du rafraîchissement:', error);
-      
-      const toast = await this.toastCtrl.create({
-        message: '❌ Erreur lors de la vérification. Réessayez.',
-        duration: 3000,
-        position: 'top',
-        color: 'danger',
-        icon: 'close-circle'
-      });
-      await toast.present();
-    }
-  });
-}
-
-
-  /**
-   * Nettoie les subscriptions
-   */
-  private cleanupSubscriptions() {
-    this.subscriptions.forEach(sub => {
-      if (sub && !sub.closed) sub.unsubscribe();
-    });
-    this.subscriptions = [];
   }
 }

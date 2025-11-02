@@ -1,0 +1,285 @@
+// src/app/features/social/friend-profile/friend-profile.page.scss
+// 👤 Styles du profil public d'un utilisateur
+
+// ========================================
+// LOADING STATE
+// ========================================
+.loading-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    padding: 2rem;
+  
+    ion-spinner {
+      width: 48px;
+      height: 48px;
+      margin-bottom: 1rem;
+    }
+  
+    p {
+      color: var(--ion-color-medium);
+      font-size: 0.9rem;
+    }
+  }
+  
+  // ========================================
+  // HEADER PROFIL
+  // ========================================
+  .profile-header {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 2rem 1rem 1.5rem;
+    background: linear-gradient(180deg, 
+      var(--ion-color-primary) 0%, 
+      var(--ion-color-primary-shade) 100%
+    );
+    color: white;
+    text-align: center;
+  
+    .profile-avatar-container {
+      position: relative;
+      margin-bottom: 1rem;
+  
+      .profile-avatar {
+        width: 120px;
+        height: 120px;
+        border: 4px solid white;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      }
+    }
+  
+    .profile-name {
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin: 0 0 0.25rem 0;
+    }
+  
+    .profile-age {
+      font-size: 1rem;
+      font-weight: 500;
+      opacity: 0.9;
+      margin: 0;
+    }
+  
+    .profile-location {
+      display: flex;
+      align-items: center;
+      gap: 0.25rem;
+      font-size: 0.95rem;
+      margin: 0.5rem 0 1rem 0;
+      opacity: 0.9;
+  
+      ion-icon {
+        font-size: 1.1rem;
+      }
+    }
+  
+    // Badges
+    .badges-container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      justify-content: center;
+      margin: 1rem 0;
+  
+      .badge-chip {
+        height: 28px;
+        font-size: 0.8rem;
+  
+        ion-icon {
+          font-size: 1rem;
+          margin-right: 0.25rem;
+        }
+      }
+    }
+  
+    // Boutons d'action
+    .action-buttons {
+      width: 100%;
+      max-width: 400px;
+      margin-top: 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+  
+      ion-button {
+        margin: 0;
+        font-weight: 600;
+      }
+    }
+  }
+  
+  // ========================================
+  // STATISTIQUES
+  // ========================================
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+    padding: 1.5rem 1rem;
+    background: var(--ion-color-light);
+  
+    .stat-card {
+      background: white;
+      border-radius: 12px;
+      padding: 1rem;
+      text-align: center;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  
+      .stat-number {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: var(--ion-color-primary);
+        margin-bottom: 0.25rem;
+      }
+  
+      .stat-label {
+        font-size: 0.8rem;
+        color: var(--ion-color-medium);
+        font-weight: 500;
+      }
+    }
+  }
+  
+  // ========================================
+  // CARTES DE CONTENU
+  // ========================================
+  ion-card {
+    margin: 1rem;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  
+    ion-card-header {
+      padding-bottom: 0.5rem;
+  
+      ion-card-title {
+        font-size: 1.1rem;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+  
+        ion-icon {
+          font-size: 1.25rem;
+          color: var(--ion-color-primary);
+        }
+      }
+    }
+  
+    ion-card-content {
+      padding-top: 0.5rem;
+  
+      .bio-text {
+        font-size: 0.95rem;
+        line-height: 1.6;
+        color: var(--ion-color-dark);
+        margin: 0;
+        white-space: pre-wrap;
+      }
+    }
+  }
+  
+  // ========================================
+  // GALERIE PHOTOS
+  // ========================================
+  .gallery-card {
+    .photo-gallery {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0.5rem;
+      margin-top: 0.5rem;
+  
+      .gallery-item {
+        aspect-ratio: 1;
+        border-radius: 8px;
+        overflow: hidden;
+        background: var(--ion-color-light);
+  
+        img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+          display: block;
+        }
+      }
+    }
+  }
+  
+  // ========================================
+  // CHIPS (Centres d'intérêt / Musique)
+  // ========================================
+  .chips-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+  
+    ion-chip {
+      font-size: 0.85rem;
+      height: 32px;
+    }
+  }
+  
+  // ========================================
+  // CARTE DEMANDE EN ATTENTE
+  // ========================================
+  .pending-request-card {
+    border: 2px solid var(--ion-color-warning);
+    background: var(--ion-color-warning-tint);
+  
+    ion-card-header {
+      background: transparent;
+  
+      ion-card-title {
+        color: var(--ion-color-warning-contrast);
+      }
+    }
+  
+    ion-card-content {
+      p {
+        margin: 0 0 1rem 0;
+        font-size: 0.95rem;
+      }
+  
+      .request-actions {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+  
+        ion-button {
+          margin: 0;
+        }
+      }
+    }
+  }
+  
+  // ========================================
+  // RESPONSIVE
+  // ========================================
+  @media (max-width: 576px) {
+    .profile-header {
+      .action-buttons {
+        max-width: 100%;
+      }
+    }
+  
+    .gallery-card .photo-gallery {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+  
+  @media (min-width: 768px) {
+    .stats-grid {
+      max-width: 600px;
+      margin: 0 auto;
+    }
+  
+    ion-card {
+      max-width: 800px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+  }

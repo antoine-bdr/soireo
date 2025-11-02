@@ -1,0 +1,108 @@
+<!-- src/app/features/events/components/pending-requests-modal/pending-requests-modal.component.html -->
+<!-- 🔔 Modal de gestion des demandes en attente -->
+
+<ion-header>
+  <ion-toolbar>
+    <ion-title>
+      <div class="modal-title">
+        <ion-icon name="time-outline"></ion-icon>
+        <span>Demandes en attente</span>
+      </div>
+    </ion-title>
+    <ion-buttons slot="end">
+      <ion-button (click)="close()">
+        <ion-icon name="close-outline" slot="icon-only"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content>
+  <!-- ========================================
+       ÉTAT DE CHARGEMENT
+       ======================================== -->
+  <div class="loading-container" *ngIf="isLoading">
+    <ion-spinner name="crescent" color="primary"></ion-spinner>
+    <p>Chargement des demandes...</p>
+  </div>
+
+  <!-- ========================================
+       AUCUNE DEMANDE
+       ======================================== -->
+  <div class="empty-state" *ngIf="!isLoading && pendingParticipants.length === 0">
+    <div class="empty-icon">
+      <ion-icon name="checkmark-circle-outline"></ion-icon>
+    </div>
+    <h3>Aucune demande en attente</h3>
+    <p>Toutes les demandes ont été traitées</p>
+  </div>
+
+  <!-- ========================================
+       LISTE DES DEMANDES
+       ======================================== -->
+  <ion-list *ngIf="!isLoading && pendingParticipants.length > 0" lines="none">
+    <ion-item 
+      *ngFor="let participant of pendingParticipants" 
+      class="request-item"
+      [class.processing]="isProcessing(participant.id)">
+      
+      <!-- Avatar -->
+      <ion-avatar slot="start" class="participant-avatar">
+        <img 
+          [src]="participant.userPhoto || 'assets/default-avatar.png'" 
+          [alt]="participant.userName" />
+      </ion-avatar>
+
+      <!-- Informations -->
+      <ion-label>
+        <h2 class="participant-name">{{ participant.userName }}</h2>
+        <p class="participant-email">{{ participant.userEmail }}</p>
+        <p class="joined-time">
+          <ion-icon name="time-outline"></ion-icon>
+          {{ formatJoinedDate(participant.joinedAt) }}
+        </p>
+      </ion-label>
+
+      <!-- Actions -->
+      <div class="actions-buttons" slot="end">
+        <!-- Bouton Approuver -->
+        <ion-button
+          (click)="approveRequest(participant)"
+          [disabled]="isProcessing(participant.id)"
+          class="approve-button"
+          fill="solid"
+          size="small">
+          <ion-icon name="checkmark-circle-outline" slot="start"></ion-icon>
+          Accepter
+        </ion-button>
+
+        <!-- Bouton Rejeter -->
+        <ion-button
+          (click)="rejectRequest(participant)"
+          [disabled]="isProcessing(participant.id)"
+          class="reject-button"
+          fill="outline"
+          color="danger"
+          size="small">
+          <ion-icon name="close-circle-outline" slot="start"></ion-icon>
+          Refuser
+        </ion-button>
+      </div>
+
+      <!-- Spinner si en cours de traitement -->
+      <ion-spinner 
+        *ngIf="isProcessing(participant.id)" 
+        name="dots" 
+        slot="end">
+      </ion-spinner>
+    </ion-item>
+  </ion-list>
+
+  <!-- ========================================
+       FOOTER INFO
+       ======================================== -->
+  <div class="footer-info" *ngIf="!isLoading && pendingParticipants.length > 0">
+    <ion-icon name="person-outline"></ion-icon>
+    <span>{{ pendingParticipants.length }} demande(s) en attente</span>
+  </div>
+</ion-content>

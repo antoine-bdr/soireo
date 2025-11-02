@@ -28,6 +28,8 @@ export interface SearchFilters {
   
   // 🔒 Filtres privé/public
   includePrivate: boolean;
+
+  accessType: 'all' | 'public' | 'invitation';
   
   // 🎯 Tri
   sortBy: SortOption;
@@ -61,6 +63,7 @@ export enum FilterType {
   SEARCH = 'search',
   DATE_RANGE = 'dateRange',
   CATEGORY = 'category',
+  ACCESS_TYPE = 'accessType',
   CITY = 'city',
   PARTICIPANTS = 'participants',
   AVAILABLE_ONLY = 'availableOnly',
@@ -91,6 +94,7 @@ export interface SavedSearch {
 export const DEFAULT_FILTERS: SearchFilters = {
   searchTerm: '',
   segment: 'upcoming',
+  accessType: 'all',
   categories: [],
   cities: [],
   onlyAvailable: false,

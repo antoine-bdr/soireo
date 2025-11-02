@@ -1,6 +1,6 @@
 // src/app/core/services/users.service.ts
-// Service de gestion des profils utilisateurs
-// 🎯 Sprint 4 - Profil Utilisateur
+// Service de gestion des profils utilisateurs ENRICHI
+// 🎯 Sprint 4 - Profil Utilisateur ENRICHI
 
 import { Injectable, inject } from '@angular/core';
 import {
@@ -16,7 +16,8 @@ import {
   getDocs,
   onSnapshot,
   Timestamp,
-  increment
+  increment,
+  writeBatch
 } from '@angular/fire/firestore';
 import { 
   Storage, 
@@ -25,13 +26,17 @@ import {
   getDownloadURL, 
   deleteObject 
 } from '@angular/fire/storage';
-import { Auth, user } from '@angular/fire/auth'; // ✅ MODIFIÉ : Ajout de user
+import { Auth, user } from '@angular/fire/auth';
 import { Observable, from, map, switchMap, of } from 'rxjs';
 import { 
   User, 
   CreateUserDto, 
   UpdateUserDto, 
-  UserPublicProfile 
+  UserPublicProfile,
+  UserBadge,
+  BadgeType,
+  ProfileCompletionStatus,
+  calculateAge
 } from '../models/user.model';
 
 @Injectable({
@@ -41,13 +46,15 @@ export class UsersService {
   // ========================================
   // INJECTION DES DÉPENDANCES
   // ========================================
+
+  private readonly usersCollection = 'users';
   private readonly firestore = inject(Firestore);
   private readonly storage = inject(Storage);
-  private readonly auth = inject(Auth); // ✅ MODIFIÉ : Injection directe de Auth
+  private readonly auth = inject(Auth);
   
   // Nom de la collection Firestore
-  private readonly usersCollection = 'users';
   private readonly storageFolder = 'profiles';
+  private readonly galleryFolder = 'profiles/gallery'; // NOUVEAU : Dossier galerie
 
   constructor() {}
 
@@ -63,9 +70,10 @@ export class UsersService {
    * @returns Observable<void>
    */
   createUserProfile(userData: CreateUserDto): Observable<void> {
+
     console.log('🔨 Création profil utilisateur:', userData.email);
 
-    // Prépare les données complètes pour Firestore
+    // Prépare les données complètes pour Firestore (AVEC NOUVEAUX CHAMPS)
     const userProfile: Omit<User, 'id'> = {
       email: userData.email,
       displayName: userData.displayName,
@@ -74,7 +82,11 @@ export class UsersService {
       photoURL: userData.photoURL || '',
       bio: '',
       phoneNumber: '',
-      interests: [],
+      dateOfBirth: userData.dateOfBirth,        // NOUVEAU
+      gender: undefined,                        // NOUVEAU
+      profilePhotos: [],                        // NOUVEAU : Galerie vide
+      interests: [],                            // NOUVEAU : Vide au départ
+      musicStyles: [],                          // NOUVEAU : Vide au départ
       favoriteCategories: [],
       city: '',
       country: '',
@@ -90,7 +102,6 @@ export class UsersService {
 
     // Utilise l'UID comme ID du document (synchronisation Auth ↔ Firestore)
     const userDocRef = doc(this.firestore, this.usersCollection, userData.id);
-
     return from(setDoc(userDocRef, userProfile)).pipe(
       map(() => {
         console.log('✅ Profil utilisateur créé dans Firestore');
@@ -165,7 +176,7 @@ export class UsersService {
   }
 
   /**
-   * Récupère le profil PUBLIC d'un utilisateur
+   * Récupère le profil PUBLIC d'un utilisateur (ENRICHI)
    * Données limitées pour afficher un profil public
    * 
    * @param userId - UID Firebase de l'utilisateur
@@ -176,15 +187,27 @@ export class UsersService {
       map(user => {
         if (!user) return null;
 
+        // Calcul de l'âge si date de naissance disponible
+        const age = user.dateOfBirth ? calculateAge(user.dateOfBirth) : undefined;
+
+        // Récupération des badges
+        const badges = this.getUserBadges(user);
+
         return {
           id: user.id,
           displayName: user.displayName,
           photoURL: user.photoURL,
+          profilePhotos: user.profilePhotos || [],  // NOUVEAU
           bio: user.bio,
+          age,                                       // NOUVEAU
+          gender: user.gender,                       // NOUVEAU
+          interests: user.interests || [],           // NOUVEAU
+          musicStyles: user.musicStyles || [],       // NOUVEAU
           city: user.city,
           eventsCreatedCount: user.eventsCreatedCount,
           eventsJoinedCount: user.eventsJoinedCount,
-          memberSince: user.createdAt
+          memberSince: user.createdAt,
+          badges                                     // NOUVEAU
         } as UserPublicProfile;
       })
     );
@@ -197,7 +220,7 @@ export class UsersService {
    * @returns Observable<User | null>
    */
   getCurrentUserProfile(): Observable<User | null> {
-    const userId = this.auth.currentUser?.uid; // ✅ MODIFIÉ : Utilisation directe de auth
+    const userId = this.auth.currentUser?.uid;
     if (!userId) {
       console.warn('⚠️ Aucun utilisateur connecté');
       return of(null);
@@ -219,20 +242,56 @@ export class UsersService {
    */
   updateUserProfile(userId: string, updates: UpdateUserDto): Observable<void> {
     console.log('✏️ Mise à jour profil utilisateur:', userId);
-
+  
     const userDocRef = doc(this.firestore, this.usersCollection, userId);
-
+  
     // Ajoute automatiquement la date de mise à jour
     const dataToUpdate = {
       ...updates,
       updatedAt: Timestamp.now()
     };
-
+  
     return from(updateDoc(userDocRef, dataToUpdate)).pipe(
-      map(() => {
+      switchMap(async () => {
         console.log('✅ Profil utilisateur mis à jour');
-      })
+        
+        // ✅ Si la photo a changé, mettre à jour les conversations
+        if (updates.photoURL) {
+          await this.updateUserPhotoInConversations(userId, updates.photoURL);
+        }
+      }),
+      map(() => void 0)
     );
+  }
+
+  private async updateUserPhotoInConversations(userId: string, newPhotoURL: string): Promise<void> {
+    const conversationsRef = collection(this.firestore, 'conversations');
+    
+    // Trouver toutes les conversations où l'utilisateur est participant1
+    const q1 = query(conversationsRef, where('participant1Id', '==', userId));
+    // Trouver toutes les conversations où l'utilisateur est participant2
+    const q2 = query(conversationsRef, where('participant2Id', '==', userId));
+    
+    const [snapshot1, snapshot2] = await Promise.all([
+      getDocs(q1),
+      getDocs(q2)
+    ]);
+    
+    // Mettre à jour en batch pour optimiser
+    const batch = writeBatch(this.firestore);
+    
+    snapshot1.forEach(docSnap => {
+      batch.update(docSnap.ref, { participant1PhotoURL: newPhotoURL });
+    });
+    
+    snapshot2.forEach(docSnap => {
+      batch.update(docSnap.ref, { participant2PhotoURL: newPhotoURL });
+    });
+    
+    if (snapshot1.size > 0 || snapshot2.size > 0) {
+      await batch.commit();
+      console.log(`✅ Photo mise à jour dans ${snapshot1.size + snapshot2.size} conversations`);
+    }
   }
 
   /**
@@ -266,9 +325,8 @@ export class UsersService {
    * @returns Observable<void>
    */
   deleteUserProfile(userId: string): Observable<void> {
-    console.log('🗑️ Suppression profil utilisateur:', userId);
-
     const userDocRef = doc(this.firestore, this.usersCollection, userId);
+
 
     return from(deleteDoc(userDocRef)).pipe(
       map(() => {
@@ -317,6 +375,41 @@ export class UsersService {
   }
 
   /**
+   * NOUVEAU : Upload plusieurs photos vers la galerie
+   * Limite : 6 photos maximum par utilisateur
+   * 
+   * @param files - Fichiers images à uploader
+   * @param userId - UID Firebase de l'utilisateur
+   * @returns Promise<string[]> - URLs des photos uploadées
+   */
+  async uploadMultiplePhotos(files: File[], userId: string): Promise<string[]> {
+    console.log(`📸 Upload de ${files.length} photos pour:`, userId);
+
+    if (files.length > 6) {
+      throw new Error('Maximum 6 photos autorisées');
+    }
+
+    const uploadPromises = files.map(async (file, index) => {
+      const timestamp = Date.now();
+      const fileName = `${userId}_gallery_${timestamp}_${index}.jpg`;
+      const filePath = `${this.galleryFolder}/${fileName}`;
+      
+      const storageRef = ref(this.storage, filePath);
+      const snapshot = await uploadBytes(storageRef, file);
+      return await getDownloadURL(snapshot.ref);
+    });
+
+    try {
+      const urls = await Promise.all(uploadPromises);
+      console.log(`✅ ${urls.length} photos uploadées`);
+      return urls;
+    } catch (error) {
+      console.error('❌ Erreur upload photos:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Supprime une photo de profil de Firebase Storage
    * Utilise l'URL pour retrouver le fichier
    * 
@@ -352,7 +445,6 @@ export class UsersService {
    */
   incrementEventsCreated(userId: string): Observable<void> {
     const userDocRef = doc(this.firestore, this.usersCollection, userId);
-
     return from(updateDoc(userDocRef, {
       eventsCreatedCount: increment(1)
     })).pipe(
@@ -370,7 +462,8 @@ export class UsersService {
    * @returns Observable<void>
    */
   decrementEventsCreated(userId: string): Observable<void> {
-    const userDocRef = doc(this.firestore, this.usersCollection, userId);
+    const usersCollection = collection(this.firestore, 'users'); // ✅ ICI
+    const userDocRef = doc(usersCollection, userId);
 
     return from(updateDoc(userDocRef, {
       eventsCreatedCount: increment(-1)
@@ -420,6 +513,150 @@ export class UsersService {
   }
 
   // ========================================
+  // 🏆 SYSTÈME DE BADGES (NOUVEAU)
+  // ========================================
+
+  /**
+   * NOUVEAU : Calcule et retourne les badges d'un utilisateur
+   * Basé sur les critères d'obtention définis
+   * 
+   * @param user - Profil utilisateur
+   * @returns UserBadge[] - Liste des badges obtenus
+   */
+  getUserBadges(user: User): UserBadge[] {
+    const badges: UserBadge[] = [];
+
+    // Badge : Email vérifié
+    if (user.isEmailVerified) {
+      badges.push({
+        type: BadgeType.EMAIL_VERIFIED,
+        label: 'Email vérifié',
+        icon: 'checkmark-circle',
+        color: 'success',
+        description: 'Adresse email vérifiée'
+      });
+    }
+
+    // Badge : Profil complet
+    const completion = this.calculateProfileCompletion(user);
+    if (completion.percentage === 100) {
+      badges.push({
+        type: BadgeType.PROFILE_COMPLETE,
+        label: 'Profil complet',
+        icon: 'star',
+        color: 'warning',
+        description: 'Profil 100% complété'
+      });
+    }
+
+    // Badge : Nouveau membre (moins de 7 jours)
+    const accountAge = Date.now() - user.createdAt.toMillis();
+    const daysOld = accountAge / (1000 * 60 * 60 * 24);
+    if (daysOld <= 7) {
+      badges.push({
+        type: BadgeType.NEW_MEMBER,
+        label: 'Nouveau',
+        icon: 'sparkles',
+        color: 'tertiary',
+        description: 'Membre depuis moins de 7 jours'
+      });
+    }
+
+    // Badge : Organisateur actif (3+ événements créés)
+    if (user.eventsCreatedCount >= 3 && user.eventsCreatedCount < 10) {
+      badges.push({
+        type: BadgeType.ACTIVE_ORGANIZER,
+        label: 'Organisateur actif',
+        icon: 'calendar',
+        color: 'primary',
+        description: '3+ événements organisés'
+      });
+    }
+
+    // Badge : Super organisateur (10+ événements créés)
+    if (user.eventsCreatedCount >= 10) {
+      badges.push({
+        type: BadgeType.SUPER_ORGANIZER,
+        label: 'Super organisateur',
+        icon: 'trophy',
+        color: 'warning',
+        description: '10+ événements organisés'
+      });
+    }
+
+    // Badge : Participant actif (5+ participations)
+    if (user.eventsJoinedCount >= 5 && user.eventsJoinedCount < 20) {
+      badges.push({
+        type: BadgeType.ACTIVE_PARTICIPANT,
+        label: 'Participant actif',
+        icon: 'people',
+        color: 'secondary',
+        description: '5+ participations'
+      });
+    }
+
+    // Badge : Super participant (20+ participations)
+    if (user.eventsJoinedCount >= 20) {
+      badges.push({
+        type: BadgeType.SUPER_PARTICIPANT,
+        label: 'Super participant',
+        icon: 'medal',
+        color: 'warning',
+        description: '20+ participations'
+      });
+    }
+
+    return badges;
+  }
+
+  // ========================================
+  // 📊 PROGRESSION DU PROFIL (NOUVEAU)
+  // ========================================
+
+  /**
+   * NOUVEAU : Calcule le pourcentage de complétude du profil
+   * Utilisé pour la barre de progression
+   * 
+   * @param user - Profil utilisateur
+   * @returns ProfileCompletionStatus - Statut de complétude
+   */
+  calculateProfileCompletion(user: User): ProfileCompletionStatus {
+    const fields = {
+      photoURL: !!user.photoURL,
+      bio: !!user.bio && user.bio.length >= 10,
+      dateOfBirth: !!user.dateOfBirth,
+      phoneNumber: !!user.phoneNumber,
+      city: !!user.city,
+      interests: (user.interests?.length || 0) >= 3,
+      musicStyles: (user.musicStyles?.length || 0) >= 2,  // Au moins 2 styles
+      profilePhotos: (user.profilePhotos?.length || 0) >= 3  // Au moins 3 photos sur 6
+    };
+
+    const completedFields: string[] = [];
+    const missingFields: string[] = [];
+
+    Object.entries(fields).forEach(([key, value]) => {
+      if (value) {
+        completedFields.push(key);
+      } else {
+        missingFields.push(key);
+      }
+    });
+
+    const totalFields = Object.keys(fields).length;
+    const completedCount = completedFields.length;
+    const percentage = Math.round((completedCount / totalFields) * 100);
+
+    return {
+      percentage,
+      completedFields,
+      missingFields,
+      totalFields,
+      completedCount
+    };
+  }
+
+  // ========================================
   // 🔄 SYNCHRONISATION FIREBASE AUTH
   // ========================================
 
@@ -431,7 +668,7 @@ export class UsersService {
    * @returns Observable<void>
    */
   syncWithFirebaseAuth(userId: string): Observable<void> {
-    return user(this.auth).pipe( // ✅ MODIFIÉ : Utilisation de user(auth)
+    return user(this.auth).pipe(
       switchMap(authUser => {
         if (!authUser) {
           console.warn('⚠️ Aucun utilisateur Auth trouvé');
@@ -461,9 +698,8 @@ export class UsersService {
    * @returns Observable<User[]>
    */
   searchUsers(searchQuery: string): Observable<User[]> {
-    console.log('🔍 Recherche utilisateurs:', searchQuery);
-
     const usersRef = collection(this.firestore, this.usersCollection);
+    console.log('🔍 Recherche utilisateurs:', searchQuery);
     
     // Recherche simple par displayName (Firebase ne supporte pas le full-text search)
     // Pour une recherche avancée, utiliser Algolia ou ElasticSearch
@@ -475,11 +711,19 @@ export class UsersService {
 
     return from(getDocs(q)).pipe(
       map(snapshot => {
-        return snapshot.docs.map(doc => ({
+        const users = snapshot.docs.map(doc => ({
           id: doc.id,
           ...doc.data()
         } as User));
+        console.log(`✅ ${users.length} utilisateurs trouvés`);
+        return users;
       })
     );
   }
 }
+
+
+
+
+
+

@@ -1,0 +1,191 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/social/messages"></ion-back-button>
+    </ion-buttons>
+
+    <div class="header-friend" *ngIf="friend()">
+      <ion-avatar>
+        <img [src]="getPhotoUrl(friend()?.photoURL)" 
+             [alt]="friend()?.displayName">
+      </ion-avatar>
+      <div class="header-info">
+        <ion-title>{{ friend()?.displayName }}</ion-title>
+        
+        <span class="typing-indicator" *ngIf="friendIsTyping()">
+          en train d'écrire
+          <span class="typing-dots">
+            <span class="dot"></span>
+            <span class="dot"></span>
+            <span class="dot"></span>
+          </span>
+        </span>
+      </div>
+    </div>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content #content>
+  <!-- Loading -->
+  <div class="loading-container" *ngIf="isLoading()">
+    <ion-spinner name="crescent" color="primary"></ion-spinner>
+    <p>Chargement de la conversation...</p>
+  </div>
+
+  <!-- Messages -->
+  <div class="messages-container" *ngIf="!isLoading()">
+    <!-- Empty state -->
+    <div class="empty-chat" *ngIf="chatItems().length === 0">
+      <p>Début de la conversation avec {{ friend()?.displayName }}</p>
+    </div>
+
+    <!-- ✅ NOUVEAU : Liste avec séparateurs et groupement -->
+    <ng-container *ngFor="let item of chatItems(); trackBy: trackByChatItem">
+      
+      <!-- Séparateur de date -->
+      <div *ngIf="item.type === 'date-separator'" class="date-separator">
+        <span class="date-label">{{ item.label }}</span>
+      </div>
+
+      <!-- Message -->
+      <!-- Message -->
+<div 
+*ngIf="item.type === 'message'"
+class="message-wrapper"
+[class.my-message]="isMyMessage(item.message)"
+[class.friend-message]="!isMyMessage(item.message)"
+[class.group-start]="item.isGroupStart"
+[class.group-end]="item.isGroupEnd">
+
+<div 
+  class="message-bubble" 
+  [class.image-message]="item.message.type === 'image'"
+  [class.deleted]="item.message.isDeleted"
+  [class.pressable]="!item.message.isDeleted"
+  (touchstart)="onTouchStart($event, item.message)"
+  (touchmove)="onTouchMove($event)"
+  (touchend)="onTouchEnd()"
+  (touchcancel)="onTouchCancel()"
+  (mousedown)="onTouchStart($event, item.message)"
+  (mousemove)="onTouchMove($event)"
+  (mouseup)="onTouchEnd()"
+  (mouseleave)="onTouchCancel()">
+  
+  <!-- ✅ Image : clic pour ouvrir en grand -->
+  <div 
+    *ngIf="item.message.type === 'image' && item.message.imageUrl && !item.message.isDeleted" 
+    class="message-image-container"
+    (click)="openImageModal(item.message.imageUrl)">
+    <img [src]="item.message.imageUrl" alt="Image" class="message-image">
+  </div>
+
+  <!-- Texte -->
+  <p 
+    class="message-text" 
+    [class.deleted-text]="item.message.isDeleted"
+    *ngIf="item.message.type !== 'image' || item.message.isDeleted">
+    {{ item.message.text }}
+    <span class="edited-indicator" *ngIf="item.message.isEdited && !item.message.isDeleted"> (modifié)</span>
+  </p>
+  
+  <!-- ✅ Réactions (cachées si message supprimé) -->
+  <div 
+    class="reactions-container" 
+    *ngIf="getGroupedReactions(item.message).length > 0 && !item.message.isDeleted">
+    <span 
+      *ngFor="let reaction of getGroupedReactions(item.message)"
+      class="reaction-bubble"
+      [class.active]="hasUserReacted(item.message, reaction.emoji)"
+      (click)="addReaction(item.message, reaction.emoji)"
+      [title]="reaction.users.join(', ')">
+      {{ reaction.emoji }}
+      <span class="reaction-count" *ngIf="reaction.count > 1">{{ reaction.count }}</span>
+    </span>
+  </div>
+  
+  <div class="message-footer">
+    <span class="message-time">{{ formatMessageTime(item.message) }}</span>
+    
+    <span class="message-status" *ngIf="isMyMessage(item.message)">
+      <ion-icon 
+        [name]="getStatusIcon(item.message)" 
+        [class.read]="item.message.status === 'read'"
+        [class.delivered]="item.message.status === 'delivered'"
+        [class.sent]="item.message.status === 'sent'">
+      </ion-icon>
+    </span>
+  </div>
+</div>
+</div>
+    </ng-container>
+  </div>
+
+  <!-- ✅ NOUVEAU : Bouton Scroll to Bottom -->
+  <div class="scroll-to-bottom" *ngIf="showScrollButton()">
+    <ion-button 
+      fill="solid" 
+      shape="round" 
+      (click)="scrollToBottomClick()">
+      <ion-icon name="arrow-down-outline" slot="icon-only"></ion-icon>
+      <span class="badge" *ngIf="newMessagesCount() > 0">
+        {{ newMessagesCount() }}
+      </span>
+    </ion-button>
+  </div>
+</ion-content>
+
+<ion-footer>
+  <ion-toolbar>
+    <!-- ✅ NOUVEAU : Preview de l'image sélectionnée -->
+    <div class="image-preview-container" *ngIf="selectedImagePreview()">
+      <div class="image-preview">
+        <img [src]="selectedImagePreview()" alt="Preview">
+        <ion-button 
+          fill="clear" 
+          size="small" 
+          class="cancel-button"
+          (click)="cancelImageSelection()">
+          <ion-icon name="close-circle" slot="icon-only"></ion-icon>
+        </ion-button>
+      </div>
+      <ion-button
+        expand="block"
+        [disabled]="isUploadingImage()"
+        (click)="sendImageMessage()">
+        <ion-spinner *ngIf="isUploadingImage()" name="crescent"></ion-spinner>
+        <span *ngIf="!isUploadingImage()">Envoyer l'image</span>
+      </ion-button>
+    </div>
+
+    <div class="message-input-container" *ngIf="!selectedImagePreview()">
+      <!-- ✅ NOUVEAU : Bouton image -->
+      <ion-button
+        fill="clear"
+        (click)="openImagePicker()">
+        <ion-icon name="image-outline" slot="icon-only"></ion-icon>
+      </ion-button>
+
+      <ion-textarea
+        #messageInput
+        [(ngModel)]="messageText"
+        placeholder="Écris un message..."
+        [autoGrow]="true"
+        [rows]="1"
+        [maxlength]="500"
+        (ionInput)="onTextInput()"
+        (keypress)="onKeyPress($event)">
+      </ion-textarea>
+
+      <ion-button
+        fill="clear"
+        [disabled]="!messageText().trim() || isSending()"
+        (click)="sendMessage()">
+        <ion-icon 
+          slot="icon-only" 
+          name="send-outline"
+          [class.active]="messageText().trim()">
+        </ion-icon>
+      </ion-button>
+    </div>
+  </ion-toolbar>
+</ion-footer>

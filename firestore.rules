@@ -3,71 +3,123 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     
+    // ========================================
+    // 🔐 HELPER FUNCTIONS
+    // ========================================
+    
     function isAuthenticated() {
       return request.auth != null;
     }
     
-    function hasRequiredFields(fields) {
-      return request.resource.data.keys().hasAll(fields);
+    function isOwner(userId) {
+      return request.auth != null && request.auth.uid == userId;
     }
     
-    function isInRange(value, min, max) {
-      return value is number && value >= min && value <= max;
-    }
+    // ========================================
+    // 👤 COLLECTION USERS
+    // ========================================
     
     match /users/{userId} {
-      allow read, write: if isAuthenticated();
-    }
-    
-    match /events/{eventId} {
+      // Tout utilisateur authentifié peut lire n'importe quel profil
       allow read: if isAuthenticated();
       
-      allow create: if isAuthenticated()
-        && hasRequiredFields([
-          'title', 'description', 'date', 'location',
-          'organizerId', 'organizerName', 'organizerPhoto',
-          'maxParticipants', 'currentParticipants', 'participants',
-          'category', 'imageUrl', 'images', 'tags',
-          'isPrivate', 'requiresApproval',
-          'createdAt', 'updatedAt'
-        ])
-        && request.resource.data.organizerId == request.auth.uid
-        && request.resource.data.title is string
-        && request.resource.data.title.size() >= 3 
-        && request.resource.data.description is string
-        && request.resource.data.description.size() >= 10
-        && request.resource.data.date is timestamp
-        && request.resource.data.location is map
-        && request.resource.data.location.keys().hasAll(['address', 'city', 'zipCode', 'latitude', 'longitude', 'placeId', 'country'])
-        && request.resource.data.location.latitude is number
-        && request.resource.data.location.longitude is number
-        && isInRange(request.resource.data.maxParticipants, 2, 1000)
-        && request.resource.data.currentParticipants == 1
-        && request.resource.data.participants is list
-        && request.resource.data.participants.size() == 1
-        && request.resource.data.participants[0] == request.auth.uid
-        && request.resource.data.organizerName is string
-        && request.resource.data.organizerPhoto is string
-        && request.resource.data.category is string
-        && request.resource.data.imageUrl is string
-        && request.resource.data.images is list
-        && request.resource.data.tags is list
-        && request.resource.data.isPrivate is bool
-        && request.resource.data.requiresApproval is bool
-        && request.resource.data.createdAt is timestamp
-        && request.resource.data.updatedAt is timestamp;
+      // Un utilisateur peut créer/modifier uniquement son propre profil
+      allow create: if isAuthenticated() && request.auth.uid == userId;
+      allow update: if isAuthenticated() && request.auth.uid == userId;
       
+      // Un utilisateur peut supprimer uniquement son propre profil
+      allow delete: if isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    // ========================================
+    // 🎉 COLLECTION EVENTS
+    // ========================================
+    
+    match /events/{eventId} {
+      // Tout utilisateur authentifié peut lire les événements
+      allow read: if isAuthenticated();
+      
+      // Tout utilisateur authentifié peut créer un événement
+      allow create: if isAuthenticated() 
+        && request.resource.data.organizerId == request.auth.uid;
+      
+      // Seul l'organisateur peut modifier/supprimer son événement
       allow update, delete: if isAuthenticated() 
         && resource.data.organizerId == request.auth.uid;
     }
+    
+    // ========================================
+    // 👥 COLLECTION PARTICIPANTS
+    // ========================================
     
     match /participants/{participantId} {
       allow read, write: if isAuthenticated();
     }
     
+    // ========================================
+    // 📋 COLLECTION ACCESS REQUESTS
+    // ========================================
+    
     match /accessRequests/{requestId} {
       allow read, write: if isAuthenticated();
     }
+    
+    // ========================================
+    // 🔔 COLLECTION NOTIFICATIONS
+    // Mode développement : Libre accès en lecture/écriture
+    // ========================================
+    
+    match /notifications/{notificationId} {
+      // Un utilisateur peut lire uniquement ses propres notifications
+      allow read: if isAuthenticated() 
+        && resource.data.userId == request.auth.uid;
+      
+      // Tout utilisateur authentifié peut créer des notifications
+      // (pour envoyer des notifs à d'autres utilisateurs)
+      allow create: if isAuthenticated();
+      
+      // Un utilisateur peut modifier/supprimer uniquement ses propres notifications
+      allow update, delete: if isAuthenticated() 
+        && resource.data.userId == request.auth.uid;
+    }
+    
+    // ========================================
+    // 👥 COLLECTION FRIENDSHIPS
+    // Mode développement : Libre accès
+    // ========================================
+    
+    match /friendships/{friendshipId} {
+      // Un utilisateur peut lire les friendships où il est impliqué
+      allow read: if isAuthenticated() 
+        && (resource.data.senderId == request.auth.uid 
+            || resource.data.receiverId == request.auth.uid);
+      
+      // Un utilisateur peut créer une friendship où il est le sender
+      allow create: if isAuthenticated() 
+        && request.resource.data.senderId == request.auth.uid;
+      
+      // Un utilisateur peut modifier/supprimer les friendships où il est impliqué
+      allow update, delete: if isAuthenticated() 
+        && (resource.data.senderId == request.auth.uid 
+            || resource.data.receiverId == request.auth.uid);
+    }
+    
+// ========================================
+// 💬 COLLECTION CONVERSATIONS (MODE DEV)
+// ========================================
+
+match /conversations/{conversationId} {
+  allow read, write: if isAuthenticated();
+  
+  match /messages/{messageId} {
+    allow read, write: if isAuthenticated();
+  }
+}
+    
+    // ========================================
+    // 🚫 AUTRES COLLECTIONS
+    // Refus par défaut pour toute autre collection
+    // ========================================
     
     match /{document=**} {
       allow read, write: if false;

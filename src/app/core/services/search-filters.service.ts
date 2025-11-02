@@ -59,6 +59,7 @@ export class SearchFiltersService {
     if (filters.onlyAvailable) count++;
     if (filters.minParticipants || filters.maxParticipants) count++;
     if (!filters.includePrivate) count++;
+    if (filters.accessType !== 'all') count++;
     
     return count;
   }
@@ -121,6 +122,11 @@ export class SearchFiltersService {
   setSegment(segment: 'all' | 'upcoming' | 'past'): void {
     console.log('🔍 [SearchFiltersService] setSegment:', segment);
     this.updateFilters({ segment });
+  }
+
+  setAccessType(accessType: 'all' | 'public' | 'invitation'): void {
+    console.log(`🎫 [SearchFiltersService] setAccessType: ${accessType}`);
+    this.updateFilters({ accessType });
   }
   
   toggleCategory(category: EventCategory): void {
@@ -227,6 +233,16 @@ export class SearchFiltersService {
         icon: 'checkmark-circle'
       });
     }
+
+    if (filters.accessType !== 'all') {
+      const label = filters.accessType === 'public' ? 'Accès public' : 'Sur invitation';
+      activeFilters.push({
+        type: FilterType.ACCESS_TYPE,
+        label: label,
+        value: filters.accessType,
+        icon: filters.accessType === 'public' ? 'lock-open-outline' : 'mail-outline'
+      });
+    }
     
     return activeFilters;
   }
@@ -253,6 +269,10 @@ export class SearchFiltersService {
         
       case FilterType.AVAILABLE_ONLY:
         this.toggleOnlyAvailable();
+        break;
+
+      case FilterType.ACCESS_TYPE:
+        this.setAccessType('all');
         break;
     }
   }
@@ -375,6 +395,11 @@ export class SearchFiltersService {
       filtered = filtered.filter(event => !event.isPrivate);
       console.log(`  8️⃣ Exclure privés: ${beforeCount} → ${filtered.length} événements`);
     }
+
+    if (filters.accessType !== 'all') {
+      filtered = this.filterByAccessType(filtered, filters.accessType);
+      console.log(`🎫 Après type d'accès "${filters.accessType}":`, filtered.length);
+    }
     
     // 9️⃣ Tri
     filtered = this.sortEvents(filtered, participantCounts, filters.sortBy, filters.sortOrder);
@@ -424,6 +449,16 @@ export class SearchFiltersService {
     });
     
     return sorted;
+  }
+
+  private filterByAccessType(events: Event[], accessType: 'public' | 'invitation'): Event[] {
+    return events.filter(event => {
+      if (accessType === 'public') {
+        return !event.requiresApproval;
+      } else {
+        return event.requiresApproval;
+      }
+    });
   }
   
   // ========================================

@@ -135,6 +135,61 @@
       </ion-chip>
     </div>
   </div>
+
+  <!-- ========================================
+     SECTION : TYPE D'ACCÈS
+     ======================================== -->
+    <div class="filter-section">
+      <h3 class="section-title">
+        <ion-icon name="key-outline"></ion-icon>
+        Type d'accès
+      </h3>
+      
+      <div class="access-type-grid">
+        <!-- Tous -->
+        <ion-chip
+          [class.selected]="tempAccessType === 'all'"
+          (click)="selectAccessType('all')"
+          class="access-chip">
+          <ion-icon name="apps-outline"></ion-icon>
+          <ion-label>Tous</ion-label>
+        </ion-chip>
+        
+        <!-- Accès public -->
+        <ion-chip
+          [class.selected]="tempAccessType === 'public'"
+          (click)="selectAccessType('public')"
+          class="access-chip">
+          <ion-icon name="lock-open-outline"></ion-icon>
+          <ion-label>Accès public</ion-label>
+        </ion-chip>
+        
+        <!-- Sur invitation -->
+        <ion-chip
+          [class.selected]="tempAccessType === 'invitation'"
+          (click)="selectAccessType('invitation')"
+          class="access-chip">
+          <ion-icon name="mail-outline"></ion-icon>
+          <ion-label>Sur invitation</ion-label>
+        </ion-chip>
+      </div>
+      
+      <!-- Info bulle -->
+      <div class="info-box">
+        <ion-icon name="information-circle-outline"></ion-icon>
+        <div class="info-text">
+          <p *ngIf="tempAccessType === 'all'">
+            Affiche tous les événements, qu'ils soient publics ou sur invitation.
+          </p>
+          <p *ngIf="tempAccessType === 'public'">
+            <strong>Accès public :</strong> Vous pouvez rejoindre directement sans validation.
+          </p>
+          <p *ngIf="tempAccessType === 'invitation'">
+            <strong>Sur invitation :</strong> L'organisateur doit valider votre participation.
+          </p>
+        </div>
+      </div>
+    </div>
   
   <!-- ========================================
        SECTION 4 : DISPONIBILITÉ
@@ -152,18 +207,6 @@
       </ion-label>
       <ion-toggle
         [(ngModel)]="tempOnlyAvailable"
-        slot="end"
-        color="danger">
-      </ion-toggle>
-    </ion-item>
-    
-    <ion-item lines="none" class="toggle-item">
-      <ion-label>
-        <h4>Inclure événements privés</h4>
-        <p>Afficher aussi les événements privés</p>
-      </ion-label>
-      <ion-toggle
-        [(ngModel)]="tempIncludePrivate"
         slot="end"
         color="danger">
       </ion-toggle>

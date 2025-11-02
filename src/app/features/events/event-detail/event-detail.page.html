@@ -1,6 +1,6 @@
 <!-- ========================================
      🎨 EVENT DETAIL - DARK PREMIUM GLASSMORPHISM
-     Version adaptée au design de event-list
+     ✅ VERSION AVEC BADGE TYPE D'ÉVÉNEMENT
      ======================================== -->
 
 <!-- ========================================
@@ -69,6 +69,14 @@
             color="dark">
             🔒 Privé
           </ion-badge>
+    
+          <!-- Badge Adresse Masquée -->
+          <ion-badge 
+            class="floating-badge masked-badge" 
+            *ngIf="isAddressMasked()"
+            color="medium">
+            🔒 Adresse masquée
+          </ion-badge>
         </div>
       </div>
     
@@ -86,10 +94,18 @@
             <!-- Titre -->
             <h1 class="event-title">{{ event.title }}</h1>
     
-            <!-- Badges catégorie et participants -->
+            <!-- ✅ MODIFICATION : Badges catégorie, type d'accès et participants -->
             <div class="inline-badges">
               <ion-chip class="category-chip">
                 <ion-label>{{ getCategoryLabel(event.category) }}</ion-label>
+              </ion-chip>
+    
+              <!-- ✅ NOUVEAU : Badge type d'événement -->
+              <ion-chip 
+                class="access-type-chip"
+                [attr.data-access-type]="getEventAccessType()">
+                <ion-icon [name]="getAccessTypeIcon()"></ion-icon>
+                <ion-label>{{ getAccessTypeLabel() }}</ion-label>
               </ion-chip>
     
               <ion-chip 
@@ -113,14 +129,35 @@
                 </div>
               </div>
     
-              <!-- Lieu -->
+              <!-- Lieu avec gestion conditionnelle -->
               <div class="meta-item">
-                <ion-icon name="location-outline"></ion-icon>
+                <ion-icon 
+                  [name]="isAddressMasked() ? 'eye-off-outline' : 'location-outline'">
+                </ion-icon>
                 <div class="meta-text">
                   <span class="meta-label">Lieu</span>
-                  <span class="meta-value">{{ event.location.city }}</span>
+                  
+                  <!-- Adresse complète (si visible) -->
+                  <span 
+                    class="meta-value" 
+                    *ngIf="!isAddressMasked()">
+                    {{ getAddressDisplay() }}
+                  </span>
+                  
+                  <!-- Ville uniquement (si masquée) -->
+                  <span 
+                    class="meta-value address-masked" 
+                    *ngIf="isAddressMasked()">
+                    📍 {{ getAddressDisplay() }}
+                  </span>
                 </div>
               </div>
+            </div>
+    
+            <!-- Message explicatif si adresse masquée -->
+            <div class="location-message-box" *ngIf="isAddressMasked()">
+              <ion-icon name="information-circle-outline" color="primary"></ion-icon>
+              <p>{{ getLocationMessage() }}</p>
             </div>
     
           </ion-card-content>
@@ -130,9 +167,10 @@
              BOUTON PARTICIPATION
              ======================================== -->
         <div class="action-section" *ngIf="!isOrganizer">
-          <!-- Bouton Participer -->
+          
+          <!-- ÉTAT 1 : NON INSCRIT - Bouton Participer -->
           <ion-button 
-            *ngIf="!isParticipating && !isEventFull()"
+            *ngIf="!isParticipating && !isPending() && !isEventFull()"
             expand="block"
             class="participate-button"
             (click)="joinEvent()">
@@ -140,20 +178,51 @@
             Participer à cet événement
           </ion-button>
     
-          <!-- Bouton Se désinscrire -->
-          <ion-button 
-            *ngIf="isParticipating"
-            expand="block"
-            class="leave-button"
-            fill="outline"
-            color="danger"
-            (click)="leaveEvent()">
-            <ion-icon name="exit-outline" slot="start"></ion-icon>
-            Se désinscrire
-          </ion-button>
+          <!-- ÉTAT 2 : DEMANDE EN ATTENTE (PENDING) -->
+          <div *ngIf="isPending()" class="pending-status-container">
+            <!-- Badge statut -->
+            <div class="pending-badge-box">
+              <ion-icon name="time-outline" color="warning"></ion-icon>
+              <div class="pending-text">
+                <h4>Demande envoyée</h4>
+                <p>L'organisateur doit approuver votre participation</p>
+              </div>
+            </div>
     
-          <!-- Message complet -->
-          <div class="full-message" *ngIf="isEventFull() && !isParticipating">
+            <!-- Bouton Annuler la demande -->
+            <ion-button 
+              expand="block"
+              class="cancel-request-button"
+              fill="outline"
+              color="warning"
+              (click)="cancelRequest()">
+              <ion-icon name="close-circle-outline" slot="start"></ion-icon>
+              Annuler la demande
+            </ion-button>
+          </div>
+    
+          <!-- ÉTAT 3 : APPROUVÉ - Bouton Se désinscrire -->
+          <div *ngIf="isParticipating && !isPending()" class="approved-status-container">
+            <!-- Badge confirmation -->
+            <div class="approved-badge-box">
+              <ion-icon name="checkmark-circle-outline" color="success"></ion-icon>
+              <span>Vous participez à cet événement</span>
+            </div>
+    
+            <!-- Bouton Se désinscrire -->
+            <ion-button 
+              expand="block"
+              class="leave-button"
+              fill="outline"
+              color="danger"
+              (click)="leaveEvent()">
+              <ion-icon name="exit-outline" slot="start"></ion-icon>
+              Se désinscrire
+            </ion-button>
+          </div>
+    
+          <!-- MESSAGE COMPLET -->
+          <div class="full-message" *ngIf="isEventFull() && !isParticipating && !isPending()">
             <ion-icon name="warning-outline"></ion-icon>
             <p>Cet événement est complet</p>
           </div>
@@ -193,6 +262,37 @@
               Description
             </h3>
             <p class="description-text">{{ event.description }}</p>
+          </ion-card-content>
+        </ion-card>
+    
+        <!-- ========================================
+             CARD DEMANDES EN ATTENTE (Organisateur uniquement)
+             ======================================== -->
+        <ion-card 
+          class="pending-requests-card glassmorphism" 
+          *ngIf="isOrganizer && event.requiresApproval && pendingCount > 0">
+          <ion-card-content>
+            <div class="pending-header">
+              <h3 class="section-title">
+                <ion-icon name="notifications-outline"></ion-icon>
+                Demandes en attente
+              </h3>
+              <ion-badge color="danger" class="pending-badge">
+                {{ pendingCount }}
+              </ion-badge>
+            </div>
+            
+            <p class="pending-description">
+              {{ pendingCount }} personne(s) souhaite(nt) rejoindre votre événement
+            </p>
+    
+            <ion-button
+              expand="block"
+              (click)="openPendingRequestsModal()"
+              class="manage-requests-button">
+              <ion-icon name="notifications-outline" slot="start"></ion-icon>
+              Gérer les demandes
+            </ion-button>
           </ion-card-content>
         </ion-card>
     

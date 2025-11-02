@@ -1,6 +1,6 @@
 // ========================================
 // 🎨 EVENT DETAIL - DARK PREMIUM GLASSMORPHISM
-// Adapté au design de event-list
+// ✅ VERSION AVEC GESTION DE LA CONFIDENTIALITÉ DES ADRESSES
 // ========================================
 
 // ========================================
@@ -138,6 +138,19 @@
       rgba(30, 41, 59, 0.95) 100%
     );
     border: 1px solid rgba(148, 163, 184, 0.3);
+  }
+
+  // ✅ NOUVEAU : Badge Adresse Masquée
+  .masked-badge {
+    background: linear-gradient(
+      135deg,
+      rgba(100, 116, 139, 0.95) 0%,
+      rgba(71, 85, 105, 0.95) 100%
+    );
+    border: 1px solid rgba(148, 163, 184, 0.3);
+    box-shadow: 
+      0 2px 8px rgba(71, 85, 105, 0.3),
+      inset 0 1px 0 rgba(255, 255, 255, 0.15);
   }
 }
 
@@ -282,6 +295,81 @@
         }
       }
     }
+
+    .access-type-chip {
+      --background: rgba(255, 255, 255, 0.12);
+      --color: #ffffff;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      backdrop-filter: blur(10px);
+      font-weight: 500;
+      font-size: 0.85rem;
+      padding: 8px 14px;
+      border-radius: 20px;
+      transition: all 0.3s ease;
+    
+      ion-icon {
+        margin-right: 6px;
+        font-size: 1.1rem;
+      }
+    
+      // 🌍 Public (vert)
+      &[data-access-type="public"] {
+        --background: rgba(16, 185, 129, 0.15);
+        border-color: rgba(16, 185, 129, 0.4);
+        color: #10b981;
+        
+        ion-icon {
+          color: #10b981;
+        }
+    
+        &:hover {
+          --background: rgba(16, 185, 129, 0.25);
+          border-color: rgba(16, 185, 129, 0.6);
+        }
+      }
+    
+      // 📧 Sur invitation (orange/warning)
+      &[data-access-type="invitation"] {
+        --background: rgba(251, 146, 60, 0.15);
+        border-color: rgba(251, 146, 60, 0.4);
+        color: #fb923c;
+        
+        ion-icon {
+          color: #fb923c;
+        }
+    
+        &:hover {
+          --background: rgba(251, 146, 60, 0.25);
+          border-color: rgba(251, 146, 60, 0.6);
+        }
+      }
+    
+      // 🔒 Privé (rouge/dark)
+      &[data-access-type="private"] {
+        --background: rgba(239, 68, 68, 0.15);
+        border-color: rgba(239, 68, 68, 0.4);
+        color: #ef4444;
+        
+        ion-icon {
+          color: #ef4444;
+        }
+    
+        &:hover {
+          --background: rgba(239, 68, 68, 0.25);
+          border-color: rgba(239, 68, 68, 0.6);
+        }
+      }
+    }
+    
+    // Animation au hover pour tous les chips
+    .inline-badges ion-chip {
+      cursor: default;
+      transition: transform 0.2s ease;
+    
+      &:hover {
+        transform: translateY(-2px);
+      }
+    }
   }
 
   // Metadata
@@ -323,8 +411,49 @@
           font-size: 15px;
           color: #FFFFFF;
           font-weight: 600;
+
+          // ✅ NOUVEAU : Style pour adresse masquée
+          &.address-masked {
+            color: #94A3B8;
+            font-style: italic;
+          }
         }
       }
+    }
+  }
+
+  // ✅ NOUVEAU : Box message explicatif pour adresse masquée
+  .location-message-box {
+    margin-top: 12px;
+    padding: 14px 16px;
+    background: linear-gradient(
+      135deg,
+      rgba(59, 130, 246, 0.08) 0%,
+      rgba(37, 99, 235, 0.08) 100%
+    );
+    border: 1px solid rgba(59, 130, 246, 0.25);
+    border-radius: 12px;
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    backdrop-filter: blur(10px);
+    box-shadow: 
+      0 2px 8px rgba(59, 130, 246, 0.1),
+      inset 0 1px 0 rgba(255, 255, 255, 0.05);
+
+    ion-icon {
+      font-size: 20px;
+      color: #60A5FA;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    p {
+      margin: 0;
+      font-size: 13px;
+      line-height: 1.6;
+      color: #93C5FD;
+      font-weight: 500;
     }
   }
 }
@@ -335,6 +464,9 @@
 .action-section {
   margin-bottom: 20px;
 
+  // ========================================
+  // BOUTON PARTICIPER (État 1 : Non inscrit)
+  // ========================================
   .participate-button {
     height: 56px;
     font-size: 16px;
@@ -358,6 +490,107 @@
     }
   }
 
+  // ========================================
+  // ✅ NOUVEAU : ÉTAT 2 - DEMANDE EN ATTENTE (PENDING)
+  // ========================================
+  .pending-status-container {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+
+    .pending-badge-box {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 16px;
+      background: linear-gradient(
+        135deg,
+        rgba(245, 158, 11, 0.1) 0%,
+        rgba(217, 119, 6, 0.1) 100%
+      );
+      border: 2px solid rgba(245, 158, 11, 0.3);
+      border-radius: 14px;
+      box-shadow: 
+        0 4px 16px rgba(245, 158, 11, 0.15),
+        inset 0 1px 0 rgba(255, 255, 255, 0.05);
+
+      ion-icon {
+        font-size: 28px;
+        flex-shrink: 0;
+        margin-top: 2px;
+      }
+
+      .pending-text {
+        flex: 1;
+
+        h4 {
+          margin: 0 0 4px 0;
+          font-size: 16px;
+          font-weight: 700;
+          color: #F59E0B;
+        }
+
+        p {
+          margin: 0;
+          font-size: 13px;
+          color: #94A3B8;
+          line-height: 1.5;
+        }
+      }
+    }
+
+    .cancel-request-button {
+      height: 52px;
+      font-size: 15px;
+      font-weight: 600;
+      --border-radius: 14px;
+      --border-width: 2px;
+      text-transform: none;
+
+      ion-icon {
+        font-size: 20px;
+      }
+    }
+  }
+
+  // ========================================
+  // ✅ NOUVEAU : ÉTAT 3 - APPROUVÉ (APPROVED)
+  // ========================================
+  .approved-status-container {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+
+    .approved-badge-box {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 14px 16px;
+      background: linear-gradient(
+        135deg,
+        rgba(16, 185, 129, 0.1) 0%,
+        rgba(5, 150, 105, 0.1) 100%
+      );
+      border: 2px solid rgba(16, 185, 129, 0.3);
+      border-radius: 14px;
+      box-shadow: 
+        0 4px 16px rgba(16, 185, 129, 0.15),
+        inset 0 1px 0 rgba(255, 255, 255, 0.05);
+
+      ion-icon {
+        font-size: 24px;
+        flex-shrink: 0;
+      }
+
+      span {
+        font-size: 15px;
+        font-weight: 600;
+        color: #10B981;
+      }
+    }
+  }
+
+  // BOUTON SE DÉSINSCRIRE (partagé)
   .leave-button {
     height: 52px;
     font-size: 15px;
@@ -367,6 +600,7 @@
     text-transform: none;
   }
 
+  // MESSAGE COMPLET
   .full-message {
     padding: 16px;
     background: rgba(239, 68, 68, 0.1);
@@ -509,16 +743,13 @@
 // ========================================
 // ⚙️ ACTIONS ORGANISATEUR
 // ========================================
-// ========================================
-// ⚙️ ACTIONS ORGANISATEUR
-// ========================================
 .organizer-actions {
   display: flex;
   flex-direction: column;
   gap: 12px;
   margin-bottom: 20px;
 
-  // 🎨 Bouton Modifier - Style violet cohérent
+  // 🎨 Bouton Modifier
   .edit-button {
     height: 56px;
     font-size: 16px;
@@ -541,7 +772,6 @@
       font-size: 22px;
     }
 
-    // Effet hover
     &:hover:not([disabled]) {
       --box-shadow: 
         0 12px 32px rgba(255, 45, 85, 0.4),
@@ -549,13 +779,12 @@
       transform: translateY(-2px);
     }
 
-    // Effet active
     &:active:not([disabled]) {
       transform: scale(0.98) translateY(0);
     }
   }
 
-  // 🗑️ Bouton Supprimer - Style outline danger
+  // 🗑️ Bouton Supprimer
   .delete-button {
     height: 52px;
     font-size: 15px;
@@ -565,6 +794,71 @@
     text-transform: none;
   }
 }
+
+// ========================================
+// 🔔 CARD DEMANDES EN ATTENTE
+// ========================================
+.pending-requests-card {
+  margin-bottom: 20px;
+  border: 2px solid rgba(255, 45, 85, 0.3) !important;
+  box-shadow: 
+    0 8px 32px rgba(255, 45, 85, 0.2),
+    0 2px 8px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05) !important;
+
+  // Animation pulse subtile
+  animation: pulseGlow 2s ease-in-out infinite;
+
+  .pending-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+
+    .section-title {
+      margin: 0;
+      flex: 1;
+    }
+
+    .pending-badge {
+      font-size: 14px;
+      font-weight: 700;
+      padding: 6px 12px;
+      border-radius: 12px;
+      box-shadow: 0 0 12px rgba(239, 68, 68, 0.4);
+    }
+  }
+
+  .pending-description {
+    margin: 0 0 16px 0;
+    font-size: 14px;
+    color: #94A3B8;
+    line-height: 1.6;
+  }
+
+  .manage-requests-button {
+    height: 48px;
+    font-size: 15px;
+    font-weight: 700;
+    --background: linear-gradient(
+      135deg,
+      rgba(255, 45, 85, 0.9) 0%,
+      rgba(255, 107, 157, 0.9) 100%
+    );
+    --border-radius: 12px;
+    --box-shadow: 
+      0 6px 20px rgba(255, 45, 85, 0.3),
+      0 0 16px rgba(255, 45, 85, 0.2),
+      inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    border: 1px solid rgba(255, 107, 157, 0.3);
+    text-transform: none;
+
+    ion-icon {
+      font-size: 20px;
+    }
+  }
+}
+
 // ========================================
 // 📏 SPACING
 // ========================================
@@ -583,6 +877,22 @@
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+// ✅ AJOUT : Animation pulse pour les demandes en attente
+@keyframes pulseGlow {
+  0%, 100% {
+    box-shadow: 
+      0 8px 32px rgba(255, 45, 85, 0.2),
+      0 2px 8px rgba(0, 0, 0, 0.3),
+      inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  }
+  50% {
+    box-shadow: 
+      0 8px 32px rgba(255, 45, 85, 0.4),
+      0 2px 8px rgba(0, 0, 0, 0.3),
+      inset 0 1px 0 rgba(255, 255, 255, 0.05);
   }
 }
 

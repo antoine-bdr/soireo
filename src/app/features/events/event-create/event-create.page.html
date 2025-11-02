@@ -1,21 +1,26 @@
 <!-- ========================================
-     🎉 EVENT CREATE PAGE - DESIGN OPTIMISÉ
-     Cohérent avec les screenshots de référence
+     🎉 EVENT CREATE PAGE - AVEC SÉLECTION TYPE ÉVÉNEMENT
+     Version complète avec : Public / Sur invitation / Privé
      ======================================== -->
 
      <ion-header>
-      <ion-toolbar>
+      <ion-toolbar color="primary">
         <ion-buttons slot="start">
-          <ion-back-button defaultHref="/events" text="Back"></ion-back-button>
+          <ion-back-button defaultHref="/events" text="Retour"></ion-back-button>
         </ion-buttons>
         <ion-title>Créer un événement</ion-title>
       </ion-toolbar>
     </ion-header>
     
-    <ion-content>
+    <ion-content class="ion-padding">
       
       <form [formGroup]="eventForm" (ngSubmit)="createEvent()">
         
+        <!-- ========================================
+             ✨ SECTION TYPE D'ÉVÉNEMENT (NOUVEAU)
+             ======================================== -->
+
+    
         <!-- ========================================
              SECTION IMAGE
              ======================================== -->
@@ -71,8 +76,8 @@
           <ion-card-content>
             
             <!-- Titre -->
-            <ion-item lines="none">
-              <ion-label position="stacked">Titre de l'événement *</ion-label>
+            <ion-item lines="full">
+              <ion-label position="floating">Titre de l'événement *</ion-label>
               <ion-input 
                 type="text" 
                 formControlName="title"
@@ -89,8 +94,8 @@
             </div>
     
             <!-- Description -->
-            <ion-item lines="none">
-              <ion-label position="stacked">Description *</ion-label>
+            <ion-item lines="full">
+              <ion-label position="floating">Description *</ion-label>
               <ion-textarea 
                 formControlName="description"
                 rows="4"
@@ -107,8 +112,8 @@
             </div>
     
             <!-- Catégorie -->
-            <ion-item lines="none">
-              <ion-label position="stacked">Catégorie *</ion-label>
+            <ion-item lines="full">
+              <ion-label position="floating">Catégorie *</ion-label>
               <ion-select formControlName="category" interface="action-sheet">
                 <ion-select-option 
                   *ngFor="let cat of categories" 
@@ -135,7 +140,7 @@
           <ion-card-content>
             
             <!-- Bouton pour ouvrir le sélecteur de date -->
-            <ion-item lines="none" button id="open-datetime-modal">
+            <ion-item lines="full" button id="open-datetime-modal">
               <ion-label>Date et heure *</ion-label>
               <ion-text slot="end">
                 {{ formatSelectedDate(date?.value) }}
@@ -182,8 +187,8 @@
           <ion-card-content>
             
             <!-- Champ d'autocomplete -->
-            <ion-item lines="none" class="address-search-item">
-              <ion-label position="stacked">🔍 Rechercher une adresse *</ion-label>
+            <ion-item lines="full" class="address-search-item">
+              <ion-label position="floating">🔍 Rechercher une adresse *</ion-label>
               <ion-input 
                 type="text" 
                 [(ngModel)]="addressSearchTerm"
@@ -290,8 +295,8 @@
           <ion-card-content>
             
             <!-- Nombre max de participants -->
-            <ion-item lines="none">
-              <ion-label position="stacked">Nombre maximum de participants *</ion-label>
+            <ion-item lines="full">
+              <ion-label position="floating">Nombre maximum de participants *</ion-label>
               <ion-input 
                 type="number" 
                 formControlName="maxParticipants"
@@ -311,46 +316,82 @@
     
           </ion-card-content>
         </ion-card>
-    
-        <!-- ========================================
-             SECTION OPTIONS
-             ======================================== -->
-        <ion-card>
+
+
+        <ion-card class="event-type-card">
           <ion-card-header>
             <ion-card-title>
-              <ion-icon name="checkmark-circle-outline"></ion-icon>
-              Options
+              <ion-icon name="options-outline"></ion-icon>
+              Type d'événement
             </ion-card-title>
           </ion-card-header>
           
           <ion-card-content>
-            
-            <!-- Événement privé -->
-            <ion-item lines="none">
-              <ion-icon name="lock-closed-outline" slot="start"></ion-icon>
-              <ion-label>
-                <h3>Événement privé</h3>
-                <p>Seules les personnes invitées peuvent voir cet événement</p>
-              </ion-label>
-              <ion-toggle formControlName="isPrivate" slot="end"></ion-toggle>
-            </ion-item>
+            <div class="event-types-container">
+              
+              <!-- 📝 Sur invitation (RECOMMANDÉ) -->
+              <div 
+                class="event-type-option"
+                [class.selected]="selectedEventType === 'invitation'"
+                (click)="selectEventType('invitation')">
+                <div class="type-header">
+                  <ion-icon name="checkmark-done-outline" class="type-icon"></ion-icon>
+                  <span class="recommended-badge">⭐ Recommandé</span>
+                </div>
+                <h3 class="type-title">📝 Sur invitation</h3>
+                <p class="type-description">
+                  Tu valides chaque demande. Idéal pour contrôler qui participe.
+                </p>
+              </div>
     
-            <!-- Requiert approbation -->
-            <ion-item lines="none">
-              <ion-icon name="checkmark-circle-outline" slot="start"></ion-icon>
-              <ion-label>
-                <h3>Approbation requise</h3>
-                <p>Tu devras approuver chaque demande de participation</p>
-              </ion-label>
-              <ion-toggle formControlName="requiresApproval" slot="end"></ion-toggle>
-            </ion-item>
+              <!-- 🌍 Public -->
+              <div 
+                class="event-type-option"
+                [class.selected]="selectedEventType === 'public'"
+                (click)="selectEventType('public')">
+                <div class="type-header">
+                  <ion-icon name="globe-outline" class="type-icon"></ion-icon>
+                </div>
+                <h3 class="type-title">🌍 Public</h3>
+                <p class="type-description">
+                  Tout le monde peut rejoindre instantanément. Attention aux abus.
+                </p>
+              </div>
+    
+              <!-- 🔒 Privé -->
+              <div 
+                class="event-type-option"
+                [class.selected]="selectedEventType === 'private'"
+                (click)="selectEventType('private')">
+                <div class="type-header">
+                  <ion-icon name="lock-closed-outline" class="type-icon"></ion-icon>
+                </div>
+                <h3 class="type-title">🔒 Privé</h3>
+                <p class="type-description">
+                  Invisible dans la recherche. Tu invites manuellement les participants.
+                </p>
+              </div>
+    
+            </div>
+    
+            <!-- ⚠️ Warning pour événements publics -->
+            <ion-card class="warning-card" *ngIf="selectedEventType === 'public'">
+              <ion-card-content>
+                <div class="warning-content">
+                  <ion-icon name="alert-circle-outline" color="warning"></ion-icon>
+                  <div class="warning-text">
+                    <strong>Attention :</strong> Les événements publics peuvent attirer des participants non désirés. 
+                    Privilégie "Sur invitation" pour un meilleur contrôle.
+                  </div>
+                </div>
+              </ion-card-content>
+            </ion-card>
     
           </ion-card-content>
         </ion-card>
     
         <!-- ========================================
              BOUTON CRÉER
-             ✅ MODIFIÉ : Utilise isFormValid au lieu de eventForm.invalid
              ======================================== -->
         <ion-button 
           expand="block" 

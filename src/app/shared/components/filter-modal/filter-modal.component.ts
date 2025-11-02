@@ -1,6 +1,3 @@
-// src/app/shared/components/filter-modal/filter-modal.component.ts
-// Modal Fullscreen pour filtres de recherche avancée
-
 import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -36,8 +33,8 @@ import {
   calendar,
   people,
   flame,
-  timeOutline
-} from 'ionicons/icons';
+  timeOutline, keyOutline, appsOutline, lockOpenOutline, mailOutline, informationCircleOutline,
+ } from 'ionicons/icons';
 import { SearchFiltersService } from '../../../core/services/search-filters.service';
 import { EventCategory } from '../../../core/models/event.model';
 import { SortOption } from '../../../core/models/search-filters.model';
@@ -86,6 +83,7 @@ export class FilterModalComponent implements OnInit {
   tempIncludePrivate = true;
   tempSortBy?: SortOption;
   tempSortDesc = false;
+  tempAccessType: 'all' | 'public' | 'invitation' = 'all';
   
   selectedDateShortcut: string | null = null;
   
@@ -150,26 +148,13 @@ export class FilterModalComponent implements OnInit {
     if (this.tempDateFrom || this.tempDateTo) count++;
     if (this.tempOnlyAvailable) count++;
     if (!this.tempIncludePrivate) count++;
+    if (this.tempAccessType !== 'all') count++;
     if (this.tempSortBy && this.tempSortBy !== SortOption.DATE) count++;
     return count;
   }
   
   constructor() {
-    addIcons({
-      close,
-      funnelOutline,
-      refreshOutline,
-      pricetagOutline,
-      calendarOutline,
-      locationOutline,
-      checkmarkCircleOutline,
-      swapVerticalOutline,
-      checkmark,
-      calendar,
-      people,
-      flame,
-      timeOutline
-    });
+    addIcons({close,funnelOutline,refreshOutline,pricetagOutline,calendarOutline,locationOutline,keyOutline,appsOutline,lockOpenOutline,mailOutline,informationCircleOutline,checkmarkCircleOutline,swapVerticalOutline,checkmark,calendar,people,flame,timeOutline});
   }
   
   ngOnInit() {
@@ -193,6 +178,7 @@ export class FilterModalComponent implements OnInit {
     this.tempDateTo = filters.dateTo?.toISOString();
     this.tempOnlyAvailable = filters.onlyAvailable;
     this.tempIncludePrivate = filters.includePrivate;
+    this.tempAccessType = filters.accessType;
     this.tempSortBy = filters.sortBy;
     this.tempSortDesc = filters.sortOrder === 'desc';
   }
@@ -290,6 +276,11 @@ export class FilterModalComponent implements OnInit {
       this.tempCities.push(city);
     }
   }
+
+  selectAccessType(type: 'all' | 'public' | 'invitation'): void {
+    console.log(`🎫 [FilterModal] Type d'accès sélectionné: ${type}`);
+    this.tempAccessType = type;
+  }
   
   // ========================================
   // 📊 TRI
@@ -326,6 +317,7 @@ export class FilterModalComponent implements OnInit {
     this.tempSortBy = SortOption.DATE;
     this.tempSortDesc = false;
     this.selectedDateShortcut = null;
+    this.tempAccessType = 'all';
   }
   
   /**
@@ -344,6 +336,7 @@ export class FilterModalComponent implements OnInit {
       dateTo,
       onlyAvailable: this.tempOnlyAvailable,
       includePrivate: this.tempIncludePrivate,
+      accessType: this.tempAccessType,
       sortBy: this.tempSortBy || SortOption.DATE,
       sortOrder: this.tempSortDesc ? 'desc' : 'asc'
     });

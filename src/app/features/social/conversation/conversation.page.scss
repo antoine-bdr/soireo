@@ -1,0 +1,674 @@
+// src/app/features/social/conversation/conversation.page.scss
+// 💬 Styles de la page de conversation
+// ✅ ÉTAPE 3 : Styles des coches de lecture
+
+// ========================================
+// 🎨 HEADER
+// ========================================
+ion-header {
+  ion-toolbar {
+    --background: var(--ion-color-primary);
+    --color: white;
+  }
+}
+
+.header-friend {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 8px;
+
+  ion-avatar {
+    width: 36px;
+    height: 36px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+  }
+
+  .header-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+
+    ion-title {
+      font-size: 16px;
+      font-weight: 600;
+      padding: 0;
+      line-height: 1.2;
+    }
+
+    .typing-indicator {
+      font-size: 12px;
+      color: rgba(255, 255, 255, 0.8);
+      font-style: italic;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      animation: fadeIn 0.3s ease-in;
+
+      .typing-dots {
+        display: inline-flex;
+        gap: 3px;
+        margin-left: 2px;
+
+        .dot {
+          width: 4px;
+          height: 4px;
+          background: rgba(255, 255, 255, 0.8);
+          border-radius: 50%;
+          display: inline-block;
+          animation: typingDot 1.4s infinite ease-in-out;
+
+          &:nth-child(1) {
+            animation-delay: 0s;
+          }
+
+          &:nth-child(2) {
+            animation-delay: 0.2s;
+          }
+
+          &:nth-child(3) {
+            animation-delay: 0.4s;
+          }
+        }
+      }
+    }
+  }
+}
+
+// ========================================
+// 💬 CONTAINER DES MESSAGES
+// ========================================
+.messages-container {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 100%;
+}
+
+// ========================================
+// 📭 EMPTY STATE
+// ========================================
+.empty-chat {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+  text-align: center;
+  color: var(--ion-color-medium);
+  padding: 24px;
+
+  p {
+    font-size: 14px;
+    margin: 0;
+  }
+}
+
+// ========================================
+// 💬 MESSAGE WRAPPER
+// ========================================
+.message-wrapper {
+  display: flex;
+  margin-bottom: 4px;
+  animation: slideIn 0.2s ease-out;
+
+  &.my-message {
+    justify-content: flex-end;
+
+    .message-bubble {
+      background: var(--ion-color-primary);
+      color: white;
+      border-radius: 18px 18px 4px 18px;
+      margin-left: 48px;
+    }
+  }
+
+  &.friend-message {
+    justify-content: flex-start;
+
+    .message-bubble {
+      background: var(--ion-color-light);
+      color: var(--ion-color-dark);
+      border-radius: 18px 18px 18px 4px;
+      margin-right: 48px;
+    }
+  }
+}
+
+// ========================================
+// 💭 MESSAGE BUBBLE
+// ========================================
+.message-bubble {
+  max-width: 75%;
+  padding: 10px 14px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  position: relative;
+
+  .message-text {
+    margin: 0 0 4px 0;
+    font-size: 15px;
+    line-height: 1.4;
+    word-wrap: break-word;
+    white-space: pre-wrap;
+  }
+
+  // ✅ ÉTAPE 3 : Footer avec heure + coches
+  .message-footer {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 4px;
+    margin-top: 2px;
+
+    .message-time {
+      font-size: 11px;
+      opacity: 0.7;
+    }
+
+    // ✅ ÉTAPE 3 : Styles des coches de statut
+    // ✅ ÉTAPE 3 : Styles des coches de statut
+    .message-status {
+      display: flex;
+      align-items: center;
+      
+      ion-icon {
+        font-size: 16px; // ✅ Légèrement plus grandes
+        transition: all 0.3s ease;
+        
+        // État SENT - 1 coche grise/blanche
+        &.sent {
+          color: rgba(255, 255, 255, 0.6);
+        }
+        
+        // État DELIVERED - 2 coches blanches bien visibles
+        &.delivered {
+          color: rgba(255, 255, 255, 0.9); // ✅ Plus opaque
+          animation: checkmarkBounce 0.3s ease;
+        }
+        
+        // État READ - 2 coches BLEU CYAN ÉCLATANT (style WhatsApp)
+        &.read {
+          color: #00D9FF; // ✅ Bleu cyan vif au lieu de #4FC3F7
+          filter: drop-shadow(0 0 2px rgba(0, 217, 255, 0.5)); // ✅ Effet glow
+          animation: checkmarkBounce 0.3s ease;
+        }
+      }
+    }
+  }
+}
+
+// ========================================
+// ⌨️ INPUT CONTAINER
+// ========================================
+ion-footer {
+  ion-toolbar {
+    --background: var(--ion-color-light);
+    --padding-top: 8px;
+    --padding-bottom: 8px;
+  }
+}
+
+.message-input-container {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  padding: 0 8px;
+
+  ion-textarea {
+    flex: 1;
+    --background: white;
+    --padding-start: 14px;
+    --padding-end: 14px;
+    --padding-top: 10px;
+    --padding-bottom: 10px;
+    border-radius: 20px;
+    font-size: 15px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+
+    &::part(native) {
+      min-height: 40px;
+      max-height: 120px;
+    }
+  }
+
+  ion-button {
+    --padding-start: 8px;
+    --padding-end: 8px;
+    margin: 0;
+    height: 40px;
+    width: 40px;
+
+    ion-icon {
+      font-size: 24px;
+      color: var(--ion-color-medium);
+      transition: color 0.2s ease;
+
+      &.active {
+        color: var(--ion-color-primary);
+      }
+    }
+
+    &:not([disabled]) {
+      ion-icon.active {
+        animation: pulse 0.3s ease;
+      }
+    }
+  }
+}
+
+// ========================================
+// 🔄 LOADING
+// ========================================
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+  gap: 16px;
+
+  ion-spinner {
+    --color: var(--ion-color-primary);
+  }
+
+  p {
+    color: var(--ion-color-medium);
+    font-size: 14px;
+    margin: 0;
+  }
+}
+
+// ========================================
+// 🎬 ANIMATIONS
+// ========================================
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.2);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes typingDot {
+  0%, 60%, 100% {
+    transform: translateY(0);
+    opacity: 0.8;
+  }
+  30% {
+    transform: translateY(-8px);
+    opacity: 1;
+  }
+}
+
+// ✅ ÉTAPE 3 : Animation des coches (quand elles changent de statut)
+@keyframes checkmarkBounce {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.3);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+// ========================================
+// 📱 RESPONSIVE
+// ========================================
+@media (min-width: 768px) {
+  .messages-container {
+    max-width: 768px;
+    margin: 0 auto;
+  }
+
+  .message-wrapper {
+    &.my-message .message-bubble {
+      margin-left: 20%;
+    }
+
+    &.friend-message .message-bubble {
+      margin-right: 20%;
+    }
+  }
+}
+
+// ========================================
+// 🌙 DARK MODE (bonus)
+// ========================================
+@media (prefers-color-scheme: dark) {
+  .message-wrapper {
+    &.friend-message {
+      .message-bubble {
+        background: #2c2c2e;
+        color: white;
+      }
+    }
+  }
+}
+
+// ========================================
+// 📅 SÉPARATEUR DE DATE (NOUVEAU)
+// ========================================
+.date-separator {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 20px 0 12px 0;
+
+  .date-label {
+    background: var(--ion-color-light);
+    color: var(--ion-color-medium);
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 500;
+    text-transform: capitalize;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  }
+}
+
+// ========================================
+// 📦 GROUPEMENT DES MESSAGES (NOUVEAU)
+// ========================================
+.message-wrapper {
+  // Réduire l'espace entre messages d'un même groupe
+  &:not(.group-end) {
+    margin-bottom: 2px !important;
+  }
+
+  &.group-start .message-bubble {
+    // Premier message du groupe : bordures normales
+    &.my-message {
+      border-radius: 18px 18px 18px 4px;
+    }
+    &.friend-message {
+      border-radius: 18px 18px 4px 18px;
+    }
+  }
+
+  &:not(.group-start):not(.group-end) .message-bubble {
+    // Messages du milieu : coins carrés en bas
+    border-radius: 18px 18px 4px 4px;
+  }
+
+  &.group-end .message-bubble {
+    // Dernier message : coin carré selon l'expéditeur
+    &.my-message {
+      border-radius: 18px 4px 4px 18px;
+    }
+    &.friend-message {
+      border-radius: 4px 18px 18px 4px;
+    }
+  }
+}
+
+// ========================================
+// 🔽 BOUTON SCROLL TO BOTTOM (NOUVEAU)
+// ========================================
+.scroll-to-bottom {
+  position: absolute;
+  bottom: 80px;
+  right: 16px;
+  z-index: 10;
+  animation: fadeIn 0.3s ease;
+
+  ion-button {
+    --background: var(--ion-color-primary);
+    --color: white;
+    --box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    --padding-start: 0;
+    --padding-end: 0;
+    width: 48px;
+    height: 48px;
+    margin: 0;
+    position: relative;
+
+    ion-icon {
+      font-size: 24px;
+    }
+
+    .badge {
+      position: absolute;
+      top: -4px;
+      right: -4px;
+      background: var(--ion-color-danger);
+      color: white;
+      border-radius: 12px;
+      padding: 2px 6px;
+      font-size: 11px;
+      font-weight: 600;
+      min-width: 20px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    }
+
+    &:hover {
+      transform: scale(1.05);
+      transition: transform 0.2s ease;
+    }
+  }
+}
+
+// Animation pour le bouton scroll
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+// ========================================
+// 📸 IMAGES (NOUVEAU)
+// ========================================
+
+// Preview de l'image avant envoi
+.image-preview-container {
+  padding: 12px;
+  background: var(--ion-color-light);
+
+  .image-preview {
+    position: relative;
+    width: 100%;
+    max-width: 300px;
+    margin: 0 auto 12px auto;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+
+    img {
+      width: 100%;
+      display: block;
+    }
+
+    .cancel-button {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      --background: rgba(0, 0, 0, 0.5);
+      --color: white;
+      --border-radius: 50%;
+      width: 32px;
+      height: 32px;
+    }
+  }
+}
+
+// Bouton image dans le footer
+.message-input-container ion-button[fill="clear"]:first-child {
+  margin-right: 4px;
+
+  ion-icon {
+    font-size: 24px;
+    color: var(--ion-color-medium);
+  }
+}
+
+// Message contenant une image
+.message-bubble.image-message {
+  padding: 4px;
+  max-width: 80%;
+
+  .message-image-container {
+    cursor: pointer;
+    border-radius: 12px;
+    overflow: hidden;
+    position: relative;
+
+    &:hover {
+      opacity: 0.95;
+    }
+
+    .message-image {
+      width: 100%;
+      max-width: 300px;
+      height: auto;
+      display: block;
+      border-radius: 8px;
+    }
+  }
+
+  .message-footer {
+    padding: 4px 8px;
+    background: rgba(0, 0, 0, 0.1);
+    border-radius: 0 0 12px 12px;
+  }
+}
+
+// Modal image viewer
+::ng-deep .image-viewer-modal {
+  --width: 100%;
+  --height: 100%;
+}
+
+// ========================================
+// 📱 LONG PRESS & MENU
+// ========================================
+
+.message-bubble.pressable {
+  cursor: pointer;
+  user-select: none; // ✅ Empêche la sélection de texte
+  -webkit-user-select: none;
+  -webkit-touch-callout: none; // ✅ Désactive le menu contextuel iOS
+  transition: transform 0.1s ease, opacity 0.1s ease;
+
+  &:active {
+    transform: scale(0.98);
+    opacity: 0.9;
+  }
+}
+
+.message-bubble.deleted {
+  opacity: 0.6;
+  font-style: italic;
+  
+  .message-text {
+    color: var(--ion-color-medium);
+  }
+}
+
+.edited-indicator {
+  font-size: 11px;
+  opacity: 0.7;
+  font-style: italic;
+  margin-left: 4px;
+}
+
+// ========================================
+// 😍 RÉACTIONS
+// ========================================
+
+.reactions-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 4px;
+  padding: 4px 0;
+}
+
+.reaction-bubble {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px 8px;
+  background: rgba(0, 0, 0, 0.05);
+  border-radius: 12px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 1px solid transparent;
+
+  &:hover {
+    transform: scale(1.1);
+  }
+
+  &.active {
+    background: var(--ion-color-primary);
+    color: white;
+    border-color: var(--ion-color-primary-shade);
+  }
+
+  .reaction-count {
+    font-size: 11px;
+    font-weight: 600;
+    opacity: 0.8;
+  }
+}
+
+// Pour les messages de l'ami
+.friend-message .reaction-bubble {
+  background: rgba(0, 0, 0, 0.08);
+  
+  &.active {
+    background: var(--ion-color-primary);
+    color: white;
+  }
+}
+
+// Pour mes messages
+.my-message .reaction-bubble {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  
+  &.active {
+    background: rgba(255, 255, 255, 0.4);
+    border-color: white;
+  }
+}
+
+// Action sheet pour réactions
+::ng-deep {
+  .reaction-picker {
+    ion-button {
+      font-size: 28px !important;
+    }
+  }
+}

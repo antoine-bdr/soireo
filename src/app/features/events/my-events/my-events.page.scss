@@ -265,3 +265,565 @@ ion-header {
 // 🎨 NOTE : Les styles des event cards
 // sont dans event-card.component.scss
 // ========================================
+// ========================================
+// ✅ NOUVEAU : STYLES POUR L'ONGLET "EN ATTENTE"
+// ========================================
+
+// Badge warning dans le segment
+.pending-badge {
+  background: rgba(245, 158, 11, 0.2) !important;
+  color: #F59E0B !important;
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+// Icône dans le segment button
+.segment-icon {
+  font-size: 16px;
+  margin-right: 4px;
+}
+
+// Info box en haut de la liste pending
+.pending-info-box {
+  margin: 16px;
+  padding: 16px;
+  background: linear-gradient(
+    135deg,
+    rgba(245, 158, 11, 0.1) 0%,
+    rgba(217, 119, 6, 0.1) 100%
+  );
+  border: 2px solid rgba(245, 158, 11, 0.3);
+  border-radius: 14px;
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  box-shadow: 
+    0 4px 16px rgba(245, 158, 11, 0.15),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+
+  ion-icon {
+    font-size: 28px;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+
+  .pending-info-text {
+    flex: 1;
+
+    h4 {
+      margin: 0 0 4px 0;
+      font-size: 16px;
+      font-weight: 700;
+      color: #F59E0B;
+    }
+
+    p {
+      margin: 0;
+      font-size: 13px;
+      color: #94A3B8;
+      line-height: 1.5;
+    }
+  }
+}
+
+// Wrapper pour les événements pending
+.pending-event-wrapper {
+  position: relative;
+  margin-bottom: 16px;
+
+  // Badge overlay sur la card
+  .pending-overlay-badge {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    z-index: 10;
+    padding: 6px 12px;
+    background: rgba(245, 158, 11, 0.95);
+    border: 2px solid rgba(217, 119, 6, 0.8);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    box-shadow: 
+      0 4px 12px rgba(245, 158, 11, 0.4),
+      0 0 16px rgba(245, 158, 11, 0.2);
+    backdrop-filter: blur(10px);
+
+    ion-icon {
+      font-size: 16px;
+      color: #FFFFFF;
+    }
+
+    span {
+      font-size: 12px;
+      font-weight: 700;
+      color: #FFFFFF;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+  }
+
+  // Animation du badge
+  @keyframes pulsePending {
+    0%, 100% {
+      box-shadow: 
+        0 4px 12px rgba(245, 158, 11, 0.4),
+        0 0 16px rgba(245, 158, 11, 0.2);
+    }
+    50% {
+      box-shadow: 
+        0 4px 12px rgba(245, 158, 11, 0.6),
+        0 0 20px rgba(245, 158, 11, 0.4);
+    }
+  }
+
+  .pending-overlay-badge {
+    animation: pulsePending 2s ease-in-out infinite;
+  }
+}
+
+// ========================================
+// 🔔 BADGES HEADER - VERSION COMPACTE
+// ========================================
+
+.notification-badge,
+.message-badge {
+  position: absolute !important;
+  top: -2px !important;        // ⬆️ En haut de l'icône
+  right: -2px !important;       // ➡️ À droite de l'icône
+  min-width: 14px !important;
+  height: 14px !important;
+  padding: 0 3px !important;
+  
+  font-size: 9px !important;
+  font-weight: 700 !important;
+  line-height: 14px !important;
+  
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  
+  border-radius: 50% !important;
+  background: #ff2d55 !important;
+  color: white !important;
+  border: 2px solid #0a0e19 !important;  // Bordure assortie au fond sombre
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4) !important;
+  z-index: 10 !important;
+}
+
+ion-buttons ion-button {
+  position: relative;
+}// ========================================
+// 🎯 MY EVENTS PAGE - STYLE EVENT-LIST
+// Design harmonisé avec event-list.page
+// ========================================
+
+// ========================================
+// 🎨 GLOBAL BACKGROUND (comme event-list)
+// ========================================
+ion-content {
+  --background: linear-gradient(
+    180deg,
+    rgba(10, 14, 25, 1) 0%,
+    rgba(15, 20, 35, 1) 100%
+  );
+}
+
+// ========================================
+// 📱 HEADER
+// ========================================
+ion-header {
+  background: linear-gradient(
+    180deg,
+    rgba(26, 29, 41, 0.98) 0%,
+    rgba(26, 29, 41, 0.95) 100%
+  );
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  
+  ion-toolbar {
+    --background: transparent;
+    --min-height: 52px;
+    padding-top: 6px;
+    --border-width: 0;
+  }
+
+  // ========================================
+  // 🎨 TITRE
+  // ========================================
+  ion-title {
+    font-size: 22px;
+    font-weight: 800;
+    background: linear-gradient(
+      135deg,
+      #FFFFFF 0%,
+      #FFB3C6 100%
+    );
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  // ========================================
+  // 📊 SEGMENT - Glassmorphism
+  // ========================================
+  ion-segment {
+    padding: 8px 16px 12px 16px;
+    --background: transparent;
+    
+    ion-segment-button {
+      // États par défaut (non sélectionné)
+      --color: #94A3B8;
+      --color-checked: #FFFFFF;
+      --background: transparent;
+      --indicator-color: transparent;
+      
+      min-height: 40px;
+      font-size: 14px;
+      font-weight: 600;
+      letter-spacing: 0.3px;
+      border-radius: 12px;
+      margin: 0 4px;
+      
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      border: 1px solid transparent;
+      
+      // État actif (glassmorphism + glow rose)
+      &.segment-button-checked {
+        background: rgba(255, 255, 255, 0.08);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 45, 85, 0.25);
+        
+        box-shadow: 
+          0 4px 16px rgba(0, 0, 0, 0.25),
+          0 0 20px rgba(255, 45, 85, 0.2),
+          inset 0 1px 0 rgba(255, 255, 255, 0.1);
+        
+        color: #FFFFFF;
+      }
+      
+      // Hover (non actif)
+      &:not(.segment-button-checked):hover {
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+      }
+      
+      // Active/Press
+      &:active {
+        transform: scale(0.97);
+      }
+
+      // ========================================
+      // 🎯 CONTENU DES SEGMENTS (badges, icons)
+      // ========================================
+      ion-label {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        padding: 0 4px;
+
+        .segment-content {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+
+          .segment-icon {
+            font-size: 14px;
+          }
+
+          .segment-text {
+            font-size: 13px;
+            white-space: nowrap;
+          }
+
+          .segment-badge {
+            font-size: 10px;
+            padding: 3px 6px;
+            min-width: 18px;
+            height: 16px;
+            border-radius: 8px;
+            background: rgba(255, 45, 85, 0.9);
+            color: #FFFFFF;
+            font-weight: 700;
+            margin-left: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            line-height: 1;
+          }
+        }
+      }
+    }
+  }
+}
+
+// ========================================
+// ⏳ LOADING STATE
+// ========================================
+.loading-container {
+  height: 60vh;
+  gap: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+
+  ion-spinner {
+    --color: #FF2D55;
+    transform: scale(1.8);
+    filter: drop-shadow(0 0 16px rgba(255, 45, 85, 0.6));
+  }
+
+  p {
+    font-size: 14px;
+    color: #CBD5E1;
+    font-weight: 500;
+  }
+}
+
+// ========================================
+// 🗂️ CONTAINER PRINCIPAL
+// ========================================
+.events-container {
+  padding: 16px !important;
+  padding-bottom: 80px !important;
+}
+
+// ========================================
+// 📋 LISTE ÉVÉNEMENTS
+// ========================================
+.events-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+// ========================================
+// 🔭 ÉTAT VIDE
+// ========================================
+.empty-state {
+  padding: 60px 24px;
+  min-height: 60vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+
+  .empty-icon {
+    font-size: 100px;
+    color: #475569;
+    opacity: 0.4;
+    margin-bottom: 20px;
+    filter: drop-shadow(0 0 20px rgba(255, 45, 85, 0.3));
+    animation: float 3s ease-in-out infinite;
+  }
+
+  h3 {
+    font-size: 26px;
+    margin-bottom: 12px;
+    font-weight: 700;
+    background: linear-gradient(
+      135deg,
+      #FFFFFF 0%,
+      #FFB3C6 100%
+    );
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  p {
+    font-size: 15px;
+    margin-bottom: 20px;
+    color: #94A3B8;
+    line-height: 1.6;
+  }
+
+  .cta-button {
+    height: 44px;
+    font-size: 14px;
+    font-weight: 700;
+    --background: linear-gradient(
+      135deg,
+      rgba(255, 45, 85, 0.9) 0%,
+      rgba(255, 107, 157, 0.9) 100%
+    );
+    --border-radius: 14px;
+    --box-shadow: 
+      0 8px 24px rgba(255, 45, 85, 0.3),
+      inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    border: 1px solid rgba(255, 107, 157, 0.3);
+    text-transform: none;
+
+    ion-icon {
+      font-size: 18px;
+    }
+  }
+}
+
+// ========================================
+// ✨ ANIMATIONS
+// ========================================
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+// ========================================
+// 🎨 NOTE : Les styles des event cards
+// sont dans event-card.component.scss
+// ========================================
+// ========================================
+// ✅ NOUVEAU : STYLES POUR L'ONGLET "EN ATTENTE"
+// ========================================
+
+// Badge warning dans le segment
+.pending-badge {
+  background: rgba(245, 158, 11, 0.2) !important;
+  color: #F59E0B !important;
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+// Icône dans le segment button
+.segment-icon {
+  font-size: 16px;
+  margin-right: 4px;
+}
+
+// Info box en haut de la liste pending
+.pending-info-box {
+  margin: 16px;
+  padding: 16px;
+  background: linear-gradient(
+    135deg,
+    rgba(245, 158, 11, 0.1) 0%,
+    rgba(217, 119, 6, 0.1) 100%
+  );
+  border: 2px solid rgba(245, 158, 11, 0.3);
+  border-radius: 14px;
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  box-shadow: 
+    0 4px 16px rgba(245, 158, 11, 0.15),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+
+  ion-icon {
+    font-size: 28px;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+
+  .pending-info-text {
+    flex: 1;
+
+    h4 {
+      margin: 0 0 4px 0;
+      font-size: 16px;
+      font-weight: 700;
+      color: #F59E0B;
+    }
+
+    p {
+      margin: 0;
+      font-size: 13px;
+      color: #94A3B8;
+      line-height: 1.5;
+    }
+  }
+}
+
+// Wrapper pour les événements pending
+.pending-event-wrapper {
+  position: relative;
+  margin-bottom: 16px;
+
+  // Badge overlay sur la card
+  .pending-overlay-badge {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    z-index: 10;
+    padding: 6px 12px;
+    background: rgba(245, 158, 11, 0.95);
+    border: 2px solid rgba(217, 119, 6, 0.8);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    box-shadow: 
+      0 4px 12px rgba(245, 158, 11, 0.4),
+      0 0 16px rgba(245, 158, 11, 0.2);
+    backdrop-filter: blur(10px);
+
+    ion-icon {
+      font-size: 16px;
+      color: #FFFFFF;
+    }
+
+    span {
+      font-size: 12px;
+      font-weight: 700;
+      color: #FFFFFF;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+  }
+
+  // Animation du badge
+  @keyframes pulsePending {
+    0%, 100% {
+      box-shadow: 
+        0 4px 12px rgba(245, 158, 11, 0.4),
+        0 0 16px rgba(245, 158, 11, 0.2);
+    }
+    50% {
+      box-shadow: 
+        0 4px 12px rgba(245, 158, 11, 0.6),
+        0 0 20px rgba(245, 158, 11, 0.4);
+    }
+  }
+
+  .pending-overlay-badge {
+    animation: pulsePending 2s ease-in-out infinite;
+  }
+}
+
+// ========================================
+// 🔔 BADGES HEADER - VERSION COMPACTE
+// ========================================
+
+.notification-badge,
+.message-badge {
+  position: absolute !important;
+  top: -2px !important;        // ⬆️ En haut de l'icône
+  right: -2px !important;       // ➡️ À droite de l'icône
+  min-width: 14px !important;
+  height: 14px !important;
+  padding: 0 3px !important;
+  
+  font-size: 9px !important;
+  font-weight: 700 !important;
+  line-height: 14px !important;
+  
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  
+  border-radius: 50% !important;
+  background: #ff2d55 !important;
+  color: white !important;
+  border: 2px solid #0a0e19 !important;  // Bordure assortie au fond sombre
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4) !important;
+  z-index: 10 !important;
+}
+
+ion-buttons ion-button {
+  position: relative;
+}
