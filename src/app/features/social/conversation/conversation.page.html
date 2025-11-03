@@ -4,7 +4,7 @@
       <ion-back-button defaultHref="/social/messages"></ion-back-button>
     </ion-buttons>
 
-    <div class="header-friend" *ngIf="friend()">
+    <div class="header-friend clickable" (click)="goToFriendProfile()" *ngIf="friend()">
       <ion-avatar>
         <img [src]="getPhotoUrl(friend()?.photoURL)" 
              [alt]="friend()?.displayName">

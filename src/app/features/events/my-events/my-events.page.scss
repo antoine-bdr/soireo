@@ -827,3 +827,15 @@ ion-header {
 ion-buttons ion-button {
   position: relative;
 }
+
+.notification-badge,
+.message-badge {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  font-size: 12px;
+  padding: 2px 6px;
+  border-radius: 10px;
+  min-width: 20px;
+  text-align: center;
+}

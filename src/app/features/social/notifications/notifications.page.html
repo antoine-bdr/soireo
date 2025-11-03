@@ -90,10 +90,16 @@
             button 
             (click)="onNotificationClick(notification)"
             [class.unread]="!notification.isRead"
+            [class.friend-request]="notification.type === 'friend_request'"
             detail="false">
             
-            <!-- Avatar avec icône -->
-            <ion-avatar slot="start" [class.unread-avatar]="!notification.isRead">
+            <!-- Avatar cliquable pour FRIEND_REQUEST -->
+            <ion-avatar 
+              slot="start" 
+              [class.unread-avatar]="!notification.isRead"
+              [class.clickable]="notification.type === 'friend_request'"
+              (click)="onAvatarClick(notification, $event)">
+              
               <!-- Photo de l'expéditeur si disponible -->
               <img 
                 *ngIf="notification.senderPhotoURL" 
@@ -110,7 +116,9 @@
     
             <!-- Contenu -->
             <ion-label>
-              <h2>
+              <h2 
+                [class.clickable]="notification.type === 'friend_request'"
+                (click)="onTitleClick(notification, $event)">
                 {{ notification.title }}
                 <ion-badge 
                   *ngIf="!notification.isRead" 
@@ -123,8 +131,29 @@
               <ion-note>{{ getTimeAgo(notification) }}</ion-note>
             </ion-label>
     
-            <!-- Badge de type (optionnel) -->
+            <!-- Boutons accepter/refuser pour FRIEND_REQUEST -->
+            <div 
+              slot="end" 
+              *ngIf="notification.type === 'friend_request'" 
+              class="friend-actions"
+              (click)="$event.stopPropagation()">
+              <ion-button 
+                size="small" 
+                color="success"
+                (click)="acceptFriendRequest(notification, slidingItem)">
+                <ion-icon name="checkmark-circle-outline" slot="icon-only"></ion-icon>
+              </ion-button>
+              <ion-button 
+                size="small" 
+                color="danger"
+                (click)="rejectFriendRequest(notification, slidingItem)">
+                <ion-icon name="close-circle-outline" slot="icon-only"></ion-icon>
+              </ion-button>
+            </div>
+    
+            <!-- Badge pour les autres types -->
             <ion-badge 
+              *ngIf="notification.type !== 'friend_request'"
               slot="end" 
               [color]="getBadgeColor(notification)">
               <ion-icon [name]="notification.icon || 'information-circle-outline'"></ion-icon>

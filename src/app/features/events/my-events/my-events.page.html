@@ -6,207 +6,200 @@
 <!-- ========================================
      HEADER
      ======================================== -->
-<ion-header>
-     <ion-toolbar>
-      <!-- Bouton ajout d'amis (gauche) -->
-      <ion-buttons slot="start">
-        <ion-button (click)="goToFriendSearch()">
-          <ion-icon name="person-add-outline"></ion-icon>
-        </ion-button>
-      </ion-buttons>
-    
-      <!-- Titre centré -->
-      <ion-title>Mes Soirées</ion-title>
-      
-      <!-- Boutons notifications et messages (droite) -->
-      <ion-buttons slot="end">
-        <ion-button (click)="goToNotifications()">
-          <ion-badge 
-            *ngIf="unreadNotificationsCount() > 0" 
-            color="danger"
-            class="notification-badge">
-            {{ unreadNotificationsCount() }}
-          </ion-badge>
-          <ion-icon name="notifications-outline"></ion-icon>
-        </ion-button>
-    
-        <ion-button (click)="goToMessages()">
-          <ion-badge 
-            *ngIf="unreadMessagesCount() > 0" 
-            color="danger"
-            class="message-badge">
-            {{ unreadMessagesCount() }}
-          </ion-badge>
-          <ion-icon name="chatbubbles-outline"></ion-icon>
-        </ion-button>
-      </ion-buttons>
-    </ion-toolbar>
-    
-      <!-- Segments -->
+     <ion-header>
       <ion-toolbar>
-        <ion-segment 
-          [value]="selectedSegment()" 
-          (ionChange)="onSegmentChange($event)">
-          
-          <!-- Onglet 1 : Mes créations -->
-          <ion-segment-button value="created">
-            <ion-label>
-              <div class="segment-content">
-                <span class="segment-text">Créations</span>
-                <ion-badge 
-                  class="segment-badge" 
-                  *ngIf="createdEvents().length > 0">
-                  {{ createdEvents().length }}
-                </ion-badge>
-              </div>
-            </ion-label>
-          </ion-segment-button>
-    
-          <!-- Onglet 2 : Participations approuvées -->
-          <ion-segment-button value="joined">
-            <ion-label>
-              <div class="segment-content">
-                <span class="segment-text">Validées</span>
-                <ion-badge 
-                  class="segment-badge" 
-                  *ngIf="joinedEvents().length > 0">
-                  {{ joinedEvents().length }}
-                </ion-badge>
-              </div>
-            </ion-label>
-          </ion-segment-button>
-    
-          <!-- ✅ NOUVEAU : Onglet 3 - En attente -->
-          <ion-segment-button value="pending">
-            <ion-label>
-              <div class="segment-content">
-                <span class="segment-text">Attente</span>
-                <ion-badge 
-                  class="segment-badge pending-badge" 
-                  color="warning"
-                  *ngIf="pendingEvents().length > 0">
-                  {{ pendingEvents().length }}
-                </ion-badge>
-              </div>
-            </ion-label>
-          </ion-segment-button>
-        </ion-segment>
-      </ion-toolbar>
-    </ion-header>
-    
-    <!-- ========================================
-         CONTENT
-         ======================================== -->
-    <ion-content [fullscreen]="true">
-      
-      <!-- Pull-to-refresh -->
-      <ion-refresher slot="fixed" (ionRefresh)="handleRefresh($event)">
-        <ion-refresher-content></ion-refresher-content>
-      </ion-refresher>
-    
-      <!-- ========================================
-           LOADING STATE
-           ======================================== -->
-      <div class="loading-container" *ngIf="isLoading()">
-        <ion-spinner name="crescent" color="primary"></ion-spinner>
-        <p>Chargement de vos événements...</p>
-      </div>
-    
-      <!-- ========================================
-           SEGMENT: MES CRÉATIONS
-           ======================================== -->
-      <div class="events-container" *ngIf="!isLoading() && selectedSegment() === 'created'">
-        
-        <!-- Empty state -->
-        <div class="empty-state" *ngIf="createdEvents().length === 0">
-          <div class="empty-icon">⭐</div>
-          <h3>Aucun événement créé</h3>
-          <p>Vous n'avez pas encore créé d'événement.<br>Commencez dès maintenant !</p>
-          <ion-button 
-            class="cta-button"
-            (click)="goToCreateEvent()">
-            <ion-icon name="add-outline" slot="start"></ion-icon>
-            Créer un événement
-          </ion-button>
-        </div>
-    
-        <!-- Event cards -->
-        <app-event-card
-          *ngFor="let event of createdEvents()"
-          [event]="event"
-          [participantCount]="getParticipantCount(event.id!)"
-          [showFullBadge]="isEventFull(event)"
-          (cardClick)="goToEventDetail($event)">
-        </app-event-card>
-    
-      </div>
-    
-      <!-- ========================================
-           SEGMENT: PARTICIPATIONS CONFIRMÉES (APPROVED)
-           ======================================== -->
-      <div class="events-container" *ngIf="!isLoading() && selectedSegment() === 'joined'">
-        
-        <!-- Empty state -->
-        <div class="empty-state" *ngIf="joinedEvents().length === 0">
-          <div class="empty-icon">🎫</div>
-          <h3>Aucune participation confirmée</h3>
-          <p>Vous ne participez à aucun événement confirmé.<br>Découvrez les événements disponibles !</p>
-          <ion-button 
-            class="cta-button"
-            [routerLink]="['/tabs/events']">
-            <ion-icon name="calendar-outline" slot="start"></ion-icon>
-            Voir les événements
-          </ion-button>
-        </div>
-    
-        <!-- Event cards -->
-        <app-event-card
-          *ngFor="let event of joinedEvents()"
-          [event]="event"
-          [participantCount]="getParticipantCount(event.id!)"
-          [showFullBadge]="isEventFull(event)"
-          (cardClick)="goToEventDetail($event)">
-        </app-event-card>
-    
-      </div>
-    
-      <!-- ========================================
-           ✅ NOUVEAU : SEGMENT EN ATTENTE (PENDING)
-           ======================================== -->
-      <div class="events-container" *ngIf="!isLoading() && selectedSegment() === 'pending'">
-        
-        <!-- Empty state -->
-        <div class="empty-state" *ngIf="pendingEvents().length === 0">
-          <div class="empty-icon">✅</div>
-          <h3>Aucune demande en attente</h3>
-          <p>Toutes vos participations sont confirmées.<br>Vous n'avez aucune demande en attente d'approbation.</p>
-          <ion-button 
-            class="cta-button"
-            [routerLink]="['/tabs/events']">
-            <ion-icon name="calendar-outline" slot="start"></ion-icon>
-            Voir les événements
-          </ion-button>
-        </div>
-    
-        <!-- ✅ Message info si des événements en attente -->
-        <div class="pending-info-box" *ngIf="pendingEvents().length > 0">
-          <ion-icon name="time-outline" color="warning"></ion-icon>
-          <div class="pending-info-text">
-            <h4>Demandes en attente d'approbation</h4>
-            <p>L'organisateur doit valider votre participation à ces événements</p>
-          </div>
-        </div>
-    
-        <!-- Event cards avec badge pending -->
-        <div *ngFor="let event of pendingEvents()" class="pending-event-wrapper">
-          <app-event-card
-            [event]="event"
-            [participantCount]="getParticipantCount(event.id!)"
-            [showFullBadge]="isEventFull(event)"
-            (cardClick)="goToEventDetail($event)">
-          </app-event-card>
-        </div>
-    
-      </div>
-    
-    </ion-content>
+       <!-- Titre centré -->
+       <ion-title>Mes Soirées</ion-title>
+       
+       <!-- Boutons notifications et messages (droite) -->
+       <ion-buttons slot="end">
+         <ion-button (click)="goToNotifications()">
+           <ion-badge 
+             *ngIf="unreadNotificationsCount() > 0" 
+             color="danger"
+             class="notification-badge">
+             {{ unreadNotificationsCount() }}
+           </ion-badge>
+           <ion-icon name="notifications-outline"></ion-icon>
+         </ion-button>
+     
+         <ion-button (click)="goToMessages()">
+           <ion-badge 
+             *ngIf="unreadMessagesCount() > 0" 
+             color="danger"
+             class="message-badge">
+             {{ unreadMessagesCount() }}
+           </ion-badge>
+           <ion-icon name="chatbubbles-outline"></ion-icon>
+         </ion-button>
+       </ion-buttons>
+     </ion-toolbar>
+     
+       <!-- Segments -->
+       <ion-toolbar>
+         <ion-segment 
+           [value]="selectedSegment()" 
+           (ionChange)="onSegmentChange($event)">
+           
+           <!-- Onglet 1 : Mes créations -->
+           <ion-segment-button value="created">
+             <ion-label>
+               <div class="segment-content">
+                 <span class="segment-text">Créations</span>
+                 <ion-badge 
+                   class="segment-badge" 
+                   *ngIf="createdEvents().length > 0">
+                   {{ createdEvents().length }}
+                 </ion-badge>
+               </div>
+             </ion-label>
+           </ion-segment-button>
+     
+           <!-- Onglet 2 : Participations approuvées -->
+           <ion-segment-button value="joined">
+             <ion-label>
+               <div class="segment-content">
+                 <span class="segment-text">Validées</span>
+                 <ion-badge 
+                   class="segment-badge" 
+                   *ngIf="joinedEvents().length > 0">
+                   {{ joinedEvents().length }}
+                 </ion-badge>
+               </div>
+             </ion-label>
+           </ion-segment-button>
+     
+           <!-- ✅ NOUVEAU : Onglet 3 - En attente -->
+           <ion-segment-button value="pending">
+             <ion-label>
+               <div class="segment-content">
+                 <span class="segment-text">Attente</span>
+                 <ion-badge 
+                   class="segment-badge pending-badge" 
+                   color="warning"
+                   *ngIf="pendingEvents().length > 0">
+                   {{ pendingEvents().length }}
+                 </ion-badge>
+               </div>
+             </ion-label>
+           </ion-segment-button>
+         </ion-segment>
+       </ion-toolbar>
+     </ion-header>
+     
+     <!-- ========================================
+          CONTENT
+          ======================================== -->
+     <ion-content [fullscreen]="true">
+       
+       <!-- Pull-to-refresh -->
+       <ion-refresher slot="fixed" (ionRefresh)="handleRefresh($event)">
+         <ion-refresher-content></ion-refresher-content>
+       </ion-refresher>
+     
+       <!-- ========================================
+            LOADING STATE
+            ======================================== -->
+       <div class="loading-container" *ngIf="isLoading()">
+         <ion-spinner name="crescent" color="primary"></ion-spinner>
+         <p>Chargement de vos événements...</p>
+       </div>
+     
+       <!-- ========================================
+            SEGMENT: MES CRÉATIONS
+            ======================================== -->
+       <div class="events-container" *ngIf="!isLoading() && selectedSegment() === 'created'">
+         
+         <!-- Empty state -->
+         <div class="empty-state" *ngIf="createdEvents().length === 0">
+           <div class="empty-icon">⭐</div>
+           <h3>Aucun événement créé</h3>
+           <p>Vous n'avez pas encore créé d'événement.<br>Commencez dès maintenant !</p>
+           <ion-button 
+             class="cta-button"
+             (click)="goToCreateEvent()">
+             <ion-icon name="add-outline" slot="start"></ion-icon>
+             Créer un événement
+           </ion-button>
+         </div>
+     
+         <!-- Event cards -->
+         <app-event-card
+           *ngFor="let event of createdEvents()"
+           [event]="event"
+           [participantCount]="getParticipantCount(event.id!)"
+           [showFullBadge]="isEventFull(event)"
+           (cardClick)="goToEventDetail($event)">
+         </app-event-card>
+     
+       </div>
+     
+       <!-- ========================================
+            SEGMENT: PARTICIPATIONS CONFIRMÉES (APPROVED)
+            ======================================== -->
+       <div class="events-container" *ngIf="!isLoading() && selectedSegment() === 'joined'">
+         
+         <!-- Empty state -->
+         <div class="empty-state" *ngIf="joinedEvents().length === 0">
+           <div class="empty-icon">🎫</div>
+           <h3>Aucune participation confirmée</h3>
+           <p>Vous ne participez à aucun événement confirmé.<br>Découvrez les événements disponibles !</p>
+           <ion-button 
+             class="cta-button"
+             [routerLink]="['/tabs/events']">
+             <ion-icon name="calendar-outline" slot="start"></ion-icon>
+             Voir les événements
+           </ion-button>
+         </div>
+     
+         <!-- Event cards -->
+         <app-event-card
+           *ngFor="let event of joinedEvents()"
+           [event]="event"
+           [participantCount]="getParticipantCount(event.id!)"
+           [showFullBadge]="isEventFull(event)"
+           (cardClick)="goToEventDetail($event)">
+         </app-event-card>
+     
+       </div>
+     
+       <!-- ========================================
+            ✅ NOUVEAU : SEGMENT EN ATTENTE (PENDING)
+            ======================================== -->
+       <div class="events-container" *ngIf="!isLoading() && selectedSegment() === 'pending'">
+         
+         <!-- Empty state -->
+         <div class="empty-state" *ngIf="pendingEvents().length === 0">
+           <div class="empty-icon">✅</div>
+           <h3>Aucune demande en attente</h3>
+           <p>Toutes vos participations sont confirmées.<br>Vous n'avez aucune demande en attente d'approbation.</p>
+           <ion-button 
+             class="cta-button"
+             [routerLink]="['/tabs/events']">
+             <ion-icon name="calendar-outline" slot="start"></ion-icon>
+             Voir les événements
+           </ion-button>
+         </div>
+     
+         <!-- ✅ Message info si des événements en attente -->
+         <div class="pending-info-box" *ngIf="pendingEvents().length > 0">
+           <ion-icon name="time-outline" color="warning"></ion-icon>
+           <div class="pending-info-text">
+             <h4>Demandes en attente d'approbation</h4>
+             <p>L'organisateur doit valider votre participation à ces événements</p>
+           </div>
+         </div>
+     
+         <!-- Event cards avec badge pending -->
+         <div *ngFor="let event of pendingEvents()" class="pending-event-wrapper">
+           <app-event-card
+             [event]="event"
+             [participantCount]="getParticipantCount(event.id!)"
+             [showFullBadge]="isEventFull(event)"
+             (cardClick)="goToEventDetail($event)">
+           </app-event-card>
+         </div>
+     
+       </div>
+     
+     </ion-content>

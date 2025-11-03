@@ -907,13 +907,17 @@ onTouchEnd(event?: TouchEvent | MouseEvent) {
   }
 }
 
-/**
- * 📱 Gestion du touch/mouse cancel (annulation)
- */
-onTouchCancel(event?: TouchEvent | MouseEvent) {
-  this.isPressing = false;
-  if (this.pressTimer) {
-    clearTimeout(this.pressTimer);
+  /**
+   * 📱 Gestion du touch/mouse cancel (annulation)
+   */
+  onTouchCancel(event?: TouchEvent | MouseEvent) {
+    this.isPressing = false;
+    if (this.pressTimer) {
+      clearTimeout(this.pressTimer);
+    }
   }
-}
+
+  goToFriendProfile() {
+    this.router.navigate(['/social/friend-profile', this.friendId()]);
+  }
 }

@@ -1,5 +1,5 @@
 <!-- src/app/features/social/friend-search/friend-search.page.html -->
-<!-- 🔍 Template de recherche d'utilisateurs et gestion des demandes d'ami -->
+<!-- 🔍 Template de recherche d'utilisateurs uniquement -->
 
 <ion-header [translucent]="true">
   <ion-toolbar color="primary">
@@ -9,7 +9,7 @@
     <ion-title>Trouver des amis</ion-title>
   </ion-toolbar>
 
-  <!-- Barre de recherche (toujours visible) -->
+  <!-- Barre de recherche -->
   <ion-toolbar>
     <ion-searchbar
       [(ngModel)]="searchTerm"
@@ -21,32 +21,6 @@
       show-cancel-button="focus">
     </ion-searchbar>
   </ion-toolbar>
-
-  <!-- Segmented Buttons -->
-  <ion-toolbar>
-    <ion-segment 
-      [(ngModel)]="selectedSegment" 
-      (ionChange)="onSegmentChange($event)"
-      value="search">
-      <ion-segment-button value="search">
-        <ion-label>
-          <ion-icon name="search-outline"></ion-icon>
-          Recherche
-        </ion-label>
-      </ion-segment-button>
-      <ion-segment-button value="pending">
-        <ion-label>
-          <ion-icon name="mail-outline"></ion-icon>
-          Demandes
-          @if (pendingRequests().length > 0) {
-            <ion-badge color="danger" class="request-badge">
-              {{ pendingRequests().length }}
-            </ion-badge>
-          }
-        </ion-label>
-      </ion-segment-button>
-    </ion-segment>
-  </ion-toolbar>
 </ion-header>
 
 <ion-content [fullscreen]="true">
@@ -55,153 +29,80 @@
     <ion-refresher-content></ion-refresher-content>
   </ion-refresher>
 
-  <!-- ========================================
-       SEGMENT : RECHERCHE
-       ======================================== -->
-  @if (selectedSegment === 'search') {
-    
-    <!-- État : Recherche en cours -->
-    @if (isSearching()) {
-      <div class="loading-container">
-        <ion-spinner name="crescent" color="primary"></ion-spinner>
-        <ion-text color="medium">
-          <p>Recherche en cours...</p>
-        </ion-text>
-      </div>
-    }
-
-    <!-- État : Aucun terme de recherche -->
-    @else if (!searchTerm || searchTerm.length < 2) {
-      <div class="empty-state">
-        <ion-icon name="search-outline" color="medium" class="empty-icon"></ion-icon>
-        <ion-text color="medium">
-          <h2>Recherchez des amis</h2>
-          <p>Entrez au moins 2 caractères pour commencer la recherche</p>
-        </ion-text>
-      </div>
-    }
-
-    <!-- État : Aucun résultat -->
-    @else if (searchResults().length === 0 && !isSearching()) {
-      <div class="empty-state">
-        <ion-icon name="people-outline" color="medium" class="empty-icon"></ion-icon>
-        <ion-text color="medium">
-          <h2>Aucun résultat</h2>
-          <p>Aucun utilisateur trouvé pour "{{ searchTerm }}"</p>
-        </ion-text>
-      </div>
-    }
-
-    <!-- Liste des résultats de recherche -->
-    @else {
-      <ion-list class="search-results-list">
-        @for (user of searchResults(); track user.userId) {
-          <ion-item 
-            button 
-            (click)="goToUserProfile(user.userId)"
-            class="user-item">
-            
-            <!-- Avatar -->
-            <ion-avatar slot="start">
-              <img [src]="getPhotoUrl(user.photoURL)" [alt]="user.displayName" />
-            </ion-avatar>
-
-            <!-- Informations utilisateur -->
-            <ion-label>
-              <h2>{{ user.displayName }}</h2>
-              @if (user.bio) {
-                <p class="bio">{{ user.bio }}</p>
-              }
-              @if (user.city) {
-                <p class="location">
-                  <ion-icon name="location-outline" size="small"></ion-icon>
-                  {{ user.city }}
-                </p>
-              }
-            </ion-label>
-
-            <!-- Bouton d'action -->
-            <ion-button
-              slot="end"
-              [color]="getActionButtonColor(user)"
-              size="small"
-              (click)="onActionButtonClick(user); $event.stopPropagation()">
-              <ion-icon 
-                [name]="getActionButtonIcon(user)" 
-                slot="start">
-              </ion-icon>
-              {{ getActionButtonText(user) }}
-            </ion-button>
-          </ion-item>
-        }
-      </ion-list>
-    }
+  <!-- État : Recherche en cours -->
+  @if (isSearching()) {
+    <div class="loading-container">
+      <ion-spinner name="crescent" color="primary"></ion-spinner>
+      <ion-text color="medium">
+        <p>Recherche en cours...</p>
+      </ion-text>
+    </div>
   }
 
-  <!-- ========================================
-       SEGMENT : DEMANDES EN ATTENTE
-       ======================================== -->
-  @if (selectedSegment === 'pending') {
-    
-    <!-- État : Chargement -->
-    @if (isLoading()) {
-      <div class="loading-container">
-        <ion-spinner name="crescent" color="primary"></ion-spinner>
-        <ion-text color="medium">
-          <p>Chargement des demandes...</p>
-        </ion-text>
-      </div>
-    }
+  <!-- État : Aucun terme de recherche -->
+  @else if (!searchTerm || searchTerm.length < 2) {
+    <div class="empty-state">
+      <ion-icon name="search-outline" color="medium" class="empty-icon"></ion-icon>
+      <ion-text color="medium">
+        <h2>Recherchez des amis</h2>
+        <p>Entrez au moins 2 caractères pour commencer la recherche</p>
+      </ion-text>
+    </div>
+  }
 
-    <!-- État : Aucune demande -->
-    @else if (pendingRequests().length === 0) {
-      <div class="empty-state">
-        <ion-icon name="mail-outline" color="medium" class="empty-icon"></ion-icon>
-        <ion-text color="medium">
-          <h2>Aucune demande</h2>
-          <p>Vous n'avez pas de demande d'ami en attente</p>
-        </ion-text>
-      </div>
-    }
+  <!-- État : Aucun résultat -->
+  @else if (searchResults().length === 0 && !isSearching()) {
+    <div class="empty-state">
+      <ion-icon name="people-outline" color="medium" class="empty-icon"></ion-icon>
+      <ion-text color="medium">
+        <h2>Aucun résultat</h2>
+        <p>Aucun utilisateur trouvé pour "{{ searchTerm }}"</p>
+      </ion-text>
+    </div>
+  }
 
-    <!-- Liste des demandes en attente -->
-    @else {
-      <ion-list class="pending-requests-list">
-        @for (request of pendingRequests(); track request.friendshipId) {
-          <ion-item 
-            button 
-            (click)="goToUserProfile(request.userId)"
-            class="request-item">
-            
-            <!-- Avatar -->
-            <ion-avatar slot="start">
-              <img [src]="getPhotoUrl(request.photoURL)" [alt]="request.displayName" />
-            </ion-avatar>
+  <!-- Liste des résultats de recherche -->
+  @else {
+    <ion-list class="search-results-list">
+      @for (user of searchResults(); track user.userId) {
+        <ion-item 
+          button 
+          (click)="goToUserProfile(user.userId)"
+          class="user-item">
+          
+          <!-- Avatar -->
+          <ion-avatar slot="start">
+            <img [src]="getPhotoUrl(user.photoURL)" [alt]="user.displayName" />
+          </ion-avatar>
 
-            <!-- Informations -->
-            <ion-label>
-              <h2>{{ request.displayName }}</h2>
-              <p>Vous a envoyé une demande d'ami</p>
-            </ion-label>
+          <!-- Informations utilisateur -->
+          <ion-label>
+            <h2>{{ user.displayName }}</h2>
+            @if (user.bio) {
+              <p class="bio">{{ user.bio }}</p>
+            }
+            @if (user.city) {
+              <p class="location">
+                <ion-icon name="location-outline" size="small"></ion-icon>
+                {{ user.city }}
+              </p>
+            }
+          </ion-label>
 
-            <!-- Boutons d'action -->
-            <div slot="end" class="action-buttons">
-              <ion-button
-                color="success"
-                size="small"
-                (click)="acceptRequest(request); $event.stopPropagation()">
-                <ion-icon name="checkmark-circle-outline" slot="icon-only"></ion-icon>
-              </ion-button>
-              <ion-button
-                color="danger"
-                size="small"
-                (click)="rejectRequest(request); $event.stopPropagation()">
-                <ion-icon name="close-circle-outline" slot="icon-only"></ion-icon>
-              </ion-button>
-            </div>
-          </ion-item>
-        }
-      </ion-list>
-    }
+          <!-- Bouton d'action -->
+          <ion-button
+            slot="end"
+            [color]="getActionButtonColor(user)"
+            size="small"
+            (click)="onActionButtonClick(user); $event.stopPropagation()">
+            <ion-icon 
+              [name]="getActionButtonIcon(user)" 
+              slot="start">
+            </ion-icon>
+            {{ getActionButtonText(user) }}
+          </ion-button>
+        </ion-item>
+      }
+    </ion-list>
   }
 </ion-content>

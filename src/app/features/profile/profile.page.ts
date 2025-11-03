@@ -59,7 +59,8 @@ import {
   imagesOutline,
   closeOutline,
   heartOutline,
-  musicalNote
+  musicalNote,
+  personAddOutline  // ✅ NOUVEAU : Pour le bouton d'ajout d'amis
 } from 'ionicons/icons';
 import { Subscription } from 'rxjs';
 import { UsersService } from '../../core/services/users.service';
@@ -201,7 +202,8 @@ export class ProfilePage implements OnInit, OnDestroy {
       imagesOutline,
       closeOutline,
       heartOutline,
-      musicalNote
+      musicalNote,
+      personAddOutline  // ✅ NOUVEAU
     });
   }
 
@@ -722,6 +724,14 @@ export class ProfilePage implements OnInit, OnDestroy {
     if (diffDays < 30) return `${Math.floor(diffDays / 7)} sem.`;
     if (diffDays < 365) return `${Math.floor(diffDays / 30)} mois`;
     return `${Math.floor(diffDays / 365)} an${Math.floor(diffDays / 365) > 1 ? 's' : ''}`;
+  }
+
+  /**
+   * ✅ NOUVEAU : Navigation vers la recherche d'amis
+   */
+  goToFriendSearch() {
+    console.log('👥 [ProfilePage] Navigation vers recherche d\'amis');
+    this.router.navigate(['/social/friend-search']);
   }
 
   /**

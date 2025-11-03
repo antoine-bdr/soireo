@@ -18,6 +18,20 @@ ion-header {
   gap: 12px;
   padding: 0 8px;
 
+  // ✅ NOUVEAU : Rendre le header cliquable
+  &.clickable {
+    cursor: pointer;
+    transition: opacity 0.2s ease;
+
+    &:hover {
+      opacity: 0.8;
+    }
+
+    &:active {
+      opacity: 0.6;
+    }
+  }
+
   ion-avatar {
     width: 36px;
     height: 36px;

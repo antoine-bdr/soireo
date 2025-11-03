@@ -1,6 +1,6 @@
 // src/app/core/services/messages.service.ts
 // 💬 Service de gestion de la messagerie privée
-// Gère les conversations et messages en temps réel entre amis
+// ✅ CORRECTION: getUserConversations() maintenant en temps réel avec onSnapshot
 
 import { Injectable, inject } from '@angular/core';
 import {
@@ -81,14 +81,18 @@ export class MessagesService {
   // ========================================
 
   /**
-   * 📋 Récupère toutes les conversations d'un utilisateur (temps réel)
+   * 📋 Récupère toutes les conversations d'un utilisateur (TEMPS RÉEL)
+   * ✅ CORRIGÉ: Utilise maintenant onSnapshot pour les mises à jour en temps réel
    * Triées par dernière activité
    * 
    * @param userId UID de l'utilisateur
-   * @returns Observable de conversations
+   * @returns Observable de conversations (mis à jour en temps réel)
    */
   getUserConversations(userId: string): Observable<ConversationListItem[]> {
-    console.log(`💬 [MessagesService] Chargement conversations pour ${userId}`);
+    console.log(`📨 [MessagesService] ═══════════════════════════════════`);
+    console.log(`📨 [MessagesService] getUserConversations() START`);
+    console.log(`📨 [MessagesService] userId: ${userId}`);
+    console.log(`📨 [MessagesService] ═══════════════════════════════════`);
   
     const conversationsCol = collection(this.firestore, 'conversations');
     
@@ -98,28 +102,59 @@ export class MessagesService {
       orderBy('updatedAt', 'desc')
     );
   
-    return from(getDocs(q)).pipe(
-      map(snapshot => {
-        console.log(`✅ [MessagesService] ${snapshot.docs.length} conversations trouvées`);
-  
-        return snapshot.docs.map(doc => {
-          const conv = { id: doc.id, ...doc.data() } as Conversation;
+    // ✅ CORRECTION: Utiliser onSnapshot pour le temps réel
+    return new Observable<ConversationListItem[]>(observer => {
+      console.log(`📨 [MessagesService] Création du listener onSnapshot pour ${userId}`);
+      
+      const unsubscribe = onSnapshot(
+        q,
+        (snapshot) => {
+          console.log(`📨 [MessagesService] ═════════════════════════════════════════`);
+          console.log(`📨 [MessagesService] 🎯 onSnapshot DÉCLENCHÉ!`);
+          console.log(`📨 [MessagesService] ${snapshot.docs.length} conversations trouvées`);
+
+          const conversations = snapshot.docs.map(doc => {
+            const conv = { id: doc.id, ...doc.data() } as Conversation;
+            
+            const friendId = getFriendIdFromConversation(conv, userId);
+            const friendData = getFriendDataFromConversation(conv, userId);
+    
+            const item: ConversationListItem = {
+              conversationId: conv.id!,
+              friendId,
+              friendDisplayName: friendData.displayName,
+              friendPhotoURL: friendData.photoURL,
+              lastMessageText: conv.lastMessage?.text || '',
+              lastMessageTime: conv.lastMessage?.createdAt.toDate() || conv.createdAt.toDate(),
+              unreadCount: conv.unreadCount[userId] || 0
+            };
+
+            console.log(`📨 [MessagesService] Conversation: ${item.friendDisplayName}, unread: ${item.unreadCount}`);
+            return item;
+          });
+
+          // ✅ IMPORTANT: Compter le nombre total de messages non lus
+          const totalUnread = conversations.reduce((sum, conv) => sum + conv.unreadCount, 0);
+          const unreadConversationCount = conversations.filter(conv => conv.unreadCount > 0).length;
           
-          const friendId = getFriendIdFromConversation(conv, userId);
-          const friendData = getFriendDataFromConversation(conv, userId);
+          console.log(`📨 [MessagesService] ✅ Total conversations non lues: ${unreadConversationCount}`);
+          console.log(`📨 [MessagesService] ✅ Total messages non lus: ${totalUnread}`);
+          console.log(`📨 [MessagesService] ═════════════════════════════════════════`);
+          
+          observer.next(conversations);
+        },
+        (error) => {
+          console.error(`❌ [MessagesService] Erreur onSnapshot:`, error);
+          observer.error(error);
+        }
+      );
   
-          return {
-            conversationId: conv.id!,
-            friendId,
-            friendDisplayName: friendData.displayName,
-            friendPhotoURL: friendData.photoURL,
-            lastMessageText: conv.lastMessage?.text || '',
-            lastMessageTime: conv.lastMessage?.createdAt.toDate() || conv.createdAt.toDate(),
-            unreadCount: conv.unreadCount[userId] || 0
-          } as ConversationListItem;
-        });
-      })
-    );
+      // Cleanup
+      return () => {
+        console.log(`📨 [MessagesService] Unsubscribe onSnapshot pour ${userId}`);
+        unsubscribe();
+      };
+    });
   }
 
   /**
@@ -330,27 +365,11 @@ export class MessagesService {
       });
 
       console.log(`✅ [MessagesService] Conversation mise à jour`);
+      console.log(`📨 [MessagesService] ✅ Le compteur de messages non lus pour ${receiverId} a été incrémenté!`);
 
-      // ✅ Créer une notification pour le destinataire (nettoyer les undefined)
-      const notificationMetadata: any = {
-        relatedEntityId: messageDto.conversationId,
-        relatedEntityType: 'message',
-        actionUrl: `/social/messages/${messageDto.senderId}`,
-        senderUserId: messageDto.senderId,
-        senderDisplayName: messageDto.senderDisplayName
-      };
-
-      // N'ajouter senderPhotoURL que si il existe
-      if (messageDto.senderPhotoURL) {
-        notificationMetadata.senderPhotoURL = messageDto.senderPhotoURL;
-      }
-
-      await this.notificationsService.createNotificationByType(
-        NotificationType.NEW_MESSAGE,
-        receiverId,
-        `${messageDto.senderDisplayName}: ${messageDto.text.substring(0, 50)}${messageDto.text.length > 50 ? '...' : ''}`,
-        notificationMetadata
-      );
+      // ⛔ DÉSACTIVÉ : Notifications NEW_MESSAGE supprimées
+      // Les utilisateurs ne recevront plus de notifications pour les nouveaux messages
+      // Le badge de compteur de conversations non lues reste actif dans l'onglet Messages
 
       return messageRef.id;
     } catch (error) {
@@ -360,104 +379,32 @@ export class MessagesService {
   }
 
   /**
-   * ✅ NOUVEAU (ÉTAPE 3) : Marque un message comme délivré
-   * Transition : SENT → DELIVERED
-   * Appelé quand le destinataire ouvre la conversation
-   * 
-   * @param messageId ID du message
-   * @returns Promise<void>
-   */
-  async markMessageAsDelivered(messageId: string): Promise<void> {
-    console.log(`✅ [MessagesService] Marquage message comme delivered: ${messageId}`);
-    
-    try {
-      // On ne peut pas accéder directement au message sans connaître le conversationId
-      // Cette méthode doit être appelée avec l'ID complet du document
-      // Format attendu : conversations/{conversationId}/messages/{messageId}
-      
-      // Pour simplifier, on va chercher le message dans toutes les conversations
-      // Alternative : passer conversationId en paramètre
-      
-      // Trouver le document dans les conversations
-      const conversationsSnapshot = await getDocs(collection(this.firestore, 'conversations'));
-      
-      for (const convDoc of conversationsSnapshot.docs) {
-        const messageRef = doc(
-          this.firestore,
-          'conversations',
-          convDoc.id,
-          'messages',
-          messageId
-        );
-        
-        const messageSnap = await getDoc(messageRef);
-        
-        if (messageSnap.exists()) {
-          // Message trouvé, mettre à jour son statut
-          await updateDoc(messageRef, {
-            status: MessageStatus.DELIVERED,
-            updatedAt: serverTimestamp()
-          });
-          
-          console.log(`✅ [MessagesService] Message marqué comme delivered`);
-          return;
-        }
-      }
-      
-      console.warn(`⚠️ [MessagesService] Message non trouvé: ${messageId}`);
-    } catch (error) {
-      console.error('❌ [MessagesService] Erreur marquage delivered:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * ✅ OPTIMISÉ (ÉTAPE 3) : Marque un message comme délivré avec conversationId
-   * Version optimisée qui nécessite le conversationId
-   * 
-   * @param conversationId ID de la conversation
-   * @param messageId ID du message
-   * @returns Promise<void>
-   */
-  async markMessageAsDeliveredInConversation(
-    conversationId: string,
-    messageId: string
-  ): Promise<void> {
-    console.log(`✅ [MessagesService] Marquage message comme delivered: ${messageId} dans ${conversationId}`);
-    
-    try {
-      const messageRef = doc(
-        this.firestore,
-        'conversations',
-        conversationId,
-        'messages',
-        messageId
-      );
-      
-      await updateDoc(messageRef, {
-        status: MessageStatus.DELIVERED,
-        updatedAt: serverTimestamp()
-      });
-      
-      console.log(`✅ [MessagesService] Message marqué comme delivered`);
-    } catch (error) {
-      console.error('❌ [MessagesService] Erreur marquage delivered:', error);
-      throw error;
-    }
-  }
-
-
-  // ========================================
-  // 📊 STATISTIQUES
-  // ========================================
-
-  /**
-   * 📊 Récupère les statistiques de messagerie
+   * ✅ Compte le nombre de conversations avec messages non lus
+   * Badge : 1 conversation avec 3 messages non lus = badge "1"
+   *          2 conversations avec messages non lus = badge "2"
    * 
    * @param userId UID de l'utilisateur
-   * @returns Observable des stats
+   * @returns Observable du nombre de conversations non lues
+   */
+  getUnreadMessagesCount(userId: string): Observable<number> {
+    console.log(`📨 [MessagesService] getUnreadMessagesCount() pour ${userId}`);
+    
+    return this.getMessageStats(userId).pipe(
+      map(stats => {
+        console.log(`📨 [MessagesService] ✅ getUnreadMessagesCount retourne: ${stats.unreadConversations} conversations non lues`);
+        return stats.unreadConversations;
+      })
+    );
+  }
+
+  /**
+   * 📊 Récupère les statistiques de messages
+   * @param userId UID de l'utilisateur
+   * @returns Observable<MessageStats>
    */
   getMessageStats(userId: string): Observable<MessageStats> {
+    console.log(`📨 [MessagesService] getMessageStats() pour ${userId}`);
+    
     return this.getUserConversations(userId).pipe(
       map(conversations => {
         const totalUnread = conversations.reduce(
@@ -472,26 +419,16 @@ export class MessagesService {
           ? conversations[0].lastMessageTime
           : undefined;
 
-        return {
+        const stats: MessageStats = {
           totalConversations: conversations.length,
           unreadConversations,
           totalUnreadMessages: totalUnread,
           lastMessageAt: lastMessage
         };
-      })
-    );
-  }
 
-  /**
-   * 🔢 Compte le nombre total de messages non lus
-   * Utilisé pour afficher le badge dans le header
-   * 
-   * @param userId UID de l'utilisateur
-   * @returns Observable du compteur
-   */
-  getUnreadMessagesCount(userId: string): Observable<number> {
-    return this.getMessageStats(userId).pipe(
-      map(stats => stats.totalUnreadMessages)
+        console.log(`📨 [MessagesService] Stats complètes:`, stats);
+        return stats;
+      })
     );
   }
 
@@ -545,7 +482,7 @@ export class MessagesService {
       batch.delete(conversationRef);
 
       await batch.commit();
-      console.log(`✅ [MessagesService] Conversation supprimée: ${conversationId}`);
+      console.log(`✅ [MessagesService] Conversation supprimée`);
     } catch (error) {
       console.error('❌ [MessagesService] Erreur suppression conversation:', error);
       throw error;
@@ -553,45 +490,44 @@ export class MessagesService {
   }
 
   // ========================================
-// ✍️ TYPING INDICATOR (ÉTAPE 2)
-// ========================================
-// ⚠️ À ajouter à la fin de la classe MessagesService, avant la dernière accolade
+  // ✍️ TYPING INDICATOR
+  // ========================================
 
-/**
- * ✍️ Met à jour le statut "en train d'écrire" pour un utilisateur
- * 
- * @param conversationId ID de la conversation
- * @param userId UID de l'utilisateur qui tape
- * @param isTyping true pour activer, false pour désactiver
- */
-async setTypingStatus(conversationId: string, userId: string, isTyping: boolean): Promise<void> {
-  try {
-    const conversationRef = doc(this.firestore, 'conversations', conversationId);
-    
-    if (isTyping) {
-      // Activer le typing avec timestamp actuel
-      await updateDoc(conversationRef, {
-        [`typing.${userId}`]: serverTimestamp()
-      });
-    } else {
-      // Désactiver le typing (supprimer le champ)
-      await updateDoc(conversationRef, {
-        [`typing.${userId}`]: null
-      });
+  /**
+   * ✍️ Met à jour le statut "en train d'écrire" pour un utilisateur
+   * 
+   * @param conversationId ID de la conversation
+   * @param userId UID de l'utilisateur qui tape
+   * @param isTyping true pour activer, false pour désactiver
+   */
+  async setTypingStatus(conversationId: string, userId: string, isTyping: boolean): Promise<void> {
+    try {
+      const conversationRef = doc(this.firestore, 'conversations', conversationId);
+      
+      if (isTyping) {
+        // Activer le typing avec timestamp actuel
+        await updateDoc(conversationRef, {
+          [`typing.${userId}`]: serverTimestamp()
+        });
+      } else {
+        // Désactiver le typing (supprimer le champ)
+        await updateDoc(conversationRef, {
+          [`typing.${userId}`]: null
+        });
+      }
+    } catch (error) {
+      console.error('❌ Erreur setTypingStatus:', error);
+      // Ne pas throw l'erreur pour ne pas bloquer l'envoi du message
     }
-  } catch (error) {
-    console.error('❌ Erreur setTypingStatus:', error);
-    // Ne pas throw l'erreur pour ne pas bloquer l'envoi du message
   }
-}
 
-/**
- * ✍️ Observe le statut "en train d'écrire" d'un utilisateur spécifique
- * 
- * @param conversationId ID de la conversation
- * @param userId UID de l'utilisateur à observer
- * @returns Observable<boolean> - true si en train d'écrire
- */
+  /**
+   * ✍️ Observe le statut "en train d'écrire" d'un utilisateur spécifique
+   * 
+   * @param conversationId ID de la conversation
+   * @param userId UID de l'utilisateur à observer
+   * @returns Observable<boolean> - true si en train d'écrire
+   */
   observeTypingStatus(conversationId: string, userId: string): Observable<boolean> {
     const conversationRef = doc(this.firestore, 'conversations', conversationId);
     
@@ -686,132 +622,126 @@ async setTypingStatus(conversationId: string, userId: string, isTyping: boolean)
   }
 
   // ========================================
-// ✏️ ÉDITION ET SUPPRESSION DE MESSAGES
-// ========================================
+  // ✏️ ÉDITION ET SUPPRESSION DE MESSAGES
+  // ========================================
 
-/**
- * ✏️ Modifie un message existant
- */
-async editMessage(
-  conversationId: string,
-  messageId: string,
-  newText: string
-): Promise<void> {
-  console.log('✏️ [MessagesService] Modification message:', messageId);
-
-  try {
-    const messageRef = doc(
-      this.firestore,
-      'conversations',
-      conversationId,
-      'messages',
-      messageId
-    );
-
-    await updateDoc(messageRef, {
-      text: newText,
-      isEdited: true,
-      updatedAt: serverTimestamp()
-    });
-
-    console.log('✅ Message modifié');
-  } catch (error) {
-    console.error('❌ Erreur modification message:', error);
-    throw error;
-  }
-}
-
-/**
- * 🗑️ Supprime un message (soft delete)
- */
-async deleteMessage(
-  conversationId: string,
-  messageId: string
-): Promise<void> {
-  console.log('🗑️ [MessagesService] Suppression message:', messageId);
-
-  try {
-    const messageRef = doc(
-      this.firestore,
-      'conversations',
-      conversationId,
-      'messages',
-      messageId
-    );
-
-    await updateDoc(messageRef, {
-      text: 'Message supprimé',
-      isDeleted: true,
-      updatedAt: serverTimestamp()
-    });
-
-    console.log('✅ Message supprimé');
-  } catch (error) {
-    console.error('❌ Erreur suppression message:', error);
-    throw error;
-  }
-}
-
-// ========================================
-// 😍 RÉACTIONS
-// ========================================
-
-/**
- * 😍 Ajoute une réaction à un message
- */
-/**
- * 😍 Ajoute une réaction à un message
- */
   /**
- * 😍 Ajoute une réaction à un message
- * Un utilisateur ne peut avoir qu'UNE réaction par message
- * Si une réaction existe déjà, elle est remplacée
- */
-async addReaction(
-  conversationId: string,
-  messageId: string,
-  emoji: string,
-  userId: string,
-  userDisplayName: string
-): Promise<void> {
-  console.log('😍 [MessagesService] Ajout réaction:', emoji);
+   * ✏️ Modifie un message existant
+   */
+  async editMessage(
+    conversationId: string,
+    messageId: string,
+    newText: string
+  ): Promise<void> {
+    console.log('✏️ [MessagesService] Modification message:', messageId);
 
-  try {
-    const messageRef = doc(
-      this.firestore,
-      'conversations',
-      conversationId,
-      'messages',
-      messageId
-    );
+    try {
+      const messageRef = doc(
+        this.firestore,
+        'conversations',
+        conversationId,
+        'messages',
+        messageId
+      );
 
-    const messageDoc = await getDoc(messageRef);
-    if (!messageDoc.exists()) {
-      throw new Error('Message introuvable');
+      await updateDoc(messageRef, {
+        text: newText,
+        isEdited: true,
+        updatedAt: serverTimestamp()
+      });
+
+      console.log('✅ Message modifié');
+    } catch (error) {
+      console.error('❌ Erreur modification message:', error);
+      throw error;
     }
-
-    const messageData = messageDoc.data() as Message;
-    let reactions = messageData.reactions || [];
-
-    // ✅ NOUVEAU : Retirer TOUTE réaction existante de cet utilisateur
-    reactions = reactions.filter(r => r.userId !== userId);
-
-    // ✅ Ajouter la nouvelle réaction
-    reactions.push({
-      emoji,
-      userId,
-      userDisplayName,
-      createdAt: Timestamp.now()
-    });
-
-    await updateDoc(messageRef, {
-      reactions: reactions.length > 0 ? reactions : []
-    });
-
-    console.log('✅ Réaction ajoutée/remplacée');
-  } catch (error) {
-    console.error('❌ Erreur ajout réaction:', error);
-    throw error;
   }
-}
+
+  /**
+   * 🗑️ Supprime un message (soft delete)
+   */
+  async deleteMessage(
+    conversationId: string,
+    messageId: string
+  ): Promise<void> {
+    console.log('🗑️ [MessagesService] Suppression message:', messageId);
+
+    try {
+      const messageRef = doc(
+        this.firestore,
+        'conversations',
+        conversationId,
+        'messages',
+        messageId
+      );
+
+      await updateDoc(messageRef, {
+        text: 'Message supprimé',
+        isDeleted: true,
+        updatedAt: serverTimestamp()
+      });
+
+      console.log('✅ Message supprimé');
+    } catch (error) {
+      console.error('❌ Erreur suppression message:', error);
+      throw error;
+    }
+  }
+
+  // ========================================
+  // 😍 RÉACTIONS
+  // ========================================
+
+  /**
+   * 😍 Ajoute une réaction à un message
+   * Un utilisateur ne peut avoir qu'UNE réaction par message
+   * Si une réaction existe déjà, elle est remplacée
+   */
+  async addReaction(
+    conversationId: string,
+    messageId: string,
+    emoji: string,
+    userId: string,
+    userDisplayName: string
+  ): Promise<void> {
+    console.log('😍 [MessagesService] Ajout réaction:', emoji);
+
+    try {
+      const messageRef = doc(
+        this.firestore,
+        'conversations',
+        conversationId,
+        'messages',
+        messageId
+      );
+
+      const messageDoc = await getDoc(messageRef);
+      if (!messageDoc.exists()) {
+        throw new Error('Message introuvable');
+      }
+
+      const messageData = messageDoc.data() as Message;
+      let reactions = messageData.reactions || [];
+
+      // ✅ Retirer TOUTE réaction existante de cet utilisateur
+      reactions = reactions.filter(r => r.userId !== userId);
+
+      // ✅ Ajouter la nouvelle réaction
+      reactions.push({
+        emoji,
+        userId,
+        userDisplayName,
+        createdAt: Timestamp.now()
+      });
+
+      await updateDoc(messageRef, {
+        reactions: reactions.length > 0 ? reactions : []
+      });
+
+      console.log('✅ Réaction ajoutée/remplacée');
+    } catch (error) {
+      console.error('❌ Erreur ajout réaction:', error);
+      throw error;
+    }
+  }
 }

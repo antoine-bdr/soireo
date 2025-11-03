@@ -1,6 +1,3 @@
-// src/app/features/events/event-list/event-list.page.ts
-// ✅ VERSION DEBUG - Avec outils de diagnostic
-
 import { Component, OnInit, OnDestroy, inject, signal, computed, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
@@ -25,7 +22,7 @@ import {
   IonBadge,
   IonText,
   ModalController,
-  AlertController  // ✅ AJOUTÉ pour le debug
+  AlertController
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import { 
@@ -39,7 +36,7 @@ import {
   personAddOutline,
   notificationsOutline,
   chatbubblesOutline,
-  bugOutline  // ✅ AJOUTÉ pour le bouton debug
+  bugOutline
 } from 'ionicons/icons';
 
 import { EventsService } from '../../../core/services/events.service';
@@ -94,7 +91,7 @@ export class EventListPage implements OnInit, OnDestroy {
   private readonly authService = inject(AuthenticationService);
   private readonly messagesService = inject(MessagesService);
   private readonly modalCtrl = inject(ModalController);
-  private readonly alertCtrl = inject(AlertController);  // ✅ AJOUTÉ
+  private readonly alertCtrl = inject(AlertController);
   private readonly router = inject(Router);
 
   // ========================================
@@ -153,7 +150,6 @@ export class EventListPage implements OnInit, OnDestroy {
   // ========================================
   // 🧹 GESTION DES SUBSCRIPTIONS
   // ========================================
-  // ✅ CORRECT
   private subscriptions: Subscription[] = [];
 
   constructor() {
@@ -168,7 +164,7 @@ export class EventListPage implements OnInit, OnDestroy {
       add,
       searchOutline,
       funnel,
-      bugOutline  // ✅ AJOUTÉ
+      bugOutline
     });
     
     effect(() => {
@@ -181,7 +177,11 @@ export class EventListPage implements OnInit, OnDestroy {
   }
 
   ngOnInit() {
-    console.log('🚀 [EventListPage] ngOnInit START');
+    console.log('');
+    console.log('╔═══════════════════════════════════════════════════════════════╗');
+    console.log('║  🚀 [EventListPage] ngOnInit START                            ║');
+    console.log('╚═══════════════════════════════════════════════════════════════╝');
+    console.log('');
     
     console.log('📡 [EventListPage] Étape 1: Setup filters listener...');
     this.setupFiltersListener();
@@ -189,14 +189,21 @@ export class EventListPage implements OnInit, OnDestroy {
     console.log('📡 [EventListPage] Étape 2: Load events...');
     this.loadEvents();
 
-    this.loadMessagesCount();
-    
-    // ✅ SOLUTION : Retarder loadCounters pour laisser le temps à l'auth de s'initialiser
-    console.log('📡 [EventListPage] Étape 3: Load counters (delayed)...');
+    // ⏰ IMPORTANT: Retarder le chargement des compteurs
+    console.log('📡 [EventListPage] Étape 3: Schedule counters (delayed 300ms)...');
     setTimeout(() => {
-      console.log('⏰ [EventListPage] Timeout exécuté - appel de loadCounters()');
+      console.log('');
+      console.log('⏰ [EventListPage] ═══════════════════════════════════════════════════════════');
+      console.log('⏰ [EventListPage] Timeout 300ms exécuté - Appel de loadCounters()');
+      console.log('⏰ [EventListPage] ═══════════════════════════════════════════════════════════');
       this.loadCounters();
-    }, 300); // 300ms de délai
+      
+      console.log('');
+      console.log('⏰ [EventListPage] ═══════════════════════════════════════════════════════════');
+      console.log('⏰ [EventListPage] Timeout 300ms exécuté - Appel de loadMessagesCount()');
+      console.log('⏰ [EventListPage] ═══════════════════════════════════════════════════════════');
+      this.loadMessagesCount();
+    }, 300);
     
     console.log('✅ [EventListPage] ngOnInit END');
   }
@@ -236,25 +243,67 @@ export class EventListPage implements OnInit, OnDestroy {
   }
 
   /**
- * 📨 Charge le compteur de messages non lus en temps réel
- */
-private loadMessagesCount() {
-  const currentUser = this.authService.currentUser();
-  if (!currentUser) return;
+   * 📨 Charge le compteur de messages non lus en temps réel
+   * ✅ CORRIGÉ: Appelé avec setTimeout pour laisser l'auth s'initialiser
+   */
+  private loadMessagesCount() {
+    console.log('');
+    console.log('╔═══════════════════════════════════════════════════════════════╗');
+    console.log('║  📨 [EventListPage] loadMessagesCount() START                 ║');
+    console.log('╚═══════════════════════════════════════════════════════════════╝');
+    
+    const currentUser = this.authService.currentUser();
+    const userId = this.authService.getCurrentUserId();
 
-  const sub = this.messagesService.getUnreadMessagesCount(currentUser.uid).subscribe({
-    next: (count) => {
-      this.unreadMessagesCount.set(count);
-      console.log(`📨 Messages non lus: ${count}`);
-    },
-    error: (err) => {
-      console.error('❌ Erreur chargement compteur messages:', err);
-      this.unreadMessagesCount.set(0);
+    console.log(`📨 [EventListPage] currentUser():`, currentUser);
+    console.log(`📨 [EventListPage] getCurrentUserId():`, userId);
+    console.log(`📨 [EventListPage] Type userId:`, typeof userId);
+
+    if (!userId) {
+      console.error('❌ [EventListPage] ERREUR: Utilisateur NOT connecté!');
+      console.error('❌ [EventListPage] currentUser:', currentUser);
+      console.error('❌ [EventListPage] userId:', userId);
+      return;
     }
-  });
 
-  this.subscriptions.push(sub);
-}
+    console.log(`✅ [EventListPage] userId trouvé: ${userId}`);
+    console.log(`📨 [EventListPage] Appel messagesService.getUnreadMessagesCount(${userId})...`);
+
+    const sub = this.messagesService.getUnreadMessagesCount(userId).subscribe({
+      next: (count) => {
+        console.log('');
+        console.log('═══════════════════════════════════════════════════════════════');
+        console.log(`📨 [EventListPage] 🎯 NEXT APPELÉ POUR MESSAGES!`);
+        console.log(`📨 [EventListPage] Compteur reçu: ${count}`);
+        console.log(`📨 [EventListPage] Type: ${typeof count}`);
+        console.log(`📨 [EventListPage] Avant set: unreadMessagesCount=${this.unreadMessagesCount()}`);
+        
+        this.unreadMessagesCount.set(count);
+        
+        console.log(`📨 [EventListPage] Après set: unreadMessagesCount=${this.unreadMessagesCount()}`);
+        console.log(`📨 [EventListPage] Badge devrait afficher: ${count > 0 ? '✅ OUI' : '❌ NON'}`);
+        console.log('═══════════════════════════════════════════════════════════════');
+        console.log('');
+      },
+      error: (error) => {
+        console.log('');
+        console.log('═══════════════════════════════════════════════════════════════');
+        console.error('❌ [EventListPage] ERREUR MESSAGES SUBSCRIBE:');
+        console.error('❌ Type:', error.constructor.name);
+        console.error('❌ Message:', error.message);
+        console.error('❌ Stack:', error.stack);
+        console.log('═══════════════════════════════════════════════════════════════');
+        console.log('');
+      },
+      complete: () => {
+        console.log('📨 [EventListPage] Messages subscribe COMPLETE');
+      }
+    });
+
+    console.log(`📨 [EventListPage] Subscription créée`, sub);
+    console.log(`📨 [EventListPage] Subscription fermée?`, sub.closed);
+    this.subscriptions.push(sub);
+  }
 
   loadParticipantCounts(events: Event[]) {
     console.log(`👥 [EventListPage] Chargement des compteurs de participants pour ${events.length} événements`);
@@ -285,18 +334,17 @@ private loadMessagesCount() {
   loadCounters() {
     const userId = this.authService.getCurrentUserId();
     
-    console.log('═══════════════════════════════════════════════════');
+    console.log('');
+    console.log('═══════════════════════════════════════════════════════════════');
     console.log('🎬 [EventListPage] loadCounters() START');
     console.log('🎬 [EventListPage] userId connecté:', userId);
     console.log('🎬 [EventListPage] Type du userId:', typeof userId);
-    console.log('🎬 [EventListPage] userId est null?', userId === null);
-    console.log('🎬 [EventListPage] userId est undefined?', userId === undefined);
-    console.log('🎬 [EventListPage] userId est falsy?', !userId);
-    console.log('═══════════════════════════════════════════════════');
+    console.log('🎬 [EventListPage] userId === null?', userId === null);
+    console.log('🎬 [EventListPage] userId === undefined?', userId === undefined);
+    console.log('═══════════════════════════════════════════════════════════════');
     
     if (!userId) {
-      console.warn('⚠️ [EventListPage] ⚠️ ATTENTION: Utilisateur non connecté - ARRÊT');
-      console.warn('⚠️ [EventListPage] Le badge ne peut pas s\'afficher sans userId');
+      console.warn('⚠️ [EventListPage] Utilisateur non connecté - ARRÊT');
       return;
     }
 
@@ -305,25 +353,26 @@ private loadMessagesCount() {
     // Compteur de notifications (temps réel)
     const notifSub = this.notificationsService.getUnreadCount(userId).subscribe({
       next: (count) => {
-        console.log('═══════════════════════════════════════════════════');
-        console.log(`🔔 [EventListPage] 🎯 NEXT APPELÉ avec count=${count}`);
-        console.log(`🔔 [EventListPage] Type du count: ${typeof count}`);
+        console.log('═══════════════════════════════════════════════════════════');
+        console.log(`🔔 [EventListPage] 🎯 NEXT APPELÉ POUR NOTIFICATIONS!`);
+        console.log(`🔔 [EventListPage] Compteur reçu: ${count}`);
+        console.log(`🔔 [EventListPage] Type: ${typeof count}`);
         console.log(`🔔 [EventListPage] Avant set: unreadNotificationsCount=${this.unreadNotificationsCount()}`);
         this.unreadNotificationsCount.set(count);
         console.log(`🔔 [EventListPage] Après set: unreadNotificationsCount=${this.unreadNotificationsCount()}`);
-        console.log(`🔔 [EventListPage] Le badge devrait s'afficher? ${count > 0 ? 'OUI ✅' : 'NON ❌'}`);
-        console.log('═══════════════════════════════════════════════════');
+        console.log(`🔔 [EventListPage] Badge devrait afficher? ${count > 0 ? 'OUI ✅' : 'NON ❌'}`);
+        console.log('═══════════════════════════════════════════════════════════');
       },
       error: (error) => {
-        console.error('═══════════════════════════════════════════════════');
-        console.error('❌ [EventListPage] ERREUR dans subscribe notifications:', error);
-        console.error('❌ [EventListPage] Type d\'erreur:', error.constructor.name);
-        console.error('❌ [EventListPage] Message:', error.message);
-        console.error('❌ [EventListPage] Stack:', error.stack);
-        console.error('═══════════════════════════════════════════════════');
+        console.error('═══════════════════════════════════════════════════════════');
+        console.error('❌ [EventListPage] ERREUR NOTIFICATIONS SUBSCRIBE:');
+        console.error('❌ Type d\'erreur:', error.constructor.name);
+        console.error('❌ Message:', error.message);
+        console.error('❌ Stack:', error.stack);
+        console.error('═══════════════════════════════════════════════════════════');
       },
       complete: () => {
-        console.log('✅ [EventListPage] Subscribe notifications COMPLETE');
+        console.log('✅ [EventListPage] Notifications subscribe COMPLETE');
       }
     });
     
@@ -331,7 +380,7 @@ private loadMessagesCount() {
     console.log('🔔 [EventListPage] Subscription closed?', notifSub.closed);
     this.subscriptions.push(notifSub);
     console.log('🔔 [EventListPage] loadCounters() END');
-    console.log('═══════════════════════════════════════════════════');
+    console.log('═══════════════════════════════════════════════════════════');
   }
 
   // ========================================
@@ -345,9 +394,9 @@ private loadMessagesCount() {
     const userId = this.authService.getCurrentUserId();
     
     const debugInfo = `
-═══════════════════════════════════════
+═══════════════════════════════════
 🐛 DEBUG - INFORMATIONS NOTIFICATIONS
-═══════════════════════════════════════
+═══════════════════════════════════
 
 📋 UTILISATEUR:
 • UserId: ${userId || 'NULL / UNDEFINED'}
@@ -367,7 +416,7 @@ private loadMessagesCount() {
 ⚙️ SERVICE:
 • NotificationsService injecté: ${!!this.notificationsService}
 
-═══════════════════════════════════════
+═══════════════════════════════════
     `.trim();
 
     console.log(debugInfo);
@@ -402,23 +451,7 @@ private loadMessagesCount() {
   }
 
   /**
-   * 🧪 Test simple pour vérifier si le badge s'affiche
-   */
-  testBadge() {
-    console.log('🧪 TEST: Forçage du compteur à 999');
-    this.unreadNotificationsCount.set(999);
-    console.log('✅ Si le badge "999" apparaît maintenant, le template fonctionne');
-    console.log('✅ Si le badge n\'apparaît pas, problème dans le template ou CSS');
-    
-    setTimeout(() => {
-      console.log('🔄 Reset du compteur à 0 dans 5 secondes...');
-      this.unreadNotificationsCount.set(0);
-      this.loadCounters();
-    }, 5000);
-  }
-
-  /**
-   * ✅ CRITIQUE : Setup du listener sur filters$
+   * ✅ Setup du listener sur filters$
    */
   setupFiltersListener() {
     console.log('👂 [EventListPage] Setup filters listener START');
@@ -516,6 +549,7 @@ private loadMessagesCount() {
     this.setupFiltersListener();
     this.loadEvents();
     this.loadCounters();
+    this.loadMessagesCount();
     
     setTimeout(() => {
       event.target.complete();

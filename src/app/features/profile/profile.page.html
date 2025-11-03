@@ -9,7 +9,17 @@
      ======================================== -->
      <ion-header [translucent]="true">
       <ion-toolbar>
+        <!-- ✅ NOUVEAU : Bouton ajout d'amis (gauche) -->
+        <ion-buttons slot="start">
+          <ion-button (click)="goToFriendSearch()">
+            <ion-icon name="person-add-outline"></ion-icon>
+          </ion-button>
+        </ion-buttons>
+      
+        <!-- Titre -->
         <ion-title>Mon Profil</ion-title>
+        
+        <!-- Bouton édition (droite) -->
         <ion-buttons slot="end" *ngIf="!isEditing">
           <ion-button (click)="enableEditing()">
             <ion-icon name="create-outline" slot="icon-only"></ion-icon>

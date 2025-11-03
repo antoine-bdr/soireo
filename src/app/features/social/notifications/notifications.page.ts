@@ -36,10 +36,13 @@ import {
   createOutline,
   alarmOutline,
   chatbubbleOutline,
-  informationCircleOutline, notificationsOutline } from 'ionicons/icons';
+  informationCircleOutline,
+  notificationsOutline
+} from 'ionicons/icons';
 
 import { NotificationsService } from '../../../core/services/notifications.service';
 import { AuthenticationService } from '../../../core/services/authentication.service';
+import { FriendsService } from '../../../core/services/friends.service';
 import {
   Notification,
   getNotificationTimeAgo
@@ -49,7 +52,7 @@ import { Subscription } from 'rxjs';
 /**
  * 🔔 NOTIFICATIONS PAGE
  * Affiche toutes les notifications de l'utilisateur
- * Permet de marquer comme lu, supprimer, et naviguer vers les entités liées
+ * Gère les demandes d'ami directement dans la page
  */
 @Component({
   selector: 'app-notifications',
@@ -85,6 +88,7 @@ export class NotificationsPage implements OnInit, OnDestroy {
   // ========================================
   private readonly notificationsService = inject(NotificationsService);
   private readonly authService = inject(AuthenticationService);
+  private readonly friendsService = inject(FriendsService);
   private readonly alertCtrl = inject(AlertController);
   private readonly router = inject(Router);
 
@@ -101,7 +105,21 @@ export class NotificationsPage implements OnInit, OnDestroy {
   private subscriptions: Subscription[] = [];
 
   constructor() {
-    addIcons({arrowBackOutline,checkmarkDoneOutline,trashOutline,notificationsOutline,personAddOutline,peopleOutline,calendarOutline,checkmarkCircleOutline,closeCircleOutline,createOutline,alarmOutline,chatbubbleOutline,informationCircleOutline});
+    addIcons({
+      arrowBackOutline,
+      checkmarkDoneOutline,
+      trashOutline,
+      notificationsOutline,
+      personAddOutline,
+      peopleOutline,
+      calendarOutline,
+      checkmarkCircleOutline,
+      closeCircleOutline,
+      createOutline,
+      alarmOutline,
+      chatbubbleOutline,
+      informationCircleOutline
+    });
   }
 
   ngOnInit() {
@@ -118,27 +136,29 @@ export class NotificationsPage implements OnInit, OnDestroy {
   // 📊 CHARGEMENT DES DONNÉES
   // ========================================
 
-  /**
-   * 📋 Charge toutes les notifications (temps réel)
-   */
   loadNotifications() {
     this.isLoading.set(true);
     const userId = this.authService.getCurrentUserId();
-
+  
     if (!userId) {
       console.error('❌ Utilisateur non connecté');
       this.isLoading.set(false);
       return;
     }
-
+  
     console.log('🔔 Chargement notifications pour:', userId);
-
+  
     // Écoute les notifications en temps réel
     const notificationsSub = this.notificationsService.getUserNotifications(userId).subscribe({
       next: (notifications) => {
         this.notifications.set(notifications);
         this.isLoading.set(false);
         console.log(`✅ ${notifications.length} notifications chargées`);
+        
+        // ✅ NOUVEAU: Marquer automatiquement tout comme lu
+        this.notificationsService.markAllAsRead(userId).catch(error => 
+          console.error('❌ Erreur marquage lecture:', error)
+        );
       },
       error: (error) => {
         console.error('❌ Erreur chargement notifications:', error);
@@ -146,12 +166,11 @@ export class NotificationsPage implements OnInit, OnDestroy {
       }
     });
     this.subscriptions.push(notificationsSub);
-
-    // Écoute le compteur de non-lus
+  
+    // Reste du code inchangé...
     const unreadSub = this.notificationsService.getUnreadCount(userId).subscribe({
       next: (count) => {
         this.unreadCount.set(count);
-        console.log(`📬 ${count} notifications non lues`);
       }
     });
     this.subscriptions.push(unreadSub);
@@ -163,10 +182,18 @@ export class NotificationsPage implements OnInit, OnDestroy {
 
   /**
    * 👆 Clic sur une notification
-   * Marque comme lue et navigue vers l'entité liée
+   * Pour FRIEND_REQUEST : navigation vers profil
+   * Pour autres : marque comme lue et navigue vers actionUrl
    */
-  async onNotificationClick(notification: Notification) {
+  async onNotificationClick(notification: Notification, event?: Event) {
     console.log('👆 Clic notification:', notification.id);
+
+    // Si clic sur photo/nom pour FRIEND_REQUEST, aller au profil
+    if (notification.type === 'friend_request' && notification.senderUserId) {
+      console.log('🧭 Navigation vers profil:', notification.senderUserId);
+      this.router.navigate(['/social/friend-profile', notification.senderUserId]);
+      return;
+    }
 
     // Marquer comme lue si pas déjà lu
     if (!notification.isRead && notification.id) {
@@ -182,6 +209,53 @@ export class NotificationsPage implements OnInit, OnDestroy {
     if (notification.actionUrl) {
       console.log('🧭 Navigation vers:', notification.actionUrl);
       this.router.navigateByUrl(notification.actionUrl);
+    }
+  }
+
+  /**
+   * ✅ Accepte une demande d'ami depuis une notification
+   */
+  async acceptFriendRequest(notification: Notification, slidingItem: IonItemSliding) {
+    const userId = this.authService.getCurrentUserId();
+    if (!userId || !notification.relatedEntityId) return;
+
+    console.log('✅ Acceptation demande ami:', notification.relatedEntityId);
+
+    try {
+      await this.friendsService.acceptFriendRequest(notification.relatedEntityId, userId);
+      
+      // Supprimer la notification après acceptation
+      if (notification.id) {
+        await this.notificationsService.deleteNotification(notification.id);
+      }
+      
+      slidingItem.close();
+      console.log('✅ Demande acceptée et notification supprimée');
+    } catch (error) {
+      console.error('❌ Erreur acceptation:', error);
+    }
+  }
+
+  /**
+   * ❌ Refuse une demande d'ami depuis une notification
+   */
+  async rejectFriendRequest(notification: Notification, slidingItem: IonItemSliding) {
+    if (!notification.relatedEntityId) return;
+
+    console.log('❌ Refus demande ami:', notification.relatedEntityId);
+
+    try {
+      await this.friendsService.rejectFriendRequest(notification.relatedEntityId);
+      
+      // Supprimer la notification après refus
+      if (notification.id) {
+        await this.notificationsService.deleteNotification(notification.id);
+      }
+      
+      slidingItem.close();
+      console.log('✅ Demande refusée et notification supprimée');
+    } catch (error) {
+      console.error('❌ Erreur refus:', error);
     }
   }
 
@@ -329,4 +403,24 @@ export class NotificationsPage implements OnInit, OnDestroy {
   trackByNotificationId(index: number, notification: Notification): string {
     return notification.id || index.toString();
   }
+
+  /**
+ * 👤 Clic sur l'avatar (pour FRIEND_REQUEST uniquement)
+ */
+onAvatarClick(notification: Notification, event: Event) {
+  event.stopPropagation();
+  if (notification.type === 'friend_request' && notification.senderUserId) {
+    this.router.navigate(['/social/friend-profile', notification.senderUserId]);
+  }
+}
+
+/**
+ * 📝 Clic sur le titre (pour FRIEND_REQUEST uniquement)
+ */
+onTitleClick(notification: Notification, event: Event) {
+  event.stopPropagation();
+  if (notification.type === 'friend_request' && notification.senderUserId) {
+    this.router.navigate(['/social/friend-profile', notification.senderUserId]);
+  }
+}
 }

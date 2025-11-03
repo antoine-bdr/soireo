@@ -18,9 +18,6 @@ import {
   IonText,
   IonButtons,
   IonBackButton,
-  IonBadge,
-  IonSegment,
-  IonSegmentButton,
   IonRefresher,
   IonRefresherContent,
   ToastController
@@ -31,20 +28,20 @@ import {
   personAddOutline,
   personRemoveOutline,
   peopleOutline,
-  mailOutline,
   checkmarkCircleOutline,
-  closeCircleOutline,
-  timeOutline, locationOutline } from 'ionicons/icons';
+  timeOutline,
+  locationOutline
+} from 'ionicons/icons';
 import { Subscription, Subject, of } from 'rxjs';
 import { debounceTime, distinctUntilChanged, switchMap, catchError } from 'rxjs/operators';
 
 import { FriendsService } from '../../../core/services/friends.service';
 import { AuthenticationService } from '../../../core/services/authentication.service';
-import { UserSearchResult, FriendListItem } from '../../../core/models/friend.model';
+import { UserSearchResult } from '../../../core/models/friend.model';
 
 /**
  * 🔍 Page Friend Search
- * Permet de rechercher des utilisateurs et de gérer les demandes d'ami
+ * Permet de rechercher des utilisateurs et d'envoyer des demandes d'ami
  */
 @Component({
   selector: 'app-friend-search',
@@ -69,9 +66,6 @@ import { UserSearchResult, FriendListItem } from '../../../core/models/friend.mo
     IonText,
     IonButtons,
     IonBackButton,
-    IonBadge,
-    IonSegment,
-    IonSegmentButton,
     IonRefresher,
     IonRefresherContent
   ]
@@ -81,8 +75,6 @@ export class FriendSearchPage implements OnInit, OnDestroy {
   // 📊 SIGNALS (Reactive State)
   // ========================================
   searchResults = signal<UserSearchResult[]>([]);
-  pendingRequests = signal<FriendListItem[]>([]);
-  isLoading = signal<boolean>(false);
   isSearching = signal<boolean>(false);
   
   // ========================================
@@ -90,7 +82,6 @@ export class FriendSearchPage implements OnInit, OnDestroy {
   // ========================================
   currentUserId: string | null = null;
   searchTerm: string = '';
-  selectedSegment: 'search' | 'pending' = 'search';
   
   private subscriptions: Subscription[] = [];
   private searchSubject = new Subject<string>();
@@ -102,7 +93,15 @@ export class FriendSearchPage implements OnInit, OnDestroy {
     private readonly toastCtrl: ToastController
   ) {
     // Enregistrement des icônes
-    addIcons({searchOutline,mailOutline,peopleOutline,locationOutline,checkmarkCircleOutline,closeCircleOutline,personAddOutline,personRemoveOutline,timeOutline});
+    addIcons({
+      searchOutline,
+      peopleOutline,
+      locationOutline,
+      checkmarkCircleOutline,
+      personAddOutline,
+      personRemoveOutline,
+      timeOutline
+    });
   }
 
   // ========================================
@@ -121,7 +120,6 @@ export class FriendSearchPage implements OnInit, OnDestroy {
     }
 
     this.setupSearchDebounce();
-    this.loadPendingRequests();
   }
 
   ngOnDestroy() {
@@ -198,31 +196,6 @@ export class FriendSearchPage implements OnInit, OnDestroy {
   // ========================================
 
   /**
-   * Charge les demandes d'ami en attente (reçues)
-   */
-  private loadPendingRequests() {
-    if (!this.currentUserId) return;
-
-    console.log('📬 Chargement des demandes en attente');
-    this.isLoading.set(true);
-
-    const pendingSub = this.friendsService.getPendingReceivedRequests(this.currentUserId).subscribe({
-      next: (requests) => {
-        console.log(`✅ ${requests.length} demandes en attente`);
-        this.pendingRequests.set(requests);
-        this.isLoading.set(false);
-      },
-      error: (error) => {
-        console.error('❌ Erreur chargement demandes:', error);
-        this.showToast('Erreur lors du chargement', 'danger');
-        this.isLoading.set(false);
-      }
-    });
-
-    this.subscriptions.push(pendingSub);
-  }
-
-  /**
    * Envoie une demande d'ami
    */
   async sendFriendRequest(user: UserSearchResult) {
@@ -274,38 +247,6 @@ export class FriendSearchPage implements OnInit, OnDestroy {
     }
   }
 
-  /**
-   * Accepte une demande d'ami reçue
-   */
-  async acceptRequest(request: FriendListItem) {
-    if (!this.currentUserId) return;
-
-    console.log(`✅ Acceptation demande de ${request.displayName}`);
-
-    try {
-      await this.friendsService.acceptFriendRequest(request.friendshipId, this.currentUserId);
-      this.showToast(`Vous êtes maintenant ami(e) avec ${request.displayName}`, 'success');
-    } catch (error) {
-      console.error('❌ Erreur acceptation:', error);
-      this.showToast('Erreur lors de l\'acceptation', 'danger');
-    }
-  }
-
-  /**
-   * Refuse une demande d'ami reçue
-   */
-  async rejectRequest(request: FriendListItem) {
-    console.log(`❌ Refus demande de ${request.displayName}`);
-
-    try {
-      await this.friendsService.rejectFriendRequest(request.friendshipId);
-      this.showToast('Demande refusée', 'medium');
-    } catch (error) {
-      console.error('❌ Erreur refus:', error);
-      this.showToast('Erreur lors du refus', 'danger');
-    }
-  }
-
   // ========================================
   // 🧭 NAVIGATION
   // ========================================
@@ -319,22 +260,12 @@ export class FriendSearchPage implements OnInit, OnDestroy {
   }
 
   /**
-   * Change de segment (recherche / demandes)
-   */
-  onSegmentChange(event: any) {
-    this.selectedSegment = event.detail.value;
-    console.log('🔄 Changement segment:', this.selectedSegment);
-  }
-
-  /**
    * Rafraîchit les données (pull-to-refresh)
    */
   async handleRefresh(event: any) {
     console.log('🔄 Rafraîchissement...');
     
-    if (this.selectedSegment === 'pending') {
-      this.loadPendingRequests();
-    } else if (this.searchTerm.length >= 2) {
+    if (this.searchTerm.length >= 2) {
       this.searchSubject.next(this.searchTerm);
     }
     
@@ -353,7 +284,7 @@ export class FriendSearchPage implements OnInit, OnDestroy {
   getActionButtonText(user: UserSearchResult): string {
     if (user.isFriend) return 'Ami';
     if (user.isPendingRequest && user.isSentByMe) return 'En attente';
-    if (user.isPendingRequest && !user.isSentByMe) return 'Répondre';
+    if (user.isPendingRequest && !user.isSentByMe) return 'Demande reçue';
     return 'Ajouter';
   }
 
@@ -386,8 +317,8 @@ export class FriendSearchPage implements OnInit, OnDestroy {
       // Demande envoyée → Annuler
       this.cancelFriendRequest(user);
     } else if (user.isPendingRequest && !user.isSentByMe) {
-      // Demande reçue → Navigation vers demandes
-      this.selectedSegment = 'pending';
+      // Demande reçue → Navigation vers notifications
+      this.router.navigate(['/tabs/notifications']);
     } else {
       // Pas de relation → Envoyer demande
       this.sendFriendRequest(user);

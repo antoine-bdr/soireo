@@ -1,223 +1,231 @@
-// src/app/features/social/friend-search/friend-search.page.scss
-// 🔍 Styles de la page recherche d'amis
+// ========================================
+// 🔍 FRIEND SEARCH PAGE STYLES
+// ========================================
 
 // ========================================
-// ÉTATS VIDES & CHARGEMENT
+// LOADING STATE
 // ========================================
-.loading-container,
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  gap: 16px;
+  padding: 32px;
+
+  ion-spinner {
+    transform: scale(1.2);
+  }
+
+  ion-text {
+    text-align: center;
+
+    p {
+      font-size: 14px;
+      margin: 0;
+    }
+  }
+}
+
+// ========================================
+// EMPTY STATE
+// ========================================
 .empty-state {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   height: 100%;
-  padding: 2rem;
+  padding: 32px;
   text-align: center;
 
-  ion-spinner {
-    width: 48px;
-    height: 48px;
-    margin-bottom: 1rem;
-  }
-
   .empty-icon {
-    font-size: 80px;
+    font-size: 120px;
     opacity: 0.3;
-    margin-bottom: 1rem;
+    margin-bottom: 24px;
   }
 
-  h2 {
-    font-size: 1.25rem;
-    font-weight: 600;
-    margin: 0 0 0.5rem 0;
-    color: var(--ion-color-dark);
-  }
+  ion-text {
+    h2 {
+      font-size: 24px;
+      font-weight: 600;
+      color: var(--ion-color-dark);
+      margin-bottom: 12px;
+    }
 
-  p {
-    font-size: 0.9rem;
-    color: var(--ion-color-medium);
-    margin: 0;
-    max-width: 280px;
-  }
-}
-
-// ========================================
-// BARRE DE RECHERCHE
-// ========================================
-ion-searchbar {
-  --background: var(--ion-color-light);
-  --border-radius: 12px;
-  --box-shadow: none;
-  
-  padding: 0.5rem 1rem;
-}
-
-// ========================================
-// SEGMENTS
-// ========================================
-ion-segment {
-  --background: transparent;
-  padding: 0.5rem 1rem;
-
-  ion-segment-button {
-    --indicator-color: var(--ion-color-primary);
-    --color-checked: var(--ion-color-primary);
-    min-height: 40px;
-
-    ion-label {
-      display: flex;
-      align-items: center;
-      gap: 0.25rem;
-      font-size: 0.9rem;
-
-      ion-icon {
-        font-size: 1.1rem;
-      }
-
-      .request-badge {
-        margin-left: 0.25rem;
-        font-size: 0.7rem;
-        padding: 2px 6px;
-      }
+    p {
+      font-size: 16px;
+      color: var(--ion-color-medium);
+      line-height: 1.5;
+      margin: 0;
     }
   }
 }
 
 // ========================================
-// LISTE DES RÉSULTATS DE RECHERCHE
+// SEARCH RESULTS LIST
 // ========================================
 .search-results-list {
-  padding: 0.5rem 0;
+  padding: 0;
 
   .user-item {
-    --padding-start: 1rem;
-    --padding-end: 1rem;
-    --inner-padding-end: 0;
-    margin-bottom: 0.5rem;
+    --padding-start: 16px;
+    --padding-end: 16px;
+    --min-height: 80px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+
+    &:hover {
+      --background: var(--ion-color-light);
+    }
 
     ion-avatar {
       width: 56px;
       height: 56px;
-      margin-right: 1rem;
+      margin-inline-end: 16px;
+
+      img {
+        object-fit: cover;
+      }
     }
 
     ion-label {
+      margin: 8px 0;
+
       h2 {
-        font-size: 1rem;
+        font-size: 16px;
         font-weight: 600;
         color: var(--ion-color-dark);
-        margin: 0 0 0.25rem 0;
+        margin-bottom: 4px;
       }
 
       p {
-        font-size: 0.85rem;
+        font-size: 14px;
         color: var(--ion-color-medium);
-        margin: 0.125rem 0;
-        
+        margin-bottom: 2px;
+        white-space: normal;
+        overflow: visible;
+
         &.bio {
-          overflow: hidden;
-          text-overflow: ellipsis;
-          white-space: nowrap;
-          max-width: 200px;
+          font-style: italic;
+          line-height: 1.3;
         }
 
         &.location {
           display: flex;
           align-items: center;
-          gap: 0.25rem;
+          gap: 4px;
+          margin-top: 4px;
 
           ion-icon {
-            font-size: 0.9rem;
+            font-size: 14px;
           }
         }
       }
     }
 
     ion-button {
-      --padding-start: 0.75rem;
-      --padding-end: 0.75rem;
-      margin: 0;
-      height: 32px;
-      font-size: 0.85rem;
+      --padding-start: 12px;
+      --padding-end: 12px;
+      font-size: 13px;
+      font-weight: 500;
+      text-transform: none;
+      letter-spacing: 0.3px;
 
       ion-icon {
-        font-size: 1rem;
+        font-size: 18px;
+        margin-inline-end: 4px;
       }
     }
   }
 }
 
 // ========================================
-// LISTE DES DEMANDES EN ATTENTE
+// ANIMATIONS
 // ========================================
-.pending-requests-list {
-  padding: 0.5rem 0;
-
-  .request-item {
-    --padding-start: 1rem;
-    --padding-end: 1rem;
-    --inner-padding-end: 0;
-    margin-bottom: 0.5rem;
-    border-left: 3px solid var(--ion-color-primary);
-
-    ion-avatar {
-      width: 56px;
-      height: 56px;
-      margin-right: 1rem;
-    }
-
-    ion-label {
-      h2 {
-        font-size: 1rem;
-        font-weight: 600;
-        color: var(--ion-color-dark);
-        margin: 0 0 0.25rem 0;
-      }
-
-      p {
-        font-size: 0.85rem;
-        color: var(--ion-color-medium);
-        margin: 0;
-      }
-    }
-
-    .action-buttons {
-      display: flex;
-      gap: 0.5rem;
-
-      ion-button {
-        --padding-start: 0.5rem;
-        --padding-end: 0.5rem;
-        margin: 0;
-        width: 40px;
-        height: 40px;
-
-        ion-icon {
-          font-size: 1.25rem;
-        }
-      }
-    }
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 
-// ========================================
-// BADGE (compteur de demandes)
-// ========================================
-.request-badge {
-  position: relative;
-  top: -2px;
-  border-radius: 10px;
-  font-size: 0.7rem;
-  font-weight: 600;
+.user-item {
+  animation: fadeIn 0.3s ease-out;
 }
 
 // ========================================
 // RESPONSIVE
 // ========================================
-@media (max-width: 576px) {
-  .search-results-list .user-item {
-    ion-label p.bio {
-      max-width: 150px;
+@media (min-width: 768px) {
+  .search-results-list {
+    max-width: 800px;
+    margin: 0 auto;
+
+    .user-item {
+      --padding-start: 24px;
+      --padding-end: 24px;
+
+      ion-avatar {
+        width: 64px;
+        height: 64px;
+      }
+
+      ion-label {
+        h2 {
+          font-size: 18px;
+        }
+
+        p {
+          font-size: 15px;
+        }
+      }
+
+      ion-button {
+        font-size: 14px;
+      }
     }
   }
+}
+
+// ========================================
+// DARK MODE
+// ========================================
+@media (prefers-color-scheme: dark) {
+  .user-item {
+    &:hover {
+      --background: rgba(255, 255, 255, 0.05);
+    }
+
+    ion-label {
+      h2 {
+        color: var(--ion-color-light);
+      }
+    }
+  }
+
+  .empty-state {
+    ion-text h2 {
+      color: var(--ion-color-light);
+    }
+  }
+}
+
+// ========================================
+// SEARCHBAR CUSTOMIZATION
+// ========================================
+ion-searchbar {
+  --background: var(--ion-color-light);
+  --border-radius: 12px;
+  --box-shadow: none;
+  --color: var(--ion-color-dark);
+  --placeholder-color: var(--ion-color-medium);
+  --icon-color: var(--ion-color-medium);
+
+  padding: 8px 16px;
 }

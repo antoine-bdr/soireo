@@ -3,22 +3,11 @@
      ======================================== -->
      <ion-header>
       <ion-toolbar>
-        <!-- Bouton ajout d'amis (gauche) -->
-        <ion-buttons slot="start">
-          <ion-button (click)="goToFriendSearch()">
-            <ion-icon name="person-add-outline"></ion-icon>
-          </ion-button>
-        </ion-buttons>
-      
         <!-- Titre centré -->
         <ion-title>🎉 Événements</ion-title>
         
         <!-- Boutons notifications et messages (droite) -->
         <ion-buttons slot="end">
-          <!-- 🐛 BOUTON DEBUG - À RETIRER EN PRODUCTION -->
-          <ion-button (click)="debugNotifications()" color="warning">
-            <ion-icon name="bug-outline"></ion-icon>
-          </ion-button>
     
           <ion-button (click)="goToNotifications()">
             <ion-badge 
