@@ -1,6 +1,6 @@
 <!-- ========================================
-     🎉 EVENT CREATE PAGE - AVEC SÉLECTION TYPE ÉVÉNEMENT
-     Version complète avec : Public / Sur invitation / Privé
+     🎉 EVENT CREATE PAGE - AVEC DURÉE D'ÉVÉNEMENT
+     ✅ Ajout : Sélecteur de durée et affichage heure de fin
      ======================================== -->
 
      <ion-header>
@@ -16,11 +16,6 @@
       
       <form [formGroup]="eventForm" (ngSubmit)="createEvent()">
         
-        <!-- ========================================
-             ✨ SECTION TYPE D'ÉVÉNEMENT (NOUVEAU)
-             ======================================== -->
-
-    
         <!-- ========================================
              SECTION IMAGE
              ======================================== -->
@@ -127,13 +122,13 @@
         </ion-card>
     
         <!-- ========================================
-             SECTION DATE ET HEURE
+             ✅ SECTION DATE, HEURE ET DURÉE
              ======================================== -->
         <ion-card>
           <ion-card-header>
             <ion-card-title>
               <ion-icon name="calendar-outline"></ion-icon>
-              Date et heure
+              Date, heure et durée
             </ion-card-title>
           </ion-card-header>
           
@@ -141,7 +136,7 @@
             
             <!-- Bouton pour ouvrir le sélecteur de date -->
             <ion-item lines="full" button id="open-datetime-modal">
-              <ion-label>Date et heure *</ion-label>
+              <ion-label>Date et heure de début *</ion-label>
               <ion-text slot="end">
                 {{ formatSelectedDate(date?.value) }}
               </ion-text>
@@ -167,6 +162,34 @@
             <div class="error-message" *ngIf="date?.invalid && date?.touched">
               <ion-text color="danger">
                 <small>La date est requise</small>
+              </ion-text>
+            </div>
+
+            <!-- ✅ NOUVEAU : Sélecteur de durée -->
+            <ion-item lines="full">
+              <ion-label position="floating">
+                <ion-icon name="time-outline"></ion-icon>
+                Durée de l'événement *
+              </ion-label>
+              <ion-select 
+                formControlName="duration" 
+                interface="action-sheet"
+                placeholder="Sélectionner">
+                <ion-select-option 
+                  *ngFor="let dur of durations" 
+                  [value]="dur.value">
+                  {{ dur.label }}
+                </ion-select-option>
+              </ion-select>
+            </ion-item>
+
+            <!-- ✅ NOUVEAU : Affichage de l'heure de fin calculée -->
+            <div class="end-time-display" *ngIf="calculatedEndTime">
+              <ion-text color="medium">
+                <p class="hint">
+                  <ion-icon name="time-outline"></ion-icon>
+                  Heure de fin : <strong>{{ calculatedEndTime }}</strong>
+                </p>
               </ion-text>
             </div>
     
@@ -202,8 +225,7 @@
               <ion-spinner 
                 *ngIf="isSearching" 
                 name="dots" 
-                slot="end" 
-                color="primary">
+                slot="end">
               </ion-spinner>
               <ion-icon 
                 *ngIf="!isSearching" 
@@ -318,77 +340,126 @@
         </ion-card>
 
 
-        <ion-card class="event-type-card">
-          <ion-card-header>
-            <ion-card-title>
-              <ion-icon name="options-outline"></ion-icon>
-              Type d'événement
-            </ion-card-title>
-          </ion-card-header>
+        <!-- ========================================
+     ✅ SECTION TYPE D'ACCÈS (EventAccessType)
+     ======================================== -->
+    <ion-card class="event-type-card">
+      <ion-card-header>
+        <ion-card-title>
+          <ion-icon name="shield-checkmark-outline"></ion-icon>
+          Type d'accès
+        </ion-card-title>
+      </ion-card-header>
+      
+      <ion-card-content>
+        <div class="event-types-container">
           
-          <ion-card-content>
-            <div class="event-types-container">
-              
-              <!-- 📝 Sur invitation (RECOMMANDÉ) -->
-              <div 
-                class="event-type-option"
-                [class.selected]="selectedEventType === 'invitation'"
-                (click)="selectEventType('invitation')">
-                <div class="type-header">
-                  <ion-icon name="checkmark-done-outline" class="type-icon"></ion-icon>
-                  <span class="recommended-badge">⭐ Recommandé</span>
-                </div>
-                <h3 class="type-title">📝 Sur invitation</h3>
-                <p class="type-description">
-                  Tu valides chaque demande. Idéal pour contrôler qui participe.
-                </p>
-              </div>
-    
-              <!-- 🌍 Public -->
-              <div 
-                class="event-type-option"
-                [class.selected]="selectedEventType === 'public'"
-                (click)="selectEventType('public')">
-                <div class="type-header">
-                  <ion-icon name="globe-outline" class="type-icon"></ion-icon>
-                </div>
-                <h3 class="type-title">🌍 Public</h3>
-                <p class="type-description">
-                  Tout le monde peut rejoindre instantanément. Attention aux abus.
-                </p>
-              </div>
-    
-              <!-- 🔒 Privé -->
-              <div 
-                class="event-type-option"
-                [class.selected]="selectedEventType === 'private'"
-                (click)="selectEventType('private')">
-                <div class="type-header">
-                  <ion-icon name="lock-closed-outline" class="type-icon"></ion-icon>
-                </div>
-                <h3 class="type-title">🔒 Privé</h3>
-                <p class="type-description">
-                  Invisible dans la recherche. Tu invites manuellement les participants.
-                </p>
-              </div>
-    
+          <!-- ✅ PRIVATE (Sur invitation - RECOMMANDÉ) -->
+          <div 
+            class="event-type-option"
+            [class.selected]="accessType === accessTypeEnum.PRIVATE"
+            (click)="selectAccessType(accessTypeEnum.PRIVATE)">
+            <div class="type-header">
+              <ion-icon name="shield-checkmark-outline" class="type-icon"></ion-icon>
+              <span class="recommended-badge">⭐ Recommandé</span>
             </div>
-    
-            <!-- ⚠️ Warning pour événements publics -->
-            <ion-card class="warning-card" *ngIf="selectedEventType === 'public'">
-              <ion-card-content>
-                <div class="warning-content">
-                  <ion-icon name="alert-circle-outline" color="warning"></ion-icon>
-                  <div class="warning-text">
-                    <strong>Attention :</strong> Les événements publics peuvent attirer des participants non désirés. 
-                    Privilégie "Sur invitation" pour un meilleur contrôle.
-                  </div>
-                </div>
-              </ion-card-content>
-            </ion-card>
-    
+            <h3 class="type-title">🔐 Privé</h3>
+            <p class="type-description">
+              Visible par tes amis et leurs amis. Tu valides chaque demande de participation.
+            </p>
+          </div>
+
+          <!-- ✅ PUBLIC -->
+          <div 
+            class="event-type-option"
+            [class.selected]="accessType === accessTypeEnum.PUBLIC"
+            (click)="selectAccessType(accessTypeEnum.PUBLIC)">
+            <div class="type-header">
+              <ion-icon name="globe-outline" class="type-icon"></ion-icon>
+            </div>
+            <h3 class="type-title">🌍 Public</h3>
+            <p class="type-description">
+              Visible par tous. N'importe qui peut demander à participer.
+            </p>
+          </div>
+
+          <!-- ✅ INVITE_ONLY -->
+          <div 
+            class="event-type-option"
+            [class.selected]="accessType === accessTypeEnum.INVITE_ONLY"
+            (click)="selectAccessType(accessTypeEnum.INVITE_ONLY)">
+            <div class="type-header">
+              <ion-icon name="mail-outline" class="type-icon"></ion-icon>
+            </div>
+            <h3 class="type-title">✉️ Sur invitation uniquement</h3>
+            <p class="type-description">
+              Invisible dans la recherche. Seuls les amis invités peuvent voir et rejoindre.
+            </p>
+          </div>
+
+        </div>
+
+        <!-- ⚠️ Warning pour PUBLIC -->
+        <ion-card class="warning-card" *ngIf="accessType === accessTypeEnum.PUBLIC">
+          <ion-card-content>
+            <div class="warning-content">
+              <ion-icon name="alert-circle-outline" color="warning"></ion-icon>
+              <div class="warning-text">
+                <strong>Attention :</strong> Les événements publics peuvent attirer des participants non désirés.
+              </div>
+            </div>
           </ion-card-content>
         </ion-card>
+
+        <!-- ✅ NOUVEAU : Section invitations pour INVITE_ONLY -->
+        <div class="invitations-section">
+          
+          <ion-item lines="none" class="invite-header">
+            <ion-label>
+              <h3>Inviter des amis <span *ngIf="accessType === accessTypeEnum.INVITE_ONLY" class="required">(obligatoire)</span></h3>
+              <div class="error-message" *ngIf="accessType === accessTypeEnum.INVITE_ONLY && invitedFriendsCount === 0 && submitted">
+                ⚠️ Vous devez inviter au moins 1 ami pour un événement sur invitation uniquement
+              </div>
+            </ion-label>
+            <ion-badge slot="end" color="primary">{{ invitedFriendsCount }}</ion-badge>
+          </ion-item>
+
+          <!-- Bouton inviter des amis -->
+          <ion-button 
+            expand="block" 
+            fill="outline"
+            (click)="openInviteFriendsModal()">
+            <ion-icon name="person-add-outline" slot="start"></ion-icon>
+            {{ invitedFriendsCount > 0 ? 'Modifier les invités' : 'Sélectionner des amis' }}
+          </ion-button>
+
+          <!-- Liste des amis sélectionnés -->
+          <div class="selected-friends-list" *ngIf="selectedFriends.length > 0">
+            <ion-chip 
+              *ngFor="let friend of selectedFriends"
+              (click)="removeFriend(friend.userId)">
+              <ion-avatar>
+                <img [src]="friend.photoURL || 'assets/default-avatar.png'" [alt]="friend.displayName" />
+              </ion-avatar>
+              <ion-label>{{ friend.displayName }}</ion-label>
+              <ion-icon name="close-circle" color="danger"></ion-icon>
+            </ion-chip>
+          </div>
+
+          <!-- Message d'erreur si aucun invité -->
+          <div class="error-message" *ngIf="accessType === accessTypeEnum.INVITE_ONLY && invitedFriendsCount === 0 && submitted">
+            <ion-text color="danger">
+              <small>
+                <ion-icon name="alert-circle-outline"></ion-icon>
+                Vous devez inviter au moins 1 ami
+              </small>
+            </ion-text>
+          </div>
+
+        </div>
+
+      </ion-card-content>
+    </ion-card>
     
         <!-- ========================================
              BOUTON CRÉER

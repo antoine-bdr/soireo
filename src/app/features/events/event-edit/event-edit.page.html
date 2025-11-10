@@ -133,13 +133,13 @@
         </ion-card>
     
         <!-- ========================================
-             SECTION DATE ET HEURE
+             SECTION DATE, HEURE ET DURÉE
              ======================================== -->
         <ion-card>
           <ion-card-header>
             <ion-card-title>
               <ion-icon name="calendar-outline"></ion-icon>
-              Date et heure
+              Date, heure et durée
             </ion-card-title>
           </ion-card-header>
           
@@ -147,7 +147,7 @@
             
             <!-- Bouton pour ouvrir le sélecteur de date -->
             <ion-item lines="none" button id="open-datetime-modal-edit">
-              <ion-label>Date et heure *</ion-label>
+              <ion-label>Date et heure de début *</ion-label>
               <ion-text slot="end">
                 {{ formatSelectedDate(date?.value) }}
               </ion-text>
@@ -173,6 +173,34 @@
             <div class="error-message" *ngIf="date?.invalid && date?.touched">
               <ion-text color="danger">
                 <small>La date est requise</small>
+              </ion-text>
+            </div>
+
+            <!-- Sélecteur de durée -->
+            <ion-item lines="none">
+              <ion-label position="stacked">
+                <ion-icon name="time-outline"></ion-icon>
+                Durée de l'événement *
+              </ion-label>
+              <ion-select 
+                formControlName="duration" 
+                interface="action-sheet"
+                placeholder="Sélectionner">
+                <ion-select-option 
+                  *ngFor="let dur of durations" 
+                  [value]="dur.value">
+                  {{ dur.label }}
+                </ion-select-option>
+              </ion-select>
+            </ion-item>
+
+            <!-- Affichage de l'heure de fin calculée -->
+            <div class="end-time-display" *ngIf="calculatedEndTime">
+              <ion-text color="medium">
+                <p class="hint">
+                  <ion-icon name="time-outline"></ion-icon>
+                  Heure de fin : <strong>{{ calculatedEndTime }}</strong>
+                </p>
               </ion-text>
             </div>
     

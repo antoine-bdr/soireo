@@ -1,0 +1,216 @@
+// src/app/shared/components/invite-friends-modal/invite-friends-modal.component.scss
+// 🎨 Styles du modal d'invitation d'amis
+
+ion-content {
+    --background: var(--ion-background-color);
+  }
+  
+  // ========================================
+  // 🔍 BARRE DE RECHERCHE
+  // ========================================
+  ion-searchbar {
+    --border-radius: 12px;
+    --box-shadow: none;
+    padding: 8px 16px;
+    --icon-color: var(--ion-color-medium);
+  }
+  
+  // ========================================
+  // 🎛️ FILTRES ET ACTIONS
+  // ========================================
+  .filters-row {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 8px 16px;
+  }
+  
+  .filters {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  
+    ion-button {
+      --padding-start: 8px;
+      --padding-end: 8px;
+      font-size: 12px;
+    }
+  }
+  
+  .quick-actions {
+    display: flex;
+    gap: 4px;
+    justify-content: flex-end;
+  
+    ion-button {
+      font-size: 12px;
+    }
+  }
+  
+  // ========================================
+  // 📋 LISTE DES AMIS
+  // ========================================
+  ion-list {
+    background: transparent;
+    padding: 8px;
+  }
+  
+  ion-item {
+    --background: rgba(255, 255, 255, 0.05);
+    --border-radius: 12px;
+    --padding-start: 12px;
+    --padding-end: 12px;
+    --inner-padding-end: 12px;
+    margin-bottom: 8px;
+    border-radius: 12px;
+    transition: all 0.2s ease;
+  
+    &:not(.disabled-item):hover {
+      --background: rgba(255, 255, 255, 0.08);
+    }
+  
+    // Item désactivé
+    &.disabled-item {
+      opacity: 0.5;
+      --background: rgba(255, 255, 255, 0.02);
+    }
+  
+    h2 {
+      font-weight: 600;
+      font-size: 16px;
+      margin: 0;
+    }
+  
+    p {
+      margin: 4px 0 0 0;
+      font-size: 13px;
+    }
+  
+    .disabled-reason {
+      color: var(--ion-color-medium);
+      font-style: italic;
+    }
+  }
+  
+  // Avatar
+  ion-avatar {
+    width: 48px;
+    height: 48px;
+    border: 2px solid rgba(255, 255, 255, 0.1);
+  }
+  
+  // Checkbox
+  ion-checkbox {
+    --size: 24px;
+    --border-radius: 6px;
+  }
+  
+  // ========================================
+  // 🔄 LOADING
+  // ========================================
+  .loading-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 20px;
+    text-align: center;
+  
+    ion-spinner {
+      width: 48px;
+      height: 48px;
+      margin-bottom: 16px;
+    }
+  
+    p {
+      color: var(--ion-color-medium);
+      font-size: 16px;
+      margin: 0;
+    }
+  }
+  
+  // ========================================
+  // 📭 ÉTAT VIDE
+  // ========================================
+  .empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 80px 20px;
+    text-align: center;
+  
+    ion-icon {
+      font-size: 80px;
+      color: var(--ion-color-medium);
+      opacity: 0.5;
+      margin-bottom: 24px;
+    }
+  
+    p {
+      color: var(--ion-color-medium);
+      font-size: 16px;
+      margin: 0;
+      max-width: 300px;
+      line-height: 1.5;
+    }
+  }
+  
+  // ========================================
+  // 📌 FOOTER (Compteur + Bouton)
+  // ========================================
+  .footer-toolbar {
+    --background: rgba(var(--ion-color-dark-rgb), 0.95);
+    --border-width: 0;
+    padding: 12px 16px;
+    backdrop-filter: blur(10px);
+  }
+  
+  .footer-content {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  
+  .selection-count {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  
+    ion-badge {
+      --padding-start: 8px;
+      --padding-end: 8px;
+      font-size: 16px;
+      font-weight: 700;
+    }
+  
+    span {
+      font-size: 14px;
+      color: var(--ion-color-medium);
+    }
+  }
+  
+  ion-toolbar.footer-toolbar ion-button {
+    margin: 0;
+    --border-radius: 12px;
+    font-weight: 600;
+    height: 48px;
+  
+    &[disabled] {
+      opacity: 0.4;
+    }
+  }
+  
+  // ========================================
+  // 📱 RESPONSIVE
+  // ========================================
+  @media (max-width: 576px) {
+    .filters-row {
+      flex-direction: column;
+    }
+  
+    .quick-actions {
+      justify-content: center;
+    }
+  }

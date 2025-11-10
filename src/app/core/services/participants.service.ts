@@ -1,6 +1,6 @@
 // src/app/core/services/participants.service.ts
 // Service de gestion des participations aux événements
-// ✅ VERSION FINALE COMPLÈTE avec réactivité temps réel optimale
+// ✅ VERSION AMÉLIORÉE avec notifications automatiques
 
 import { Injectable, inject } from '@angular/core';
 import {
@@ -15,14 +15,15 @@ import {
   getDocs,
   onSnapshot,
   Timestamp,
-  updateDoc,  // ✅ AJOUTÉ
-  arrayUnion, // ✅ AJOUTÉ
+  updateDoc,
+  arrayUnion,
   increment,
   arrayRemove,
-  serverTimestamp
+  serverTimestamp,
+  getDoc
 } from '@angular/fire/firestore';
 import { Observable, from, map, switchMap, of, combineLatest } from 'rxjs';
-import { take } from 'rxjs/operators';
+import { catchError, take } from 'rxjs/operators';
 import { AuthenticationService } from './authentication.service';
 import { 
   Participant, 
@@ -32,6 +33,11 @@ import {
 import { Event } from '../models/event.model';
 import { UsersService } from './users.service';
 
+// ✅ Import du service et du modèle de notifications
+import { NotificationsService } from './notifications.service';
+import { InvitationsService } from './invitations.service';
+import { NotificationType, createNotificationWithDefaults } from '../models/notification.model';
+
 @Injectable({
   providedIn: 'root'
 })
@@ -39,11 +45,13 @@ export class ParticipantsService {
   // Injection des dépendances
   private readonly firestore = inject(Firestore);
   private readonly authService = inject(AuthenticationService);
+  private readonly usersService = inject(UsersService);
+  // ✅ Injection du service de notifications
+  private readonly notificationsService = inject(NotificationsService);
+  private readonly invitationsService = inject(InvitationsService);
   
   // Nom de la collection Firestore
   private readonly participantsCollection = 'participants';
-
-  private readonly usersService = inject(UsersService);
 
   constructor() {}
 
@@ -54,6 +62,7 @@ export class ParticipantsService {
   /**
    * Permet à un utilisateur de rejoindre un événement
    * Effectue les vérifications nécessaires puis ajoute le participant
+   * ✅ MODIFIÉ : Envoie une notification à l'organisateur
    * 
    * @param eventId - ID de l'événement à rejoindre
    * @param event - Objet Event complet (pour les vérifications)
@@ -85,7 +94,6 @@ export class ParticipantsService {
             }
   
             // Étape 2 : Vérifie que l'événement n'est pas complet
-            // ✅ MODIFIÉ : Utilise event.currentParticipants au lieu de compter
             console.log(`📢 Participants actuels: ${event.currentParticipants}/${event.maxParticipants}`);
   
             if (event.currentParticipants >= event.maxParticipants) {
@@ -113,7 +121,7 @@ export class ParticipantsService {
               switchMap(() => {
                 console.log('✅ Participant ajouté à la collection');
   
-                // ✅ AJOUTÉ : Synchronise Event.currentParticipants et Event.participants[]
+                // Synchronise Event.currentParticipants et Event.participants[]
                 const eventRef = doc(this.firestore, 'events', eventId);
                 
                 const updateData = {
@@ -125,6 +133,67 @@ export class ParticipantsService {
                 return from(updateDoc(eventRef, updateData)).pipe(
                   map(() => {
                     console.log('✅ Event.currentParticipants et Event.participants[] synchronisés');
+                    
+                    // ✅ NOUVEAU : Supprimer l'invitation DECLINED si elle existe (fire and forget)
+                    this.invitationsService.deleteUserInvitation(eventId, userId).then(
+                      () => console.log('🗑️ Invitation supprimée si elle existait'),
+                      (error) => console.error('⚠️ Erreur suppression invitation (non bloquant):', error)
+                    );
+                    
+                    // ✅ AJOUT : Envoyer une notification à l'organisateur
+                    if (event.requiresApproval) {
+                      // Notification pour demande de participation en attente
+                      const notification = createNotificationWithDefaults(
+                        NotificationType.NEW_PARTICIPANT,
+                        event.organizerId,
+                        `${userName || userEmail} souhaite participer à votre événement "${event.title}". Sa demande est en attente d'approbation.`,
+                        {
+                          relatedEntityId: eventId,
+                          relatedEntityType: 'event',
+                          actionUrl: `/tabs/events/${eventId}`,
+                          senderUserId: userId,
+                          senderDisplayName: userName || userEmail,
+                          senderPhotoURL: userPhoto
+                        }
+                      );
+                      
+                      console.log('📬 Envoi notification demande de participation à l\'organisateur');
+                      // Fire and forget - on n'attend pas la création de la notification
+                      this.notificationsService.createOrUpdateNotification({
+                        ...notification,
+                        groupKey: `new_participant_${eventId}`,
+                        count: 1
+                      }).then(
+                        () => console.log('✅ Notification envoyée à l\'organisateur'),
+                        (error) => console.error('❌ Erreur envoi notification:', error)
+                      );
+                    } else {
+                      // Notification pour participation directe (sans approbation)
+                      const notification = createNotificationWithDefaults(
+                        NotificationType.NEW_PARTICIPANT,
+                        event.organizerId,
+                        `${userName || userEmail} participe maintenant à votre événement "${event.title}".`,
+                        {
+                          relatedEntityId: eventId,
+                          relatedEntityType: 'event',
+                          actionUrl: `/tabs/events/${eventId}`,
+                          senderUserId: userId,
+                          senderDisplayName: userName || userEmail,
+                          senderPhotoURL: userPhoto
+                        }
+                      );
+                      
+                      console.log('📬 Envoi notification nouveau participant à l\'organisateur');
+                      // Fire and forget - on n'attend pas la création de la notification
+                      this.notificationsService.createOrUpdateNotification({
+                        ...notification,
+                        groupKey: `new_participant_${eventId}`,
+                        count: 1
+                      }).then(
+                        () => console.log('✅ Notification envoyée à l\'organisateur'),
+                        (error) => console.error('❌ Erreur envoi notification:', error)
+                      );
+                    }
                   })
                 );
               })
@@ -168,11 +237,8 @@ export class ParticipantsService {
           switchMap(() => {
             console.log('✅ Document participant supprimé');
   
-            // ✅ AJOUTÉ : Synchronise Event.currentParticipants et Event.participants[]
+            // Étape 2 : Synchronise Event.currentParticipants et Event.participants[]
             const eventRef = doc(this.firestore, 'events', eventId);
-            
-            // Importer arrayRemove au début du fichier si pas déjà fait
-            // import { arrayRemove } from '@angular/fire/firestore';
             
             const updateData = {
               currentParticipants: increment(-1),           // Décrémente compteur
@@ -181,8 +247,42 @@ export class ParticipantsService {
             };
   
             return from(updateDoc(eventRef, updateData)).pipe(
-              map(() => {
+              switchMap(() => {
                 console.log('✅ Event.currentParticipants et Event.participants[] synchronisés');
+                
+                // ✅ NOUVEAU : Étape 3 - Supprimer les notifications de participation
+                return from(
+                  this.invitationsService.deleteUserInvitation(eventId, userIdToLeave)
+                ).pipe(
+                  switchMap(() => {
+                    console.log('✅ Invitation supprimée si elle existait');
+                    
+                    // ✅ Étape 4 - Supprimer les notifications de participation
+                    return from(
+                      this.notificationsService.deleteParticipationNotifications(eventId, userIdToLeave)
+                    ).pipe(
+                      map(() => {
+                        console.log('✅ Notifications de participation supprimées');
+                      }),
+                      catchError((error) => {
+                        console.error('⚠️ Erreur suppression notifications (non bloquant):', error);
+                        return of(void 0);
+                      })
+                    );
+                  }),
+                  catchError((error) => {
+                    // ✅ Erreur non bloquante pour l'invitation
+                    console.error('⚠️ Erreur suppression invitation (non bloquant):', error);
+                    
+                    // Continuer quand même avec la suppression des notifications
+                    return from(
+                      this.notificationsService.deleteParticipationNotifications(eventId, userIdToLeave)
+                    ).pipe(
+                      map(() => console.log('✅ Notifications supprimées')),
+                      catchError(() => of(void 0))
+                    );
+                  })
+                );
               })
             );
           })
@@ -216,9 +316,9 @@ export class ParticipantsService {
         const participants = snapshot.docs.map(doc => ({
           id: doc.id,
           ...doc.data()
-        })) as Participant[];
+        } as Participant));
         
-        console.log(`👥 getParticipants: ${participants.length} participants trouvés`);
+        console.log(`✅ ${participants.length} participants approuvés récupérés`);
         observer.next(participants);
       }, (error) => {
         console.error('❌ Erreur getParticipants:', error);
@@ -230,11 +330,89 @@ export class ParticipantsService {
   }
 
   /**
+   * Récupère les participants en attente d'approbation (TEMPS RÉEL)
+   * 
+   * @param eventId - ID de l'événement
+   * @returns Observable<Participant[]> liste des participants en attente
+   */
+  getPendingParticipants(eventId: string): Observable<Participant[]> {
+    return new Observable(observer => {
+      const participantsRef = collection(this.firestore, this.participantsCollection);
+      const q = query(
+        participantsRef,
+        where('eventId', '==', eventId),
+        where('status', '==', ParticipantStatus.PENDING),
+        orderBy('joinedAt', 'desc')
+      );
+
+      const unsubscribe = onSnapshot(q, (snapshot) => {
+        const participants = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        } as Participant));
+        
+        console.log(`🔔 ${participants.length} participants en attente récupérés`);
+        observer.next(participants);
+      }, (error) => {
+        console.error('❌ Erreur getPendingParticipants:', error);
+        observer.error(error);
+      });
+
+      return () => unsubscribe();
+    });
+  }
+
+  /**
+   * Compte le nombre de demandes en attente pour un événement (TEMPS RÉEL)
+   * 
+   * @param eventId - ID de l'événement
+   * @returns Observable<number> qui émet le nombre de demandes en attente
+   */
+  getPendingCount(eventId: string): Observable<number> {
+    return this.getPendingParticipants(eventId).pipe(
+      map(participants => participants.length)
+    );
+  }
+
+  /**
+   * Récupère tous les participants d'un événement, tous statuts confondus (TEMPS RÉEL)
+   * Utilisé pour les statistiques ou l'administration
+   * 
+   * @param eventId - ID de l'événement
+   * @returns Observable<Participant[]> liste de tous les participants
+   */
+  getAllParticipants(eventId: string): Observable<Participant[]> {
+    return new Observable(observer => {
+      const participantsRef = collection(this.firestore, this.participantsCollection);
+      const q = query(
+        participantsRef, 
+        where('eventId', '==', eventId),
+        orderBy('joinedAt', 'desc')
+      );
+
+      const unsubscribe = onSnapshot(q, (snapshot) => {
+        const participants = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        } as Participant));
+        
+        console.log(`✅ ${participants.length} participants (tous statuts) récupérés`);
+        observer.next(participants);
+      }, (error) => {
+        console.error('❌ Erreur getAllParticipants:', error);
+        observer.error(error);
+      });
+
+      return () => unsubscribe();
+    });
+  }
+
+  /**
    * Récupère toutes les participations d'un utilisateur (TEMPS RÉEL)
-   * Utilisé dans "Mes Événements" pour afficher les participations
+   * Utile pour afficher "Mes Événements"
    * 
    * @param userId - ID de l'utilisateur
-   * @returns Observable<Participant[]> qui émet à chaque changement
+   * @returns Observable<Participant[]> liste des participations
    */
   getParticipationsByUser(userId: string): Observable<Participant[]> {
     return new Observable(observer => {
@@ -249,9 +427,9 @@ export class ParticipantsService {
         const participations = snapshot.docs.map(doc => ({
           id: doc.id,
           ...doc.data()
-        })) as Participant[];
+        } as Participant));
         
-        console.log(`👤 getParticipationsByUser: ${participations.length} participations trouvées`);
+        console.log(`📋 ${participations.length} participations pour l'utilisateur`);
         observer.next(participations);
       }, (error) => {
         console.error('❌ Erreur getParticipationsByUser:', error);
@@ -262,76 +440,37 @@ export class ParticipantsService {
     });
   }
 
-  /**
-   * Récupère les participations en attente d'approbation (TEMPS RÉEL)
-   * Utilisé par les organisateurs pour gérer les demandes
-   * 
-   * @param eventId - ID de l'événement
-   * @returns Observable<Participant[]> qui émet à chaque changement
-   */
-  getPendingParticipants(eventId: string): Observable<Participant[]> {
-    return new Observable(observer => {
-      const participantsRef = collection(this.firestore, this.participantsCollection);
-      const q = query(
-        participantsRef,
-        where('eventId', '==', eventId),
-        where('status', '==', ParticipantStatus.PENDING),
-        orderBy('joinedAt', 'asc')
-      );
-
-      const unsubscribe = onSnapshot(q, (snapshot) => {
-        const pending = snapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        })) as Participant[];
-        
-        console.log(`⏳ getPendingParticipants: ${pending.length} en attente`);
-        observer.next(pending);
-      }, (error) => {
-        console.error('❌ Erreur getPendingParticipants:', error);
-        observer.error(error);
-      });
-
-      return () => unsubscribe();
-    });
-  }
-
   // ========================================
-  // ✅ VÉRIFICATIONS - TEMPS RÉEL
+  // 🔍 VÉRIFICATIONS
   // ========================================
 
   /**
-   * Vérifie si un utilisateur participe à un événement (TEMPS RÉEL)
-   * Écoute en continu les changements
-   * 
-   * ⚡ Cette méthode est RÉACTIVE : elle émet une nouvelle valeur à chaque changement
+   * Vérifie si un utilisateur participe déjà à un événement (TEMPS RÉEL)
+   * Écoute en continu pour détecter les changements de statut
    * 
    * @param eventId - ID de l'événement
-   * @param userId - ID de l'utilisateur (optionnel, utilise l'utilisateur connecté par défaut)
-   * @returns Observable<boolean> qui émet true/false en temps réel
+   * @returns Observable<boolean> qui émet true si l'utilisateur participe
    */
-  isUserParticipating(eventId: string, userId?: string): Observable<boolean> {
-    const uid = userId || this.authService.getCurrentUserId();
+  isUserParticipating(eventId: string): Observable<boolean> {
+    const userId = this.authService.getCurrentUserId();
     
-    if (!uid) {
+    if (!userId) {
       return of(false);
     }
 
-    console.log('🔍 isUserParticipating (TEMPS RÉEL) pour eventId:', eventId, 'userId:', uid);
-
-    return this.getParticipantDocumentRealtime(eventId, uid).pipe(
-      map(doc => {
-        const isParticipating = !!doc;
-        console.log('👤 isParticipating:', isParticipating);
+    return this.getParticipantDocumentRealtime(eventId, userId).pipe(
+      map(participant => {
+        const isParticipating = participant !== null;
+        console.log(`👤 isUserParticipating: ${isParticipating}`);
         return isParticipating;
       })
     );
   }
 
   /**
-   * ✅ NOUVELLE MÉTHODE : Vérifie si un utilisateur peut rejoindre un événement (TEMPS RÉEL CONTINU)
+   * ✅ Vérifie si un utilisateur peut rejoindre un événement (TEMPS RÉEL)
    * 
-   * Cette version reste en écoute continue et réémet à chaque changement.
+   * Cette version écoute en continu les changements et réémet automatiquement.
    * À utiliser dans l'UI pour afficher l'état du bouton "Participer" en temps réel.
    * 
    * ⚡ RÉACTIVE : Réémet automatiquement quand :
@@ -355,7 +494,7 @@ export class ParticipantsService {
 
     console.log('🔍 canJoinEventReactive (TEMPS RÉEL) pour eventId:', event.id);
 
-    // ✅ Combine les Observables temps réel SANS take(1)
+    // Combine les Observables temps réel SANS take(1)
     // Cela permet de réémettre à chaque changement
     return combineLatest([
       this.isUserParticipating(event.id!),
@@ -364,7 +503,7 @@ export class ParticipantsService {
       map(([isParticipating, count]) => {
         console.log(`🔍 canJoinEventReactive: isParticipating=${isParticipating}, count=${count}/${event.maxParticipants}`);
         
-        // Vérification 2 : L'utilisateur participe déjà
+        // Vérification 2 : L'utilisateur participe déjà 
         if (isParticipating) {
           return { allowed: false, reason: 'Vous participez déjà à cet événement' };
         }
@@ -406,7 +545,7 @@ export class ParticipantsService {
 
     // Vérification 2 : L'utilisateur participe déjà
     return this.isUserParticipating(event.id!).pipe(
-      take(1), // ✅ take(1) OK ici car c'est une vérification ponctuelle avant action
+      take(1),  // ⏱️ IMPORTANT : take(1) pour une vérification ponctuelle
       switchMap(isParticipating => {
         if (isParticipating) {
           return of({ allowed: false, reason: 'Vous participez déjà à cet événement' });
@@ -414,13 +553,11 @@ export class ParticipantsService {
 
         // Vérification 3 : L'événement est complet
         return this.getParticipantCount(event.id!).pipe(
-          take(1), // ✅ take(1) OK ici car c'est une vérification ponctuelle
+          take(1),  // ⏱️ IMPORTANT : take(1) pour une vérification ponctuelle
           map(count => {
-            console.log(`🔍 canJoinEventOneTime: ${count} / ${event.maxParticipants} participants`);
             if (count >= event.maxParticipants) {
               return { allowed: false, reason: 'L\'événement est complet' };
             }
-
             return { allowed: true };
           })
         );
@@ -428,12 +565,7 @@ export class ParticipantsService {
     );
   }
 
-  /**
-   * @deprecated Utiliser canJoinEventReactive() pour l'affichage temps réel
-   *             ou canJoinEventOneTime() pour les vérifications ponctuelles
-   * 
-   * Cette méthode redirige vers canJoinEventOneTime() par défaut
-   */
+  // ⚠️ DEPRECATED : Ancienne méthode conservée pour compatibilité
   canJoinEventObservable(event: Event): Observable<{ allowed: boolean; reason?: string }> {
     console.warn('⚠️ canJoinEventObservable est deprecated, utilisez canJoinEventReactive() ou canJoinEventOneTime()');
     return this.canJoinEventOneTime(event);
@@ -488,6 +620,48 @@ export class ParticipantsService {
         return participant.status;
       })
     );
+  }
+
+  getUserParticipationStatusRealtime(eventId: string): Observable<ParticipantStatus | undefined> {
+    const userId = this.authService.getCurrentUserId();
+    
+    if (!userId) {
+      return of(undefined);
+    }
+  
+    return new Observable(observer => {
+      const participantsRef = collection(this.firestore, this.participantsCollection);
+      const q = query(
+        participantsRef,
+        where('eventId', '==', eventId),
+        where('userId', '==', userId)
+      );
+  
+      // ✅ Utiliser onSnapshot pour écouter les changements en temps réel
+      const unsubscribe = onSnapshot(
+        q,
+        (snapshot) => {
+          if (snapshot.empty) {
+            console.log('👤 getUserParticipationStatusRealtime: Non participant');
+            observer.next(undefined);
+          } else {
+            const participant = snapshot.docs[0].data() as Participant;
+            console.log('👤 getUserParticipationStatusRealtime:', participant.status);
+            observer.next(participant.status);
+          }
+        },
+        (error) => {
+          console.error('❌ Erreur getUserParticipationStatusRealtime:', error);
+          observer.error(error);
+        }
+      );
+  
+      // Cleanup
+      return () => {
+        console.log('🧹 Unsubscribe getUserParticipationStatusRealtime');
+        unsubscribe();
+      };
+    });
   }
 
   /**
@@ -546,6 +720,7 @@ export class ParticipantsService {
 
   /**
    * Approuve une participation en attente
+   * ✅ MODIFIÉ : Envoie une notification au participant accepté
    * 
    * @param participantId - ID du document participant
    * @returns Observable<void>
@@ -553,15 +728,215 @@ export class ParticipantsService {
   approveParticipant(participantId: string): Observable<void> {
     console.log('✅ approveParticipant:', participantId);
     const participantRef = doc(this.firestore, this.participantsCollection, participantId);
-    return from(
-      import('@angular/fire/firestore').then(({ updateDoc }) =>
-        updateDoc(participantRef, { status: ParticipantStatus.APPROVED })
-      )
+    
+    // D'abord récupérer les infos du participant et de l'événement pour la notification
+    return from(getDoc(participantRef)).pipe(
+      switchMap(participantDoc => {
+        if (!participantDoc.exists()) {
+          throw new Error('Participant non trouvé');
+        }
+        
+        const participant = participantDoc.data() as Participant;
+        
+        // Récupérer les infos de l'événement
+        const eventRef = doc(this.firestore, 'events', participant.eventId);
+        return from(getDoc(eventRef)).pipe(
+          switchMap(eventDoc => {
+            if (!eventDoc.exists()) {
+              throw new Error('Événement non trouvé');
+            }
+            
+            const event = eventDoc.data() as Event;
+            
+            // Mettre à jour le statut du participant
+            return from(updateDoc(participantRef, { status: ParticipantStatus.APPROVED })).pipe(
+              switchMap(() => {
+                console.log('✅ Participant approuvé');
+                
+                // ✅ NOUVEAU : Supprimer l'invitation DECLINED si elle existe
+                return from(
+                  this.invitationsService.deleteUserInvitation(participant.eventId, participant.userId)
+                ).pipe(
+                  switchMap(() => {
+                    console.log('🗑️ Invitation supprimée si elle existait');
+                    
+                    // ✅ Supprimer anciennes notifications de décision
+                    return from(
+                      this.notificationsService.deleteParticipationDecisionNotifications(
+                        participant.eventId,
+                        participant.userId
+                      )
+                    ).pipe(
+                      switchMap(() => {
+                        console.log('🧹 Anciennes notifications de décision supprimées');
+                        
+                        // ✅ Supprimer la notification de DEMANDE pour l'organisateur
+                        return from(
+                          this.notificationsService.deleteParticipationRequestNotifications(
+                            participant.eventId,
+                            participant.userId
+                          )
+                        ).pipe(
+                          switchMap(() => {
+                            console.log('🧹 Notification de demande supprimée pour l\'organisateur');
+                            
+                            // ✅ Créer la notification d'acceptation pour le participant
+                            const notification = createNotificationWithDefaults(
+                              NotificationType.EVENT_REQUEST_APPROVED,
+                              participant.userId,
+                              `Votre demande de participation à l'événement "${event.title}" a été acceptée ! 🎉`,
+                              {
+                                relatedEntityId: participant.eventId,
+                                relatedEntityType: 'event',
+                                actionUrl: `/tabs/events/${participant.eventId}`,
+                                senderUserId: event.organizerId,
+                                senderDisplayName: event.organizerName,
+                                senderPhotoURL: event.organizerPhoto
+                              }
+                            );
+                            
+                            console.log('📬 Envoi notification d\'acceptation au participant');
+                            
+                            // Fire and forget
+                            this.notificationsService.createNotification(notification).then(
+                              () => console.log('✅ Notification d\'acceptation envoyée'),
+                              (error) => console.error('❌ Erreur envoi notification:', error)
+                            );
+                            
+                            return of(void 0);
+                          }),
+                          catchError((error) => {
+                            // ✅ Gestion d'erreur non bloquante
+                            console.error('⚠️ Erreur suppression notification demande (non bloquant):', error);
+                            
+                            // Créer quand même la notification d'acceptation
+                            const notification = createNotificationWithDefaults(
+                              NotificationType.EVENT_REQUEST_APPROVED,
+                              participant.userId,
+                              `Votre demande de participation à l'événement "${event.title}" a été acceptée ! 🎉`,
+                              {
+                                relatedEntityId: participant.eventId,
+                                relatedEntityType: 'event',
+                                actionUrl: `/tabs/events/${participant.eventId}`,
+                                senderUserId: event.organizerId,
+                                senderDisplayName: event.organizerName,
+                                senderPhotoURL: event.organizerPhoto
+                              }
+                            );
+                            
+                            this.notificationsService.createNotification(notification).catch(err =>
+                              console.error('❌ Erreur envoi notification:', err)
+                            );
+                            
+                            return of(void 0);
+                          })
+                        );
+                      }),
+                      catchError((error) => {
+                        console.error('⚠️ Erreur suppression notifications décision (non bloquant):', error);
+                        
+                        // Continuer quand même avec la notification de demande
+                        return from(
+                          this.notificationsService.deleteParticipationRequestNotifications(
+                            participant.eventId,
+                            participant.userId
+                          )
+                        ).pipe(
+                          switchMap(() => {
+                            // Créer la notification d'acceptation
+                            const notification = createNotificationWithDefaults(
+                              NotificationType.EVENT_REQUEST_APPROVED,
+                              participant.userId,
+                              `Votre demande de participation à l'événement "${event.title}" a été acceptée ! 🎉`,
+                              {
+                                relatedEntityId: participant.eventId,
+                                relatedEntityType: 'event',
+                                actionUrl: `/tabs/events/${participant.eventId}`,
+                                senderUserId: event.organizerId,
+                                senderDisplayName: event.organizerName,
+                                senderPhotoURL: event.organizerPhoto
+                              }
+                            );
+                            
+                            this.notificationsService.createNotification(notification).catch(err =>
+                              console.error('❌ Erreur envoi notification:', err)
+                            );
+                            
+                            return of(void 0);
+                          }),
+                          catchError(() => {
+                            // Dernier recours : créer la notification sans supprimer
+                            const notification = createNotificationWithDefaults(
+                              NotificationType.EVENT_REQUEST_APPROVED,
+                              participant.userId,
+                              `Votre demande de participation à l'événement "${event.title}" a été acceptée ! 🎉`,
+                              {
+                                relatedEntityId: participant.eventId,
+                                relatedEntityType: 'event',
+                                actionUrl: `/tabs/events/${participant.eventId}`,
+                                senderUserId: event.organizerId,
+                                senderDisplayName: event.organizerName,
+                                senderPhotoURL: event.organizerPhoto
+                              }
+                            );
+                            
+                            this.notificationsService.createNotification(notification).catch(err =>
+                              console.error('❌ Erreur envoi notification:', err)
+                            );
+                            
+                            return of(void 0);
+                          })
+                        );
+                      })
+                    );
+                  }),
+                  catchError((error) => {
+                    // ✅ Erreur suppression invitation non bloquante
+                    console.error('⚠️ Erreur suppression invitation (non bloquant):', error);
+                    
+                    // Continuer avec le reste du processus
+                    return from(
+                      this.notificationsService.deleteParticipationDecisionNotifications(
+                        participant.eventId,
+                        participant.userId
+                      )
+                    ).pipe(
+                      switchMap(() => {
+                        const notification = createNotificationWithDefaults(
+                          NotificationType.EVENT_REQUEST_APPROVED,
+                          participant.userId,
+                          `Votre demande de participation à l'événement "${event.title}" a été acceptée ! 🎉`,
+                          {
+                            relatedEntityId: participant.eventId,
+                            relatedEntityType: 'event',
+                            actionUrl: `/tabs/events/${participant.eventId}`,
+                            senderUserId: event.organizerId,
+                            senderDisplayName: event.organizerName,
+                            senderPhotoURL: event.organizerPhoto
+                          }
+                        );
+                        
+                        this.notificationsService.createNotification(notification).catch(err =>
+                          console.error('❌ Erreur envoi notification:', err)
+                        );
+                        
+                        return of(void 0);
+                      }),
+                      catchError(() => of(void 0))
+                    );
+                  })
+                );
+              })
+            );
+          })
+        );
+      })
     );
   }
 
   /**
    * Rejette une participation en attente
+   * ✅ MODIFIÉ : Envoie une notification au participant refusé
    * 
    * @param participantId - ID du document participant
    * @returns Observable<void>
@@ -569,10 +944,134 @@ export class ParticipantsService {
   rejectParticipant(participantId: string): Observable<void> {
     console.log('❌ rejectParticipant:', participantId);
     const participantRef = doc(this.firestore, this.participantsCollection, participantId);
-    return from(
-      import('@angular/fire/firestore').then(({ updateDoc }) =>
-        updateDoc(participantRef, { status: ParticipantStatus.REJECTED })
-      )
+    
+    // D'abord récupérer les infos du participant et de l'événement pour la notification
+    return from(getDoc(participantRef)).pipe(
+      switchMap(participantDoc => {
+        if (!participantDoc.exists()) {
+          throw new Error('Participant non trouvé');
+        }
+        
+        const participant = participantDoc.data() as Participant;
+        
+        // Récupérer les infos de l'événement
+        const eventRef = doc(this.firestore, 'events', participant.eventId);
+        return from(getDoc(eventRef)).pipe(
+          switchMap(eventDoc => {
+            if (!eventDoc.exists()) {
+              throw new Error('Événement non trouvé');
+            }
+            
+            const event = eventDoc.data() as Event;
+            
+            // Mettre à jour le statut du participant
+            return from(updateDoc(participantRef, { status: ParticipantStatus.REJECTED })).pipe(
+              switchMap(() => {
+                console.log('❌ Participant rejeté');
+                
+                // ✅ Supprimer anciennes notifications de décision
+                return from(
+                  this.notificationsService.deleteParticipationDecisionNotifications(
+                    participant.eventId,
+                    participant.userId
+                  )
+                ).pipe(
+                  switchMap(() => {
+                    console.log('🧹 Anciennes notifications de décision supprimées');
+                    
+                    // ✅ NOUVEAU : Supprimer la notification de DEMANDE pour l'organisateur
+                    return from(
+                      this.notificationsService.deleteParticipationRequestNotifications(
+                        participant.eventId,
+                        participant.userId
+                      )
+                    ).pipe(
+                      switchMap(() => {
+                        console.log('🧹 Notification de demande supprimée pour l\'organisateur');
+                        
+                        // ✅ Créer la notification de refus pour le participant
+                        const notification = createNotificationWithDefaults(
+                          NotificationType.EVENT_REQUEST_REJECTED,
+                          participant.userId,
+                          `Votre demande de participation à l'événement "${event.title}" a été refusée.`,
+                          {
+                            relatedEntityId: participant.eventId,
+                            relatedEntityType: 'event',
+                            actionUrl: `/tabs/events/${participant.eventId}`,
+                            senderUserId: event.organizerId,
+                            senderDisplayName: event.organizerName,
+                            senderPhotoURL: event.organizerPhoto
+                          }
+                        );
+                        
+                        console.log('📬 Envoi notification de refus au participant');
+                        
+                        // Fire and forget
+                        this.notificationsService.createNotification(notification).then(
+                          () => console.log('✅ Notification de refus envoyée'),
+                          (error) => console.error('❌ Erreur envoi notification:', error)
+                        );
+                        
+                        return of(void 0);
+                      }),
+                      catchError((error) => {
+                        // ✅ Gestion d'erreur non bloquante
+                        console.error('⚠️ Erreur suppression notification demande (non bloquant):', error);
+                        
+                        // Créer quand même la notification de refus
+                        const notification = createNotificationWithDefaults(
+                          NotificationType.EVENT_REQUEST_REJECTED,
+                          participant.userId,
+                          `Votre demande de participation à l'événement "${event.title}" a été refusée.`,
+                          {
+                            relatedEntityId: participant.eventId,
+                            relatedEntityType: 'event',
+                            actionUrl: `/tabs/events/${participant.eventId}`,
+                            senderUserId: event.organizerId,
+                            senderDisplayName: event.organizerName,
+                            senderPhotoURL: event.organizerPhoto
+                          }
+                        );
+                        
+                        this.notificationsService.createNotification(notification).catch(err =>
+                          console.error('❌ Erreur envoi notification:', err)
+                        );
+                        
+                        return of(void 0);
+                      })
+                    );
+                  }),
+                  catchError((error) => {
+                    // Gestion d'erreur pour deleteParticipationDecisionNotifications
+                    console.error('⚠️ Erreur nettoyage notifications (non bloquant):', error);
+                    
+                    // Créer quand même la notification de refus
+                    const notification = createNotificationWithDefaults(
+                      NotificationType.EVENT_REQUEST_REJECTED,
+                      participant.userId,
+                      `Votre demande de participation à l'événement "${event.title}" a été refusée.`,
+                      {
+                        relatedEntityId: participant.eventId,
+                        relatedEntityType: 'event',
+                        actionUrl: `/tabs/events/${participant.eventId}`,
+                        senderUserId: event.organizerId,
+                        senderDisplayName: event.organizerName,
+                        senderPhotoURL: event.organizerPhoto
+                      }
+                    );
+                    
+                    this.notificationsService.createNotification(notification).catch(err =>
+                      console.error('❌ Erreur envoi notification:', err)
+                    );
+                    
+                    return of(void 0);
+                  })
+                );
+              })
+            );
+          })
+        );
+      })
     );
   }
 
@@ -650,47 +1149,3 @@ export class ParticipantsService {
     );
   }
 }
-
-// ========================================
-// 📚 GUIDE D'UTILISATION
-// ========================================
-
-/*
-QUAND UTILISER QUELLE MÉTHODE ?
-
-1. AFFICHAGE TEMPS RÉEL (UI réactive) ⚡
-   → canJoinEventReactive()
-   → isUserParticipating()
-   → getParticipantCount()
-   → getParticipants()
-   → getParticipationsByUser()
-   
-   Ces méthodes restent en écoute continue et mettent à jour l'UI automatiquement.
-
-2. ACTIONS PONCTUELLES (vérifications avant action) ⏱️
-   → canJoinEventOneTime()
-   → getParticipantDocumentOneTime()
-   
-   Ces méthodes effectuent une vérification unique puis se terminent.
-
-EXEMPLES :
-
-// ✅ BIEN : Pour afficher le bouton "Participer" en temps réel
-this.participantsService.canJoinEventReactive(event).subscribe(result => {
-  this.canJoin = result.allowed;
-  this.canJoinReason = result.reason || '';
-});
-
-// ✅ BIEN : Pour vérifier avant d'ajouter un participant
-this.participantsService.canJoinEventOneTime(event).pipe(
-  take(1) // Optionnel car déjà ponctuel
-).subscribe(result => {
-  if (result.allowed) {
-    // Ajouter le participant
-  }
-});
-
-// ❌ MAL : Ne pas utiliser take(1) sur une méthode réactive
-this.participantsService.canJoinEventReactive(event).pipe(
-  take(1) // ❌ Coupe la réactivité !
-).subscribe(/* ... */

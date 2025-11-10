@@ -1,0 +1,76 @@
+// Remplacer tout le contenu
+
+ion-content {
+  --background: var(--ion-background-color);
+}
+
+ion-searchbar {
+  --border-radius: 12px;
+  --box-shadow: none;
+  padding: 8px 16px;
+  
+  // ✅ Corriger l'icône de recherche
+  --icon-color: var(--ion-color-medium);
+}
+
+ion-list {
+  background: transparent;
+  padding: 8px;
+}
+
+ion-item {
+  --background: rgba(255, 255, 255, 0.05);
+  --border-radius: 12px;
+  --padding-start: 12px;
+  --padding-end: 12px;
+  --inner-padding-end: 0;  // ✅ Retire l'espace pour la flèche
+  --detail-icon-opacity: 0;  // ✅ Cache la flèche
+  margin-bottom: 8px;
+  border-radius: 12px;
+
+  // ✅ Retire le curseur pointer
+  cursor: default;
+
+  h2 {
+    font-weight: 600;
+    font-size: 16px;
+  }
+
+  p {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 13px;
+    color: var(--ion-color-warning);
+    margin-top: 4px;
+
+    ion-icon {
+      font-size: 14px;
+    }
+  }
+}
+
+// ✅ Style pour le bouton menu 3 points
+ion-item ion-button {
+  margin: 0;
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  text-align: center;
+
+  ion-icon {
+    font-size: 64px;
+    color: var(--ion-color-medium);
+    margin-bottom: 16px;
+  }
+
+  p {
+    color: var(--ion-color-medium);
+    font-size: 16px;
+  }
+}

@@ -63,6 +63,9 @@ export interface Notification {
   relatedEntityType?: 'event' | 'friendship' | 'message' | 'user'; // Type d'entité
   actionUrl?: string;                 // URL de redirection au clic
   
+  groupKey?: string;              // Clé pour regrouper les notifications similaires
+  count?: number;                 // Nombre d'actions agrégées
+  lastUpdatedAt?: Timestamp;      // Dernière mise à jour
   // Données dénormalisées pour affichage rapide
   senderUserId?: string;              // UID de l'utilisateur qui déclenche la notification
   senderDisplayName?: string;         // Nom de l'expéditeur
@@ -98,6 +101,8 @@ export interface CreateNotificationDto {
   senderDisplayName?: string;
   senderPhotoURL?: string;
   expiresAt?: Timestamp;              // Optionnel : auto-suppression après X jours
+  groupKey?: string;
+  count?: number;
 }
 
 /**

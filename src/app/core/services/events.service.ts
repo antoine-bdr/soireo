@@ -16,10 +16,12 @@ import {
   Timestamp,
   onSnapshot
 } from '@angular/fire/firestore';
-import { Observable, from, map, switchMap } from 'rxjs';
+import { Observable, from, map, switchMap, take, of, throwError, catchError } from 'rxjs';
 import { AuthenticationService } from './authentication.service';
 import { UsersService } from './users.service';
-import { Event, CreateEventDto, EventCategory } from '../models/event.model';
+import { NotificationsService } from './notifications.service';
+import { NotificationType } from '../models/notification.model';
+import { Event, CreateEventDto, EventCategory, EventAnnouncement } from '../models/event.model';
 import { Participant, ParticipantStatus } from '../models/participant.model';
 
 @Injectable({
@@ -32,6 +34,10 @@ export class EventsService {
   
   private readonly eventsCollection = 'events';
   private readonly participantsCollection = 'participants';
+
+  private readonly notificationsService = inject(NotificationsService);
+
+  private readonly announcementsCollection = 'eventAnnouncements';
 
   constructor() {}
 
@@ -94,11 +100,14 @@ export class EventsService {
           category: eventData.category,
           imageUrl: eventData.imageUrl || '',
           images: [],
-          isPrivate: eventData.isPrivate,
+          accessType: eventData.accessType,  // ✅ Type d'accès (public/private/invite_only)
           requiresApproval: eventData.requiresApproval,
           createdAt: Timestamp.now(),
           updatedAt: Timestamp.now(),
-          tags: eventData.tags || []
+          tags: eventData.tags || [],
+          // ✅ Conversion Date → Timestamp uniquement si définis
+          ...(eventData.startTime && { startTime: Timestamp.fromDate(eventData.startTime) }),
+          ...(eventData.endTime && { endTime: Timestamp.fromDate(eventData.endTime) })
         };
 
         // ✅ LOGS DÉTAILLÉS AVANT ENVOI
@@ -159,7 +168,7 @@ export class EventsService {
           'title', 'description', 'date', 'location',
           'organizerId', 'organizerName', 'maxParticipants',
           'currentParticipants', 'participants', 'category',
-          'isPrivate', 'requiresApproval', 'createdAt', 'updatedAt',
+          'accessType', 'requiresApproval', 'createdAt', 'updatedAt',  // ✅ MODIFIÉ : accessType au lieu de isPrivate
           'imageUrl', 'images', 'tags'
         ];
 
@@ -199,6 +208,74 @@ export class EventsService {
               map(() => {
                 console.log('✅ [DEBUG] Organisateur ajouté comme participant');
                 return eventId;
+              })
+            );
+          })
+        );
+      })
+    );
+  }
+
+
+  createEventAnnouncement(announcement: Omit<EventAnnouncement, 'id' | 'timestamp'>): Observable<string> {
+    const currentUserId = this.authService.getCurrentUserId();
+  
+    if (!currentUserId) {
+      return throwError(() => new Error('Utilisateur non connecté'));
+    }
+  
+    const announcementToCreate = {
+      ...announcement,
+      timestamp: Timestamp.now()
+    };
+  
+    // Récupérer l'événement pour avoir les participants
+    return this.getEventById(announcement.eventId).pipe(
+      take(1),
+      switchMap(event => {
+        if (!event) {
+          throw new Error('Événement introuvable');
+        }
+  
+        const announcementsRef = collection(this.firestore, this.announcementsCollection);
+        
+        // Créer l'annonce
+        return from(addDoc(announcementsRef, announcementToCreate)).pipe(
+          switchMap(docRef => {
+            const announcementId = docRef.id;
+            
+            // Filtrer les participants (exclure l'auteur)
+            const participantsToNotify = event.participants.filter(
+              userId => userId !== currentUserId
+            );
+  
+            if (participantsToNotify.length === 0) {
+              return of(announcementId);
+            }
+  
+            // Créer les notifications pour chaque participant
+            const notificationPromises = participantsToNotify.map(userId =>
+              this.notificationsService.createOrUpdateNotification({
+                userId,
+                type: NotificationType.SYSTEM,  // ✅ CHANGER (publications = SYSTEM)
+                title: 'Nouvelle publication',  // ✅ CHANGER
+                message: `${announcement.authorName} a publié dans l'événement "${event.title}"`,  // ✅ CHANGER
+                icon: 'megaphone-outline',  // ✅ CHANGER
+                color: 'primary',  // ✅ CHANGER
+                relatedEntityId: event.id,
+                relatedEntityType: 'event',
+                actionUrl: `/events/${event.id}`,
+                senderUserId: currentUserId ?? undefined,
+                senderDisplayName: announcement.authorName,  // ✅ CHANGER
+                groupKey: `announcement_${event.id}_${currentUserId}`,  // ✅ CHANGER (grouper par auteur)
+                count: 1
+              })
+            );
+  
+            return from(Promise.all(notificationPromises)).pipe(
+              map(() => {
+                console.log(`✅ Publication créée et ${participantsToNotify.length} notifications envoyées`);
+                return announcementId;
               })
             );
           })
@@ -294,27 +371,96 @@ export class EventsService {
     });
   }
 
-  updateEvent(eventId: string, updates: Partial<Event>): Observable<void> {
+  updateEvent(
+    eventId: string, 
+    updates: Partial<Event>, 
+    sendNotification: boolean = true  // ✅ AJOUTER ce paramètre
+  ): Observable<void> {
     const eventDocRef = doc(this.firestore, this.eventsCollection, eventId);
-
+    const currentUserId = this.authService.getCurrentUserId();
+  
     const dataToUpdate = {
       ...updates,
       updatedAt: Timestamp.now()
     };
-
-    return from(updateDoc(eventDocRef, dataToUpdate)).pipe(
-      map(() => {
-        console.log('✅ Événement mis à jour:', eventId);
+  
+    // Récupérer l'événement avant mise à jour pour avoir les participants
+    return this.getEventById(eventId).pipe(
+      take(1),
+      switchMap(event => {
+        if (!event) {
+          throw new Error('Événement introuvable');
+        }
+  
+        // Mettre à jour l'événement
+        return from(updateDoc(eventDocRef, dataToUpdate)).pipe(
+          switchMap(() => {
+            // ✅ CONDITION : Envoyer notifications uniquement si sendNotification = true
+            if (!sendNotification) {
+              console.log('ℹ️ Mise à jour silencieuse (pas de notification)');
+              return of(void 0);
+            }
+  
+            // Envoyer notifications aux participants (sauf organisateur)
+            const participantsToNotify = event.participants.filter(
+              userId => userId !== currentUserId
+            );
+  
+            if (participantsToNotify.length === 0) {
+              return of(void 0);
+            }
+  
+            // Créer les notifications pour chaque participant
+            const notificationPromises = participantsToNotify.map(userId =>
+              this.notificationsService.createOrUpdateNotification({
+                userId,
+                type: NotificationType.EVENT_UPDATED,
+                title: 'Événement modifié',
+                message: `L'événement "${event.title}" a été mis à jour`,
+                icon: 'create-outline',
+                color: 'warning',
+                relatedEntityId: eventId,
+                relatedEntityType: 'event',
+                actionUrl: `/events/${eventId}`,
+                senderUserId: currentUserId ?? undefined,
+                senderDisplayName: event.organizerName,
+                groupKey: `event_updated_${eventId}`,  // ✅ AJOUTER
+                count: 1  // ✅ AJOUTER
+              })
+            );
+  
+            return from(Promise.all(notificationPromises)).pipe(
+              map(() => {
+                console.log(`✅ Événement mis à jour et ${participantsToNotify.length} notifications envoyées`);
+              })
+            );
+          })
+        );
       })
     );
   }
+
+  // Remplacer la méthode deleteEvent() (ligne 441-449)
 
   deleteEvent(eventId: string): Observable<void> {
     const eventDocRef = doc(this.firestore, this.eventsCollection, eventId);
 
     return from(deleteDoc(eventDocRef)).pipe(
-      map(() => {
+      switchMap(() => {
         console.log('✅ Événement supprimé:', eventId);
+        
+        // ✅ NOUVEAU : Supprimer toutes les notifications liées
+        return from(
+          this.notificationsService.deleteEventNotifications(eventId)
+        ).pipe(
+          map(() => {
+            console.log('✅ Notifications d\'événement supprimées');
+          }),
+          catchError((error) => {
+            console.error('⚠️ Erreur suppression notifications (non bloquant):', error);
+            return of(void 0); // ✅ Continuer même si erreur
+          })
+        );
       })
     );
   }

@@ -3,7 +3,7 @@
 // Affiche les informations publiques et permet les actions d'ami
 
 import { Component, OnInit, OnDestroy, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { CommonModule, Location } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import {
   IonHeader,
@@ -78,10 +78,7 @@ import { Friendship, FriendshipStatus } from '../../../core/models/friend.model'
     IonButton,
     IonIcon,
     IonSpinner,
-    IonText,
     IonChip,
-    IonBadge,
-    IonItem,
     IonLabel,
     IonRefresher,
     IonRefresherContent
@@ -112,7 +109,8 @@ export class FriendProfilePage implements OnInit, OnDestroy {
     private readonly friendsService: FriendsService,
     private readonly authService: AuthenticationService,
     private readonly toastCtrl: ToastController,
-    private readonly alertCtrl: AlertController
+    private readonly alertCtrl: AlertController,
+    readonly location: Location
   ) {
     // Enregistrement des icônes
     addIcons({

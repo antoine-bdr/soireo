@@ -41,7 +41,7 @@ import {
   peopleOutline,
   lockClosedOutline,
   checkmarkCircleOutline,
-  warningOutline, chevronForwardOutline } from 'ionicons/icons';
+  warningOutline, chevronForwardOutline, timeOutline } from 'ionicons/icons';
 
 import { EventsService } from '../../../core/services/events.service';
 import { StorageService } from '../../../core/services/storage.service';
@@ -129,8 +129,24 @@ export class EventEditPage implements OnInit, OnDestroy {
     { value: EventCategory.OTHER, label: '📌 Autre' }
   ];
 
+  // Durées disponibles (après la définition des categories)
+  durations = [
+    { value: 1.5, label: '1h30' },
+    { value: 2, label: '2 heures' },
+    { value: 3, label: '3 heures' },      // Défaut
+    { value: 4, label: '4 heures' },
+    { value: 5, label: '5 heures' },
+    { value: 6, label: '6 heures' },
+    { value: 8, label: '8 heures' },
+    { value: 10, label: '10 heures' },
+    { value: 12, label: '12 heures' }
+  ];
+
+  // Heure de fin calculée (pour affichage)
+  calculatedEndTime: string = '';
+
   constructor() {
-    addIcons({cameraOutline,closeOutline,calendarOutline,chevronForwardOutline,locationOutline,peopleOutline,warningOutline,checkmarkCircleOutline,lockClosedOutline,saveOutline});
+    addIcons({cameraOutline,closeOutline,calendarOutline,chevronForwardOutline,locationOutline,peopleOutline,warningOutline,checkmarkCircleOutline,lockClosedOutline,saveOutline,timeOutline});
   }
 
   ngOnInit() {
@@ -207,10 +223,19 @@ export class EventEditPage implements OnInit, OnDestroy {
    * Initialise le formulaire avec les données de l'événement
    */
   initForm(event: Event) {
+    // Calculer la durée initiale si startTime et endTime existent
+    let initialDuration = 3; // Défaut
+    if (event.startTime && event.endTime) {
+      const startMs = event.startTime.toDate().getTime();
+      const endMs = event.endTime.toDate().getTime();
+      initialDuration = (endMs - startMs) / (60 * 60 * 1000); // Convertir ms en heures
+    }
+
     this.eventForm = this.fb.group({
       title: [event.title, [Validators.required, Validators.minLength(3), Validators.maxLength(100)]],
       description: [event.description, [Validators.required, Validators.minLength(10), Validators.maxLength(1000)]],
       date: [event.date.toDate().toISOString(), Validators.required],
+      duration: [initialDuration, Validators.required],
       category: [event.category, Validators.required],
       maxParticipants: [event.maxParticipants, [Validators.required, Validators.min(2), Validators.max(1000)]],
       isPrivate: [event.isPrivate],
@@ -220,6 +245,56 @@ export class EventEditPage implements OnInit, OnDestroy {
       city: [event.location.city, Validators.required],
       zipCode: [event.location.zipCode, [Validators.required, Validators.pattern(/^\d{5}$/)]]
     });
+
+    // Écoute les changements pour recalculer l'heure de fin
+    this.eventForm.get('date')?.valueChanges.subscribe(() => {
+      this.updateCalculatedEndTime();
+    });
+
+    this.eventForm.get('duration')?.valueChanges.subscribe(() => {
+      this.updateCalculatedEndTime();
+    });
+
+    // Calcul initial de l'heure de fin
+    this.updateCalculatedEndTime();
+  }
+
+  /**
+   * Calcule et met à jour l'heure de fin affichée
+   */
+  private updateCalculatedEndTime() {
+    const dateValue = this.eventForm.get('date')?.value;
+    const durationValue = this.eventForm.get('duration')?.value;
+
+    if (!dateValue || !durationValue) {
+      this.calculatedEndTime = '';
+      return;
+    }
+
+    const startDate = new Date(dateValue);
+    const endDate = new Date(startDate.getTime() + durationValue * 60 * 60 * 1000);
+
+    this.calculatedEndTime = endDate.toLocaleTimeString('fr-FR', {
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  }
+
+  /**
+   * Calcule la date de fin complète (pour Firestore)
+   */
+  private calculateEndDateTime(): Date | undefined {
+    const dateValue = this.eventForm.get('date')?.value;
+    const durationValue = this.eventForm.get('duration')?.value;
+
+    if (!dateValue || !durationValue) {
+      return undefined;
+    }
+
+    const startDate = new Date(dateValue);
+    const endDate = new Date(startDate.getTime() + durationValue * 60 * 60 * 1000);
+
+    return endDate;
   }
 
   /**
@@ -298,10 +373,19 @@ export class EventEditPage implements OnInit, OnDestroy {
     const formValue = this.eventForm.value;
     const original = this.originalEvent;
 
+    // Calculer la durée originale
+    let originalDuration = 3;
+    if (original.startTime && original.endTime) {
+      const startMs = original.startTime.toDate().getTime();
+      const endMs = original.endTime.toDate().getTime();
+      originalDuration = (endMs - startMs) / (60 * 60 * 1000);
+    }
+
     return (
       formValue.title !== original.title ||
       formValue.description !== original.description ||
       formValue.date !== original.date.toDate().toISOString() ||
+      formValue.duration !== originalDuration ||
       formValue.category !== original.category ||
       formValue.maxParticipants !== original.maxParticipants ||
       formValue.isPrivate !== original.isPrivate ||
@@ -325,6 +409,18 @@ export class EventEditPage implements OnInit, OnDestroy {
 
     if (!this.hasChanges()) {
       await this.showToast('Aucune modification détectée', 'warning');
+      return;
+    }
+
+    // ✅ VALIDATION : Empêche de réduire sous le nombre actuel de participants
+    const newMaxParticipants = this.eventForm.value.maxParticipants;
+    if (newMaxParticipants < this.currentParticipantCount) {
+      const alert = await this.alertCtrl.create({
+        header: '⚠️ Impossible de réduire',
+        message: `Vous ne pouvez pas réduire le nombre de participants à ${newMaxParticipants} car il y a déjà ${this.currentParticipantCount} participants inscrits.\n\nVous devez d'abord retirer des participants ou augmenter la limite.`,
+        buttons: ['OK']
+      });
+      await alert.present();
       return;
     }
 
@@ -364,10 +460,17 @@ export class EventEditPage implements OnInit, OnDestroy {
 
       // Prépare les données
       const formValue = this.eventForm.value;
+      
+      // Calcul de startTime et endTime
+      const startDate = new Date(formValue.date);
+      const endDate = this.calculateEndDateTime();
+
       const updates: Partial<Event> = {
         title: formValue.title,
         description: formValue.description,
-        date: Timestamp.fromDate(new Date(formValue.date)),
+        date: Timestamp.fromDate(startDate),
+        startTime: Timestamp.fromDate(startDate),
+        endTime: endDate ? Timestamp.fromDate(endDate) : undefined,
         category: formValue.category,
         maxParticipants: formValue.maxParticipants,
         isPrivate: formValue.isPrivate,
@@ -450,6 +553,7 @@ export class EventEditPage implements OnInit, OnDestroy {
   get title() { return this.eventForm.get('title'); }
   get description() { return this.eventForm.get('description'); }
   get date() { return this.eventForm.get('date'); }
+  get duration() { return this.eventForm.get('duration'); }
   get category() { return this.eventForm.get('category'); }
   get maxParticipants() { return this.eventForm.get('maxParticipants'); }
   get address() { return this.eventForm.get('address'); }

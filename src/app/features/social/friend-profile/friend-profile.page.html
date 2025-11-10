@@ -4,7 +4,7 @@
 <ion-header [translucent]="true">
   <ion-toolbar color="primary">
     <ion-buttons slot="start">
-      <ion-back-button defaultHref="/social/friend-search"></ion-back-button>
+      <ion-back-button (click)="location.back()"></ion-back-button>  <!-- ✅ MODIFIER -->
     </ion-buttons>
     <ion-title>Profil</ion-title>
   </ion-toolbar>

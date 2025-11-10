@@ -1,0 +1,152 @@
+<!-- src/app/shared/components/invite-friends-modal/invite-friends-modal.component.html -->
+
+<ion-header>
+  <ion-toolbar>
+    <ion-title>Inviter des amis</ion-title>
+    <ion-buttons slot="end">
+      <ion-button (click)="dismiss()">
+        <ion-icon name="close-outline"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+
+  <!-- Barre de recherche -->
+  <ion-toolbar>
+    <ion-searchbar
+      placeholder="Rechercher un ami..."
+      (ionInput)="handleSearch($event)"
+      [searchIcon]="'search-outline'"
+      animated="true">
+    </ion-searchbar>
+  </ion-toolbar>
+
+  <!-- Statistiques et filtres -->
+  <ion-toolbar class="stats-toolbar">
+    <div class="stats-container">
+      <div class="stat-item">
+        <span class="stat-value">{{ totalFriendsCount }}</span>
+        <span class="stat-label">Amis</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-value">{{ availableCount }}</span>
+        <span class="stat-label">Disponibles</span>
+      </div>
+      <div class="stat-item highlight">
+        <span class="stat-value">{{ selectedCount }}</span>
+        <span class="stat-label">Sélectionnés</span>
+      </div>
+    </div>
+
+    <!-- Filtres -->
+    <div class="filters-container">
+      <ion-button 
+        size="small" 
+        [fill]="hideParticipants ? 'solid' : 'outline'"
+        (click)="toggleFilter('participants')">
+        <ion-icon name="checkmark-circle-outline" slot="start"></ion-icon>
+        Masquer participants
+      </ion-button>
+      <ion-button 
+        size="small" 
+        [fill]="hideInvited ? 'solid' : 'outline'"
+        (click)="toggleFilter('invited')">
+        <ion-icon name="person-outline" slot="start"></ion-icon>
+        Masquer invités
+      </ion-button>
+    </div>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content>
+  <!-- Loading -->
+  <div class="loading-container" *ngIf="isLoading">
+    <ion-spinner name="crescent" color="primary"></ion-spinner>
+    <p>Chargement de vos amis...</p>
+  </div>
+
+  <!-- Liste des amis -->
+  <ion-list *ngIf="!isLoading">
+    <ion-item 
+      *ngFor="let friend of filteredFriends"
+      [button]="canInviteFriend(friend)"
+      [disabled]="!canInviteFriend(friend)"
+      (click)="toggleFriendClick(friend)"
+      [class.selected]="friend.isSelected">
+
+      <!-- Avatar -->
+      <ion-avatar slot="start">
+        <img 
+          [src]="friend.photoURL || 'assets/default-avatar.png'" 
+          [alt]="friend.displayName" />
+      </ion-avatar>
+
+      <!-- Nom et statut -->
+      <ion-label>
+        <h2>{{ friend.displayName }}</h2>
+        <p *ngIf="getFriendBadge(friend)" class="friend-status">
+          {{ getFriendBadge(friend)!.text }}
+        </p>
+      </ion-label>
+
+      <!-- Badge -->
+      <ion-badge 
+        *ngIf="getFriendBadge(friend)"
+        slot="end"
+        [color]="getFriendBadge(friend)!.color">
+        {{ getFriendBadge(friend)!.text }}
+      </ion-badge>
+
+      <!-- Checkbox -->
+      <ion-checkbox 
+        *ngIf="canInviteFriend(friend)"
+        slot="end"
+        [checked]="friend.isSelected"
+        (click)="$event.stopPropagation()"
+        (ionChange)="toggleFriendSelection(friend, $event)">
+      </ion-checkbox>
+    </ion-item>
+  </ion-list>
+
+  <!-- Message vide -->
+  <div class="empty-state" *ngIf="!isLoading && filteredFriends.length === 0">
+    <ion-icon name="people-outline"></ion-icon>
+    <h3>Aucun ami disponible</h3>
+    <p *ngIf="searchTerm">Aucun résultat pour "{{ searchTerm }}"</p>
+    <p *ngIf="!searchTerm && hideParticipants && hideInvited">
+      Tous vos amis sont déjà participants ou invités
+    </p>
+    <p *ngIf="!searchTerm && !hideParticipants && !hideInvited">
+      Vous n'avez pas encore d'amis
+    </p>
+  </div>
+
+  <!-- Actions rapides flottantes -->
+  <div class="quick-actions" *ngIf="!isLoading && filteredFriends.length > 0">
+    <ion-button 
+      size="small"
+      fill="outline"
+      (click)="selectAll()">
+      {{ allFilteredSelected ? 'Tout désélectionner' : 'Tout sélectionner' }}
+    </ion-button>
+  </div>
+</ion-content>
+
+<!-- Footer avec boutons -->
+<ion-toolbar class="footer-toolbar">
+  <div class="footer-buttons">
+    <ion-button 
+      expand="block"
+      fill="outline"
+      (click)="dismiss()">
+      Annuler
+    </ion-button>
+    
+    <ion-button 
+      expand="block"
+      [disabled]="selectedCount === 0"
+      (click)="sendInvitations()">
+      <ion-icon name="checkmark-circle-outline" slot="start"></ion-icon>
+      Envoyer {{ selectedCount > 0 ? '(' + selectedCount + ')' : '' }}
+    </ion-button>
+  </div>
+</ion-toolbar>

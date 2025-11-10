@@ -1,0 +1,115 @@
+<!-- ========================================
+     🖼️ PHOTO GALLERY MODAL
+     ======================================== -->
+
+     <ion-header>
+      <ion-toolbar>
+        <ion-title>Photos - {{ eventTitle }}</ion-title>
+        <ion-buttons slot="end">
+          <ion-button (click)="dismiss()">
+            <ion-icon name="close-outline"></ion-icon>
+          </ion-button>
+        </ion-buttons>
+      </ion-toolbar>
+    </ion-header>
+    
+    <ion-content>
+      
+      <!-- ========================================
+           GRILLE DE PHOTOS
+           ======================================== -->
+      <div class="gallery-grid" *ngIf="selectedPhotoIndex === null">
+        <ion-grid>
+          <ion-row>
+            <ion-col 
+              size="6" 
+              size-md="4" 
+              size-lg="3"
+              *ngFor="let photo of photos; let i = index">
+              <div class="photo-item-wrapper">
+                <div class="photo-item" (click)="openPhoto(i)">
+                  <img [src]="photo.url" [alt]="'Photo ' + (i + 1)" />
+                </div>
+                
+                <!-- ✅ Badge de l'auteur -->
+                <div class="photo-author">
+                  <ion-icon name="person-outline"></ion-icon>
+                  <span>{{ photo.uploadedByName }}</span>
+                </div>
+    
+                <!-- ✅ Bouton supprimer (si autorisé) -->
+                <ion-button 
+                  class="options-photo-btn"
+                  fill="clear"
+                  size="small"
+                  (click)="openPhotoOptions(photo, i); $event.stopPropagation()">
+                  <ion-icon name="ellipsis-vertical-outline" slot="icon-only"></ion-icon>
+                </ion-button>
+              </div>
+            </ion-col>
+          </ion-row>
+        </ion-grid>
+    
+        <!-- Empty state -->
+        <div class="empty-gallery" *ngIf="photos.length === 0">
+          <ion-icon name="images-outline"></ion-icon>
+          <p>Aucune photo pour le moment</p>
+        </div>
+      </div>
+    
+      <!-- ========================================
+           VUE PLEIN ÉCRAN
+           ======================================== -->
+      <div class="fullscreen-viewer" *ngIf="selectedPhotoIndex !== null" (click)="closeFullScreen()">
+        <img 
+          [src]="photos[selectedPhotoIndex].url" 
+          [alt]="'Photo ' + (selectedPhotoIndex + 1)"
+          (click)="$event.stopPropagation()" />
+    
+        <!-- ✅ Info de l'auteur en overlay -->
+        <div class="fullscreen-author-info" (click)="$event.stopPropagation()">
+          <ion-icon name="person-outline"></ion-icon>
+          <span>{{ photos[selectedPhotoIndex].uploadedByName }}</span>
+        </div>
+    
+        <!-- Navigation controls -->
+        <div class="navigation-controls" (click)="$event.stopPropagation()">
+          <ion-button 
+            fill="clear" 
+            size="large"
+            (click)="previousPhoto()"
+            [disabled]="selectedPhotoIndex === 0">
+            <ion-icon name="chevron-back-outline"></ion-icon>
+          </ion-button>
+    
+          <span class="photo-counter">
+            {{ selectedPhotoIndex + 1 }} / {{ photos.length }}
+          </span>
+    
+          <ion-button 
+            fill="clear" 
+            size="large"
+            (click)="nextPhoto()"
+            [disabled]="selectedPhotoIndex === photos.length - 1">
+            <ion-icon name="chevron-forward-outline"></ion-icon>
+          </ion-button>
+        </div>
+    
+        <!-- Bouton supprimer en plein écran -->
+        <ion-button 
+          class="options-fullscreen-btn"
+          fill="clear"
+          (click)="openPhotoOptions(photos[selectedPhotoIndex], selectedPhotoIndex); $event.stopPropagation()">
+          <ion-icon name="ellipsis-vertical-outline"></ion-icon>
+        </ion-button>
+    
+        <!-- Bouton fermer -->
+        <ion-button 
+          class="close-fullscreen-btn"
+          fill="clear"
+          (click)="closeFullScreen()">
+          <ion-icon name="close-outline"></ion-icon>
+        </ion-button>
+      </div>
+    
+    </ion-content>

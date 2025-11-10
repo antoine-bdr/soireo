@@ -1,6 +1,6 @@
 // src/app/features/events/event-create/event-create.page.ts
-// ✅ VERSION SIMPLIFIÉE : Visibilité automatique selon requiresApproval
-// ✅ AJOUT : Sélection visuelle du type d'événement
+// ✅ VERSION AVEC DURÉE D'ÉVÉNEMENT
+// Modification : Ajout de la durée et calcul automatique de l'heure de fin
 
 import { Component, OnInit, OnDestroy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
@@ -33,10 +33,12 @@ import {
   LoadingController,
   ToastController,
   AlertController,
+  ModalController, 
   IonList,
   IonSpinner,
-  IonChip,     // ✅ AJOUTÉ pour les chips use-cases
-  IonBadge     // ✅ AJOUTÉ pour le badge "Recommandé"
+  IonChip,
+  IonBadge,
+  IonAvatar
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import {
@@ -51,23 +53,27 @@ import {
   chevronForwardOutline, 
   searchOutline, 
   checkmarkCircle,
-  // ✅ AJOUTÉS pour les types d'événements
   mailOutline,
   globeOutline,
   shieldCheckmarkOutline,
   alertCircleOutline,
-  informationCircleOutline
+  informationCircleOutline,
+  timeOutline,  // ✅ AJOUTÉ pour l'icône de durée
+  personAddOutline,
+  closeCircle
 } from 'ionicons/icons';
 
 import { EventsService } from '../../../core/services/events.service';
 import { StorageService } from '../../../core/services/storage.service';
 import { EventLocationVisibilityService } from '../../../core/services/event-location-visibility.service';
-import { CreateEventDto, EventCategory, EventLocation, AddressVisibility } from '../../../core/models/event.model';
+import { CreateEventDto, EventCategory, EventLocation, AddressVisibility, EventAccessType } from '../../../core/models/event.model';
+import { InvitationsService } from '../../../core/services/invitations.service';
+import { InviteFriendsModalComponent } from '../../../shared/components/invite-friends-modal/invite-friends-modal.component';
 
 import { FormsModule } from '@angular/forms';
 import { GooglePlacesService, AddressPrediction, PlaceDetails } from '../../../core/services/google-places.service';
 import { Subject, Subscription } from 'rxjs';
-import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
+import { debounceTime, distinctUntilChanged, take } from 'rxjs/operators';
 
 @Component({
   selector: 'app-event-create',
@@ -95,15 +101,15 @@ import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
     IonSelectOption,
     IonButton,
     IonIcon,
-    IonToggle,
     IonText,
     IonModal,
     IonDatetime,
     IonList,
     IonSpinner,
     FormsModule,
-    IonChip,    // ✅ AJOUTÉ
-    IonBadge    // ✅ AJOUTÉ
+    IonChip,       // ✅ AJOUTER
+    IonBadge,      // ✅ AJOUTER
+    IonAvatar      // ✅ AJOUTER (pour les chips)
   ]
 })
 export class EventCreatePage implements OnInit, OnDestroy {
@@ -117,6 +123,8 @@ export class EventCreatePage implements OnInit, OnDestroy {
   private readonly toastCtrl = inject(ToastController);
   private readonly alertCtrl = inject(AlertController);
   private readonly googlePlacesService = inject(GooglePlacesService);
+  private readonly invitationsService = inject(InvitationsService);
+  private readonly modalCtrl = inject(ModalController);
 
   // Formulaire
   eventForm!: FormGroup;
@@ -128,9 +136,10 @@ export class EventCreatePage implements OnInit, OnDestroy {
   // Date minimale (aujourd'hui)
   minDate: string = new Date().toISOString();
 
-  // ✅ AJOUTÉ : Type d'événement sélectionné (par défaut "Sur invitation")
-  selectedEventType: 'invitation' | 'public' | 'private' = 'invitation';
-
+  // Type d'événement sélectionné (par défaut "Sur invitation")
+  accessType: EventAccessType = EventAccessType.PRIVATE;
+  selectedFriends: Array<{ userId: string; displayName: string; photoURL?: string }> = [];
+  invitedFriendsCount: number = 0;
   // Catégories disponibles
   categories = [
     { value: EventCategory.PARTY, label: '🎉 Soirée' },
@@ -142,6 +151,22 @@ export class EventCreatePage implements OnInit, OnDestroy {
     { value: EventCategory.PRIVATE, label: '🔒 Privé' },
     { value: EventCategory.OTHER, label: '📌 Autre' }
   ];
+
+  // ✅ Durées disponibles
+  durations = [
+    { value: 1.5, label: '1h30' },
+    { value: 2, label: '2 heures' },
+    { value: 3, label: '3 heures' },      // Défaut
+    { value: 4, label: '4 heures' },
+    { value: 5, label: '5 heures' },
+    { value: 6, label: '6 heures' },
+    { value: 8, label: '8 heures' },
+    { value: 10, label: '10 heures' },
+    { value: 12, label: '12 heures' }
+  ];
+
+  // ✅ Heure de fin calculée (pour affichage)
+  calculatedEndTime: string = '';
 
   // Google Places Autocomplete
   isGoogleMapsLoaded = false;
@@ -167,12 +192,14 @@ export class EventCreatePage implements OnInit, OnDestroy {
       checkmarkCircleOutline,
       lockClosedOutline,
       saveOutline,
-      // ✅ AJOUTÉS
       mailOutline,
       globeOutline,
       shieldCheckmarkOutline,
       alertCircleOutline,
-      informationCircleOutline
+      informationCircleOutline,
+      timeOutline,
+      personAddOutline,  // ✅ AJOUTER
+      closeCircle    // ✅ AJOUTÉ
     });
   }
 
@@ -188,99 +215,79 @@ export class EventCreatePage implements OnInit, OnDestroy {
   }
 
   /**
-   * Initialise le formulaire avec validation
-   * ℹ️ PAS de champ addressVisibility - géré automatiquement
-   * ✅ MODIFIÉ : requiresApproval par défaut à true (Sur invitation)
+   * ✅ MODIFIÉ : Ajout du champ 'duration' avec valeur par défaut 3 heures
    */
   initForm() {
     this.eventForm = this.fb.group({
       title: ['', [Validators.required, Validators.minLength(3), Validators.maxLength(100)]],
       description: ['', [Validators.required, Validators.minLength(10), Validators.maxLength(1000)]],
       date: ['', Validators.required],
+      duration: [3, Validators.required],  // ✅ AJOUTÉ : Durée par défaut = 3 heures
       category: [EventCategory.PARTY, Validators.required],
       maxParticipants: [10, [Validators.required, Validators.min(2), Validators.max(1000)]],
-      isPrivate: [false],
-      requiresApproval: [true] // ✅ MODIFIÉ : true par défaut (Sur invitation)
+      accessType: [EventAccessType.PRIVATE, Validators.required], // ✅ Utilise EventAccessType
+      requiresApproval: [true]
+    });
+
+    // ✅ Écoute les changements de date et durée pour calculer l'heure de fin
+    this.eventForm.get('date')?.valueChanges.subscribe(() => {
+      this.updateCalculatedEndTime();
+    });
+
+    this.eventForm.get('duration')?.valueChanges.subscribe(() => {
+      this.updateCalculatedEndTime();
     });
   }
 
   // ========================================
-  // ✅ NOUVELLES MÉTHODES : Gestion du type d'événement
+  // ✅ NOUVELLES MÉTHODES : Gestion de la durée
   // ========================================
 
   /**
-   * ✅ NOUVEAU : Sélectionne le type d'événement
+   * ✅ NOUVEAU : Calcule et met à jour l'heure de fin affichée
    */
-  async selectEventType(type: 'invitation' | 'public' | 'private') {
-    // Si l'utilisateur sélectionne "Public", affiche une confirmation
-    if (type === 'public') {
-      const confirmed = await this.confirmPublicEvent();
-      if (!confirmed) {
-        return; // L'utilisateur a annulé
-      }
-    }
-    
-    this.selectedEventType = type;
-    
-    // Met à jour les valeurs du formulaire
-    switch (type) {
-      case 'invitation':
-        this.eventForm.patchValue({
-          requiresApproval: true,
-          isPrivate: false
-        });
-        break;
-        
-      case 'public':
-        this.eventForm.patchValue({
-          requiresApproval: false,
-          isPrivate: false
-        });
-        break;
-        
-      case 'private':
-        this.eventForm.patchValue({
-          requiresApproval: true,
-          isPrivate: true
-        });
-        break;
-    }
-    
-    console.log(`🎭 Type d'événement sélectionné: ${type}`, this.eventForm.value);
-  }
+  private updateCalculatedEndTime() {
+    const dateValue = this.eventForm.get('date')?.value;
+    const durationValue = this.eventForm.get('duration')?.value;
 
-  /**
-   * ✅ NOUVEAU : Affiche une alerte de confirmation pour les événements publics
-   */
-  async confirmPublicEvent(): Promise<boolean> {
-    return new Promise(async (resolve) => {
-      const alert = await this.alertCtrl.create({
-        header: '🌍 Événement public',
-        message: `
-          <p>Les utilisateurs pourront rejoindre <strong>sans validation</strong>.</p>
-          <p>Ce mode est recommandé pour les <strong>événements professionnels</strong> uniquement.</p>
-          <br>
-          <p>💡 <strong>Conseil :</strong> Pour une soirée entre particuliers, choisis plutôt "Sur invitation".</p>
-        `,
-        buttons: [
-          {
-            text: 'Annuler',
-            role: 'cancel',
-            handler: () => resolve(false)
-          },
-          {
-            text: 'Confirmer',
-            handler: () => resolve(true)
-          }
-        ]
-      });
-      
-      await alert.present();
+    if (!dateValue || !durationValue) {
+      this.calculatedEndTime = '';
+      return;
+    }
+
+    const startDate = new Date(dateValue);
+    const endDate = new Date(startDate.getTime() + durationValue * 60 * 60 * 1000);
+
+    this.calculatedEndTime = endDate.toLocaleTimeString('fr-FR', {
+      hour: '2-digit',
+      minute: '2-digit'
     });
+
+    console.log('⏰ Heure de début:', startDate.toISOString());
+    console.log('⏰ Durée:', durationValue, 'heures');
+    console.log('⏰ Heure de fin calculée:', this.calculatedEndTime, '(' + endDate.toISOString() + ')');
+  }
+
+  /**
+   * ✅ NOUVEAU : Calcule la date de fin complète (pour Firestore)
+   */
+  private calculateEndDateTime(): Date | undefined {
+    const dateValue = this.eventForm.get('date')?.value;
+    const durationValue = this.eventForm.get('duration')?.value;
+
+    if (!dateValue || !durationValue) {
+      return undefined;
+    }
+
+    const startDate = new Date(dateValue);
+    const endDate = new Date(startDate.getTime() + durationValue * 60 * 60 * 1000);
+
+    return endDate;
   }
 
   // ========================================
-  // MÉTHODES EXISTANTES (inchangées)
+  // GOOGLE MAPS & AUTOCOMPLETE
+  // ✅ CODE ORIGINAL - PAS DE MODIFICATION
   // ========================================
 
   setupGoogleMaps() {
@@ -371,6 +378,10 @@ export class EventCreatePage implements OnInit, OnDestroy {
     this.addressPredictions = [];
   }
 
+  // ========================================
+  // GESTION IMAGE
+  // ========================================
+
   async onImageSelected(event: any) {
     const file = event.target.files[0];
     
@@ -402,6 +413,10 @@ export class EventCreatePage implements OnInit, OnDestroy {
     this.imagePreview = null;
   }
 
+  // ========================================
+  // GESTION DATE
+  // ========================================
+
   onDateChange(event: any) {
     const selectedDate = event.detail.value;
     this.eventForm.patchValue({ date: selectedDate });
@@ -421,6 +436,10 @@ export class EventCreatePage implements OnInit, OnDestroy {
     });
   }
 
+  // ========================================
+  // CRÉATION DE L'ÉVÉNEMENT
+  // ========================================
+
   async createEvent() {
     this.submitted = true;
 
@@ -429,6 +448,17 @@ export class EventCreatePage implements OnInit, OnDestroy {
       this.markFormGroupTouched(this.eventForm);
       return;
     }
+
+    if (this.accessType === EventAccessType.INVITE_ONLY && this.selectedFriends.length === 0) {
+      await this.showToast('Vous devez inviter au moins 1 ami pour un événement sur invitation uniquement', 'warning');
+      return;
+    }
+    
+    console.log('🔍 Validation accessType:', {
+      type: this.accessType,
+      isInviteOnly: this.accessType === EventAccessType.INVITE_ONLY,
+      friendsSelected: this.selectedFriends.length
+    });
 
     if (!this.selectedPlaceDetails) {
       await this.showToast('Veuillez sélectionner une adresse dans la liste', 'warning');
@@ -474,79 +504,143 @@ export class EventCreatePage implements OnInit, OnDestroy {
     }
   }
 
+  /**
+   * ✅ MODIFIÉ : Ajout de startTime et endTime dans le DTO
+   */
   private async submitEvent() {
     const loading = await this.loadingCtrl.create({
       message: 'Création de l\'événement...',
       spinner: 'crescent'
     });
     await loading.present();
-
+  
     try {
       let imageUrl = '';
-
+  
       if (this.selectedImage) {
         loading.message = 'Upload de l\'image...';
         imageUrl = await this.storageService
           .uploadImageWithAutoName(this.selectedImage, 'events')
           .toPromise() || '';
       }
-
+  
       const formValue = this.eventForm.value;
-      
-      const visibility = formValue.requiresApproval 
-        ? AddressVisibility.PARTICIPANTS_ONLY
-        : AddressVisibility.PUBLIC;
-
-      console.log('🔒 Approbation requise:', formValue.requiresApproval);
-      console.log('🔒 Visibilité automatique:', visibility);
-      
-      let location: EventLocation = {
-        address: this.selectedPlaceDetails!.address,
-        city: this.selectedPlaceDetails!.city,
-        zipCode: this.selectedPlaceDetails!.zipCode,
-        latitude: this.selectedPlaceDetails!.latitude,
-        longitude: this.selectedPlaceDetails!.longitude,
-        country: this.selectedPlaceDetails!.country,
-        placeId: this.selectedPlaceDetails!.placeId,
-        visibility: visibility
-      };
-
-      if (visibility === AddressVisibility.PARTICIPANTS_ONLY) {
-        const approximate = this.locationVisibilityService.calculateApproximateCoordinates(
-          this.selectedPlaceDetails!.latitude,
-          this.selectedPlaceDetails!.longitude
-        );
-
-        location.approximateLatitude = approximate.approximateLatitude;
-        location.approximateLongitude = approximate.approximateLongitude;
-
-        console.log('📍 Coordonnées approximatives calculées:', approximate);
-        console.log('ℹ️ L\'adresse sera masquée pour les non-participants');
+  
+      if (!this.selectedPlaceDetails?.latitude || !this.selectedPlaceDetails?.longitude) {
+        throw new Error('Coordonnées GPS manquantes');
       }
-
-      console.log('📍 Location finale:', location);
-
+  
+      const eventDate = new Date(formValue.date);
+      let startTime: Date | undefined;
+      let endTime: Date | undefined;
+  
+      if (formValue.startTime) {
+        const [hours, minutes] = formValue.startTime.split(':');
+        startTime = new Date(eventDate);
+        startTime.setHours(parseInt(hours, 10), parseInt(minutes, 10), 0, 0);
+      }
+  
+      if (formValue.duration && startTime) {
+        endTime = new Date(startTime);
+        const [hours, minutes] = formValue.duration.split(':');
+        endTime.setHours(
+          endTime.getHours() + parseInt(hours, 10),
+          endTime.getMinutes() + parseInt(minutes, 10)
+        );
+      }
+  
       const eventData: CreateEventDto = {
         title: formValue.title,
         description: formValue.description,
-        date: new Date(formValue.date),
-        location: location,
-        maxParticipants: formValue.maxParticipants,
+        date: eventDate,
+        ...(startTime && { startTime }),  // ✅ N'inclut que si défini
+        ...(endTime && { endTime }),      // ✅ N'inclut que si défini
+        location: {
+          address: this.selectedPlaceDetails.address,
+          city: this.selectedPlaceDetails.city || '',
+          zipCode: this.selectedPlaceDetails.zipCode || '',
+          latitude: this.selectedPlaceDetails.latitude,
+          longitude: this.selectedPlaceDetails.longitude,
+          visibility: AddressVisibility.PARTICIPANTS_ONLY
+        },
         category: formValue.category,
+        maxParticipants: formValue.maxParticipants,
         imageUrl: imageUrl,
-        isPrivate: formValue.isPrivate,
+        accessType: this.accessType,
         requiresApproval: formValue.requiresApproval,
         tags: []
       };
-
+  
       loading.message = 'Enregistrement...';
       const eventId = await this.eventsService.createEvent(eventData).toPromise();
-
-      await loading.dismiss();
-      await this.showToast('🎉 Événement créé avec succès !', 'success');
-
-      this.router.navigate(['/tabs/events', eventId]);
-
+  
+      console.log('✅ Événement créé avec ID:', eventId);
+      console.log('🔍 AccessType:', this.accessType);
+      console.log('🔍 Amis sélectionnés:', this.selectedFriends.length);
+  
+      // ✅ MODIFIÉ : Envoyer les invitations si des amis ont été sélectionnés (pour TOUS les types)
+      if (this.selectedFriends.length > 0 && eventId) {
+        console.log(`📨 Envoi de ${this.selectedFriends.length} invitation(s)...`);
+        loading.message = `Envoi des invitations...`;
+        
+        try {
+          const friendIds = this.selectedFriends.map(f => f.userId);
+          const friendsData = new Map(
+            this.selectedFriends.map(f => [
+              f.userId,
+              { name: f.displayName, photo: f.photoURL }
+            ])
+          );
+  
+          // Charger l'événement complet pour les invitations
+          const createdEvent = await this.eventsService.getEventById(eventId).pipe(take(1)).toPromise();
+          
+          if (createdEvent) {
+            console.log('✅ Événement chargé:', createdEvent.title);
+            
+            const sentCount = await this.invitationsService.sendInvitations(
+              eventId,
+              createdEvent,
+              friendIds,
+              friendsData
+            );
+            
+            console.log(`✅ ${sentCount} invitation(s) envoyée(s)`);
+            
+            await loading.dismiss();
+            
+            // ✅ Toast spécifique pour les invitations
+            await this.showToast(
+              `🎉 Événement créé ! ${sentCount} invitation(s) envoyée(s)`,
+              'success'
+            );
+          } else {
+            console.error('❌ Événement non trouvé après création');
+            await loading.dismiss();
+            await this.showToast('⚠️ Événement créé mais invitations non envoyées', 'warning');
+          }
+        } catch (inviteError) {
+          console.error('❌ Erreur envoi invitations (événement créé):', inviteError);
+          await loading.dismiss();
+          await this.showToast(
+            '⚠️ Événement créé mais erreur lors de l\'envoi des invitations',
+            'warning'
+          );
+        }
+      } else {
+        // ✅ Pas d'invitations à envoyer
+        await loading.dismiss();
+        await this.showToast('🎉 Événement créé avec succès !', 'success');
+        
+        console.log('ℹ️ Pas d\'invitations à envoyer:', {
+          accessType: this.accessType,
+          friendsCount: this.selectedFriends.length
+        });
+      }
+  
+      // ✅ Redirection vers la liste des événements
+      this.router.navigate(['/tabs/my-events']);
+  
     } catch (error: any) {
       await loading.dismiss();
       console.error('❌ Erreur création événement:', error);
@@ -556,6 +650,10 @@ export class EventCreatePage implements OnInit, OnDestroy {
       );
     }
   }
+
+  // ========================================
+  // HELPERS
+  // ========================================
 
   private markFormGroupTouched(formGroup: FormGroup) {
     Object.keys(formGroup.controls).forEach(key => {
@@ -574,12 +672,16 @@ export class EventCreatePage implements OnInit, OnDestroy {
     await toast.present();
   }
 
+  // ========================================
+  // GETTERS
+  // ========================================
+  get accessTypeEnum() { return EventAccessType; }
   get title() { return this.eventForm.get('title'); }
   get description() { return this.eventForm.get('description'); }
   get date() { return this.eventForm.get('date'); }
+  get duration() { return this.eventForm.get('duration'); }  // ✅ AJOUTÉ
   get category() { return this.eventForm.get('category'); }
   get maxParticipants() { return this.eventForm.get('maxParticipants'); }
-  get isPrivate() { return this.eventForm.get('isPrivate'); }
   get requiresApproval() { return this.eventForm.get('requiresApproval'); }
   
   get isFormValid(): boolean {
@@ -588,4 +690,58 @@ export class EventCreatePage implements OnInit, OnDestroy {
            this.selectedPlaceDetails.latitude !== undefined &&
            this.selectedPlaceDetails.longitude !== undefined;
   }
+
+  // ========================================
+  // ✅ NOUVEAU : Gestion du type d'accès
+  // ========================================
+
+  /**
+   * Change le type d'accès de l'événement
+   */
+  selectAccessType(type: EventAccessType) {
+    this.accessType = type;
+    this.eventForm.patchValue({ accessType: type });
+    
+    // ✅ Si on passe à PUBLIC ou PRIVATE, vider les invités
+    if (type !== EventAccessType.INVITE_ONLY) {
+      this.selectedFriends = [];
+      this.invitedFriendsCount = 0;
+    }
+    
+    console.log('📋 Type d\'accès changé:', type);
+  }
+
+  /**
+   * ✅ Ouvre la modal pour inviter des amis
+   */
+  async openInviteFriendsModal() {
+    const modal = await this.modalCtrl.create({
+      component: InviteFriendsModalComponent,
+      componentProps: {
+        event: null, // ✅ Pas encore créé
+        currentParticipants: [] // ✅ Aucun participant pour l'instant
+      }
+    });
+  
+    await modal.present();
+  
+    const { data } = await modal.onWillDismiss();
+    
+    // ✅ Gérer le retour des amis sélectionnés
+    if (data && data.selectedFriends && Array.isArray(data.selectedFriends)) {
+      this.selectedFriends = data.selectedFriends;
+      this.invitedFriendsCount = this.selectedFriends.length;
+      console.log(`✅ ${this.invitedFriendsCount} ami(s) sélectionné(s) pour invitation`);
+      console.log('👥 Amis sélectionnés:', this.selectedFriends);
+    }
+  }
+
+  /**
+   * ✅ Retire un ami de la liste des invités
+   */
+  removeFriend(userId: string) {
+    this.selectedFriends = this.selectedFriends.filter(f => f.userId !== userId);
+    this.invitedFriendsCount = this.selectedFriends.length;
+  }
+  
 }

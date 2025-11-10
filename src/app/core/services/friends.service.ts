@@ -157,8 +157,7 @@ export class FriendsService {
    */
   getFriends(userId: string): Observable<FriendListItem[]> {
     console.log(`👥 [FriendsService] Chargement amis pour ${userId}`);
-
-    // ✅ CORRECTION : Créer la collection ICI, dans la méthode
+  
     const friendshipsCol = collection(this.firestore, 'friendships');
     
     const q = query(
@@ -169,28 +168,44 @@ export class FriendsService {
       ),
       orderBy('acceptedAt', 'desc')
     );
-
-    return collectionData(q, { idField: 'id' }).pipe(
-      map(friendships => {
-        console.log(`✅ [FriendsService] ${friendships.length} amis trouvés`);
-        
-        return (friendships as Friendship[]).map(friendship => {
-          const friendId = getFriendId(friendship, userId);
-          const friendData = getFriendData(friendship, userId);
-
-          return {
-            friendshipId: friendship.id!,
-            userId: friendId,
-            displayName: friendData.displayName,
-            photoURL: friendData.photoURL,
-            status: friendship.status,
-            isPending: false,
-            isSender: friendship.senderId === userId,
-            friendSince: friendship.acceptedAt?.toDate()
-          };
-        });
-      })
-    );
+  
+    // ✅ Utiliser onSnapshot au lieu de collectionData pour éviter les problèmes de typage
+    return new Observable<FriendListItem[]>(observer => {
+      const unsubscribe = onSnapshot(q, 
+        (snapshot) => {
+          const friendships = snapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+          })) as Friendship[];
+          
+          console.log(`✅ [FriendsService] ${friendships.length} amis trouvés`);
+          
+          const result = friendships.map(friendship => {
+            const friendId = getFriendId(friendship, userId);
+            const friendData = getFriendData(friendship, userId);
+  
+            return {
+              friendshipId: friendship.id!,
+              userId: friendId,
+              displayName: friendData.displayName,
+              photoURL: friendData.photoURL,
+              status: friendship.status,
+              isPending: false,
+              isSender: friendship.senderId === userId,
+              friendSince: friendship.acceptedAt?.toDate()
+            };
+          });
+          
+          observer.next(result);
+        },
+        (error) => {
+          console.error('❌ [FriendsService] Erreur getFriends:', error);
+          observer.error(error);
+        }
+      );
+      
+      return () => unsubscribe();
+    });
   }
 
   /**
@@ -427,32 +442,43 @@ export class FriendsService {
    */
   async acceptFriendRequest(friendshipId: string, userId: string): Promise<void> {
     console.log(`✅ [FriendsService] Acceptation demande ami: ${friendshipId}`);
-
+  
     try {
       const docRef = doc(this.firestore, 'friendships', friendshipId);
       const docSnap = await getDoc(docRef);
-
+  
       if (!docSnap.exists()) {
         throw new Error('Demande d\'ami introuvable');
       }
-
+  
       const friendship = { id: docSnap.id, ...docSnap.data() } as Friendship;
-
+  
       // Vérifier que l'utilisateur est bien le receiver
       if (friendship.receiverId !== userId) {
         throw new Error('Vous ne pouvez pas accepter cette demande');
       }
-
+  
       // Mettre à jour le statut
       await updateDoc(docRef, {
         status: 'accepted',
         acceptedAt: serverTimestamp(),
         updatedAt: serverTimestamp()
       });
-
+  
       console.log(`✅ [FriendsService] Demande acceptée: ${friendshipId}`);
-
-      // Créer une notification pour l'expéditeur
+  
+      // ✅ NOUVEAU : Supprimer la notification FRIEND_REQUEST du receiver
+      try {
+        await this.notificationsService.deleteFriendRequestNotification(
+          friendshipId, 
+          userId
+        );
+        console.log('✅ Notification FRIEND_REQUEST supprimée du receiver');
+      } catch (error) {
+        console.error('⚠️ Erreur suppression notification (non bloquant):', error);
+      }
+  
+      // Créer une notification FRIEND_ACCEPTED pour l'expéditeur
       await this.notificationsService.createNotificationByType(
         NotificationType.FRIEND_ACCEPTED,
         friendship.senderId,
@@ -480,11 +506,20 @@ export class FriendsService {
    */
   async rejectFriendRequest(friendshipId: string): Promise<void> {
     console.log(`❌ [FriendsService] Refus demande ami: ${friendshipId}`);
-
+  
     try {
+      // ✅ Étape 1 : Supprimer le document friendship
       const docRef = doc(this.firestore, 'friendships', friendshipId);
       await deleteDoc(docRef);
       console.log(`✅ [FriendsService] Demande refusée: ${friendshipId}`);
+  
+      // ✅ Étape 2 : Supprimer TOUTES les notifications liées
+      try {
+        await this.notificationsService.deleteAllFriendshipNotifications(friendshipId);
+        console.log('✅ Notifications de friendship supprimées');
+      } catch (error) {
+        console.error('⚠️ Erreur suppression notifications (non bloquant):', error);
+      }
     } catch (error) {
       console.error('❌ [FriendsService] Erreur refus demande:', error);
       throw error;
@@ -499,11 +534,20 @@ export class FriendsService {
    */
   async removeFriend(friendshipId: string): Promise<void> {
     console.log(`🗑️ [FriendsService] Suppression ami: ${friendshipId}`);
-
+  
     try {
+      // ✅ Étape 1 : Supprimer le document friendship
       const docRef = doc(this.firestore, 'friendships', friendshipId);
       await deleteDoc(docRef);
       console.log(`✅ [FriendsService] Ami supprimé: ${friendshipId}`);
+      
+      // ✅ Étape 2 : Supprimer TOUTES les notifications liées
+      try {
+        await this.notificationsService.deleteAllFriendshipNotifications(friendshipId);
+        console.log('✅ Notifications de friendship supprimées');
+      } catch (error) {
+        console.error('⚠️ Erreur suppression notifications (non bloquant):', error);
+      }
     } catch (error) {
       console.error('❌ [FriendsService] Erreur suppression ami:', error);
       throw error;

@@ -1,6 +1,5 @@
-// src/app/features/social/messages/messages.page.ts
 import { Component, inject, signal, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { CommonModule, Location } from '@angular/common';
 import { Router } from '@angular/router';
 import {
   IonHeader, IonToolbar, IonTitle, IonContent, IonButtons, IonButton,
@@ -8,7 +7,7 @@ import {
   IonSearchbar, IonRefresher, IonRefresherContent, IonSpinner, IonIcon
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
-import { chatbubblesOutline, searchOutline } from 'ionicons/icons';
+import { chatbubblesOutline, searchOutline, arrowBackOutline } from 'ionicons/icons';
 
 import { MessagesService } from '../../../core/services/messages.service';
 import { AuthenticationService } from '../../../core/services/authentication.service';
@@ -23,7 +22,7 @@ import { ConversationListItem } from '../../../core/models/message.model';
   imports: [
     CommonModule,
     IonHeader, IonToolbar, IonTitle, IonContent, IonButtons, IonButton,
-    IonBackButton, IonList, IonItem, IonAvatar, IonLabel, IonBadge,
+    IonList, IonItem, IonAvatar, IonLabel, IonBadge,
     IonSearchbar, IonRefresher, IonRefresherContent, IonSpinner, IonIcon
   ]
 })
@@ -32,6 +31,7 @@ export class MessagesPage implements OnInit {
   private readonly authService = inject(AuthenticationService);
   private readonly usersService = inject(UsersService);
   private readonly router = inject(Router);
+   readonly location = inject(Location);
 
   // Signals
   conversations = signal<ConversationListItem[]>([]);
@@ -40,7 +40,7 @@ export class MessagesPage implements OnInit {
   searchValue = signal('');
 
   constructor() {
-    addIcons({ chatbubblesOutline, searchOutline });
+    addIcons({arrowBackOutline,chatbubblesOutline,searchOutline});
   }
 
   ngOnInit() {

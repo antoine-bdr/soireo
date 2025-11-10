@@ -1,0 +1,61 @@
+<!-- Remplacer tout le contenu -->
+
+<ion-header>
+  <ion-toolbar>
+    <ion-title>Participants ({{ participants.length }})</ion-title>
+    <ion-buttons slot="end">
+      <ion-button (click)="dismiss()">
+        <ion-icon name="close-outline"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+  
+  <!-- Barre de recherche -->
+  <ion-toolbar>
+    <ion-searchbar
+      placeholder="Rechercher"
+      (ionInput)="handleSearch($event)"
+      [searchIcon]="'search-outline'"
+      animated="true">
+    </ion-searchbar>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content>
+  <ion-list>
+    <ion-item 
+      *ngFor="let participant of filteredParticipants"
+      [detail]="false">
+      <!-- ✅ Retirer button et (click) -->
+      
+      <ion-avatar slot="start">
+        <img 
+          [src]="participant.userPhoto || 'assets/default-avatar.png'" 
+          [alt]="participant.userName" />
+      </ion-avatar>
+
+      <ion-label>
+        <h2>{{ participant.userName }}</h2>
+        <p *ngIf="participant.userId === organizerId">
+          <ion-icon name="star" color="warning"></ion-icon>
+          Organisateur
+        </p>
+      </ion-label>
+
+      <!-- Menu 3 points -->
+      <ion-button 
+        slot="end" 
+        fill="clear"
+        (click)="openParticipantMenu(participant, $event)">
+        <ion-icon name="ellipsis-vertical-outline"></ion-icon>
+      </ion-button>
+
+    </ion-item>
+  </ion-list>
+
+  <!-- Message si aucun résultat -->
+  <div class="empty-state" *ngIf="filteredParticipants.length === 0">
+    <ion-icon name="search-outline"></ion-icon>
+    <p>Aucun participant trouvé</p>
+  </div>
+</ion-content>

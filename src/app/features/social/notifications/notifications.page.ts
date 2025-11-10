@@ -1,6 +1,7 @@
 import { Component, OnInit, OnDestroy, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
+import { Location } from '@angular/common';
 import {
   IonHeader,
   IonToolbar,
@@ -91,6 +92,7 @@ export class NotificationsPage implements OnInit, OnDestroy {
   private readonly friendsService = inject(FriendsService);
   private readonly alertCtrl = inject(AlertController);
   private readonly router = inject(Router);
+  private readonly location = inject(Location);
 
   // ========================================
   // 🎯 ÉTAT DE LA PAGE
@@ -185,15 +187,12 @@ export class NotificationsPage implements OnInit, OnDestroy {
    * Pour FRIEND_REQUEST : navigation vers profil
    * Pour autres : marque comme lue et navigue vers actionUrl
    */
+  /**
+ * 👆 Clic sur une notification
+ * Gère la redirection selon le type de notification
+ */
   async onNotificationClick(notification: Notification, event?: Event) {
     console.log('👆 Clic notification:', notification.id);
-
-    // Si clic sur photo/nom pour FRIEND_REQUEST, aller au profil
-    if (notification.type === 'friend_request' && notification.senderUserId) {
-      console.log('🧭 Navigation vers profil:', notification.senderUserId);
-      this.router.navigate(['/social/friend-profile', notification.senderUserId]);
-      return;
-    }
 
     // Marquer comme lue si pas déjà lu
     if (!notification.isRead && notification.id) {
@@ -205,11 +204,31 @@ export class NotificationsPage implements OnInit, OnDestroy {
       }
     }
 
-    // Navigation vers l'entité liée
+    // ✅ GESTION DES REDIRECTIONS PAR TYPE
+    
+    // 1️⃣ Demandes d'ami : redirection vers le profil
+    if (notification.type === 'friend_request' && notification.senderUserId) {
+      console.log('🧭 Navigation vers profil:', notification.senderUserId);
+      this.router.navigate(['/social/friend-profile', notification.senderUserId]);
+      return;
+    }
+
+    // 2️⃣ Notifications liées à un événement : redirection vers l'événement
+    if (notification.relatedEntityType === 'event' && notification.relatedEntityId) {
+      console.log('🧭 Navigation vers événement:', notification.relatedEntityId);
+      this.router.navigate(['/events', notification.relatedEntityId]);
+      return;
+    }
+
+    // 3️⃣ Autres notifications : utiliser l'actionUrl si disponible
     if (notification.actionUrl) {
       console.log('🧭 Navigation vers:', notification.actionUrl);
       this.router.navigateByUrl(notification.actionUrl);
+      return;
     }
+
+    // 4️⃣ Si aucune redirection définie
+    console.log('ℹ️ Aucune action de navigation définie pour cette notification');
   }
 
   /**
@@ -223,11 +242,6 @@ export class NotificationsPage implements OnInit, OnDestroy {
 
     try {
       await this.friendsService.acceptFriendRequest(notification.relatedEntityId, userId);
-      
-      // Supprimer la notification après acceptation
-      if (notification.id) {
-        await this.notificationsService.deleteNotification(notification.id);
-      }
       
       slidingItem.close();
       console.log('✅ Demande acceptée et notification supprimée');
@@ -362,7 +376,7 @@ export class NotificationsPage implements OnInit, OnDestroy {
    * 🔙 Retour arrière
    */
   goBack() {
-    this.router.navigate(['/tabs/events']);
+    this.location.back();  // ✅ Retour à la page précédente
   }
 
   // ========================================
