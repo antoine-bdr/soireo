@@ -631,4 +631,45 @@ export class InvitationsService {
       return 0;
     }
   }
+
+  deleteInvitation(invitationId: string): Observable<void> {
+    console.log(`🗑️ Suppression invitation ${invitationId}`);
+
+    return from(
+      (async () => {
+        try {
+          const invitationRef = doc(this.firestore, this.invitationsCollection, invitationId);
+          
+          // Récupérer l'invitation avant de la supprimer (pour la notification)
+          const invitationSnap = await getDoc(invitationRef);
+          
+          if (!invitationSnap.exists()) {
+            throw new Error('Invitation non trouvée');
+          }
+
+          const invitation = invitationSnap.data() as EventInvitation;
+
+          // Supprimer l'invitation
+          await deleteDoc(invitationRef);
+          console.log('✅ Invitation supprimée');
+
+          // Supprimer la notification associée (si elle existe)
+          try {
+            await this.notificationsService.deleteInvitationNotification(
+              invitation.eventId,
+              invitation.invitedUserId
+            );
+            console.log('✅ Notification d\'invitation supprimée');
+          } catch (notifError) {
+            console.warn('⚠️ Erreur suppression notification:', notifError);
+            // Ne pas bloquer si la suppression de notification échoue
+          }
+
+        } catch (error) {
+          console.error('❌ Erreur suppression invitation:', error);
+          throw error;
+        }
+      })()
+    );
+  }
 }

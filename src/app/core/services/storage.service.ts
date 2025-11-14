@@ -328,4 +328,141 @@ export class StorageService {
     revokeLocalImageUrl(url: string): void {
       URL.revokeObjectURL(url);
     }
+
+    // src/app/core/services/storage.service.ts
+    // ✅ AJOUT : Méthode de compression optimisée
+
+    // Ajouter cette méthode dans la classe StorageService existante
+
+    /**
+     * ✅ NOUVELLE MÉTHODE : Compresse une image avec qualité ajustable
+     * @param file Fichier image
+     * @param quality Qualité de compression (0.1 à 1.0, défaut 0.8)
+     * @returns Promise avec le fichier compressé
+     */
+    async compressImage(file: File, quality: number = 0.8): Promise<File> {
+      return new Promise((resolve, reject) => {
+        // Valider la qualité
+        if (quality < 0.1 || quality > 1.0) {
+          quality = 0.8;
+        }
+
+        const reader = new FileReader();
+        
+        reader.onload = (e: any) => {
+          const img = new Image();
+          
+          img.onload = () => {
+            const canvas = document.createElement('canvas');
+            canvas.width = img.width;
+            canvas.height = img.height;
+
+            const ctx = canvas.getContext('2d');
+            if (!ctx) {
+              reject(new Error('Impossible de créer le contexte canvas'));
+              return;
+            }
+
+            ctx.drawImage(img, 0, 0);
+
+            canvas.toBlob((blob) => {
+              if (blob) {
+                const compressedFile = new File([blob], file.name, {
+                  type: 'image/jpeg',
+                  lastModified: Date.now()
+                });
+                
+                console.log(`✅ Compression : ${(file.size / 1024).toFixed(2)}KB → ${(compressedFile.size / 1024).toFixed(2)}KB`);
+                resolve(compressedFile);
+              } else {
+                reject(new Error('Erreur de compression'));
+              }
+            }, 'image/jpeg', quality);
+          };
+
+          img.onerror = () => reject(new Error('Erreur de lecture image'));
+          img.src = e.target.result;
+        };
+
+        reader.onerror = () => reject(new Error('Erreur de lecture du fichier'));
+        reader.readAsDataURL(file);
+      });
+    }
+
+    /**
+     * ✅ NOUVELLE MÉTHODE : Redimensionne ET compresse en une seule étape
+     * @param file Fichier image
+     * @param maxWidth Largeur maximale
+     * @param maxHeight Hauteur maximale
+     * @param quality Qualité de compression
+     * @returns Promise avec le fichier optimisé
+     */
+    async optimizeImage(
+      file: File, 
+      maxWidth: number = 1920, 
+      maxHeight: number = 1920,
+      quality: number = 0.8
+    ): Promise<File> {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        
+        reader.onload = (e: any) => {
+          const img = new Image();
+          
+          img.onload = () => {
+            const canvas = document.createElement('canvas');
+            let width = img.width;
+            let height = img.height;
+
+            // Calcule les nouvelles dimensions
+            if (width > height) {
+              if (width > maxWidth) {
+                height = height * (maxWidth / width);
+                width = maxWidth;
+              }
+            } else {
+              if (height > maxHeight) {
+                width = width * (maxHeight / height);
+                height = maxHeight;
+              }
+            }
+
+            canvas.width = width;
+            canvas.height = height;
+
+            const ctx = canvas.getContext('2d');
+            if (!ctx) {
+              reject(new Error('Impossible de créer le contexte canvas'));
+              return;
+            }
+
+            ctx.drawImage(img, 0, 0, width, height);
+
+            canvas.toBlob((blob) => {
+              if (blob) {
+                const optimizedFile = new File([blob], file.name, {
+                  type: 'image/jpeg',
+                  lastModified: Date.now()
+                });
+                
+                const originalSize = (file.size / 1024).toFixed(2);
+                const optimizedSize = (optimizedFile.size / 1024).toFixed(2);
+                const reduction = ((1 - optimizedFile.size / file.size) * 100).toFixed(1);
+                
+                console.log(`✅ Optimisation : ${originalSize}KB → ${optimizedSize}KB (-${reduction}%)`);
+                resolve(optimizedFile);
+              } else {
+                reject(new Error('Erreur d\'optimisation'));
+              }
+            }, 'image/jpeg', quality);
+          };
+
+          img.onerror = () => reject(new Error('Erreur de lecture image'));
+          img.src = e.target.result;
+        };
+
+        reader.onerror = () => reject(new Error('Erreur de lecture du fichier'));
+        reader.readAsDataURL(file);
+      });
+    }
 }

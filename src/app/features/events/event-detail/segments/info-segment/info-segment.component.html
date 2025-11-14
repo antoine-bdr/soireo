@@ -1,0 +1,133 @@
+<!-- src/app/features/events/event-detail/components/info-segment/info-segment.component.html -->
+<!-- 📋 SEGMENT INFO - Template -->
+
+<div class="info-segment-container" *ngIf="event">
+  
+  <!-- ========================================
+       CARD METADATA (Date + Lieu)
+       ======================================== -->
+  <ion-card class="metadata-card glassmorphism">
+    <ion-card-content>
+      
+      <!-- Date -->
+      <div class="meta-item">
+        <ion-icon name="calendar-outline" class="meta-icon"></ion-icon>
+        <div class="meta-text">
+          <span class="meta-label">Date</span>
+          <span class="meta-value">{{ formatDate(event.date) }}</span>
+        </div>
+      </div>
+
+      <!-- Lieu avec gestion conditionnelle -->
+      <div class="meta-item">
+        <ion-icon 
+          [name]="isAddressMasked() ? 'eye-off-outline' : 'location-outline'"
+          class="meta-icon">
+        </ion-icon>
+        <div class="meta-text">
+          <span class="meta-label">Lieu</span>
+          
+          <!-- Adresse complète (si visible) -->
+          <span 
+            class="meta-value" 
+            *ngIf="!isAddressMasked()">
+            {{ getAddressDisplay() }}
+          </span>
+          
+          <!-- Ville uniquement (si masquée) -->
+          <span 
+            class="meta-value address-masked" 
+            *ngIf="isAddressMasked()">
+            📍 {{ getAddressDisplay() }}
+          </span>
+        </div>
+      </div>
+
+      <!-- Message explicatif si adresse masquée -->
+      <div class="location-message-box" *ngIf="isAddressMasked()">
+        <ion-icon name="information-circle-outline" color="primary"></ion-icon>
+        <p>{{ getLocationMessage() }}</p>
+      </div>
+
+    </ion-card-content>
+  </ion-card>
+
+  <!-- ========================================
+       CARD ORGANISATEUR
+       ======================================== -->
+  <ion-card class="organizer-card glassmorphism">
+    <ion-card-content>
+      <h3 class="section-title">
+        <ion-icon name="person-outline"></ion-icon>
+        Organisateur
+      </h3>
+
+      <div class="organizer-info">
+        <ion-avatar class="organizer-avatar">
+          <img 
+            [src]="event.organizerPhoto || 'assets/default-avatar.png'" 
+            [alt]="event.organizerName" />
+        </ion-avatar>
+        <div class="organizer-details">
+          <p class="organizer-name">{{ event.organizerName }}</p>
+          <p class="organizer-label">Créateur de l'événement</p>
+        </div>
+      </div>
+    </ion-card-content>
+  </ion-card>
+
+  <!-- ========================================
+       CARD DESCRIPTION
+       ======================================== -->
+  <ion-card class="description-card glassmorphism">
+    <ion-card-content>
+      <h3 class="section-title">
+        <ion-icon name="document-text-outline"></ion-icon>
+        Description
+      </h3>
+      <p class="description-text">{{ event.description }}</p>
+    </ion-card-content>
+  </ion-card>
+
+  <!-- ========================================
+       CARD DÉTAILS (Catégorie, Type d'accès)
+       ======================================== -->
+  <ion-card class="details-card glassmorphism">
+    <ion-card-content>
+      <h3 class="section-title">
+        <ion-icon name="information-circle-outline"></ion-icon>
+        Détails
+      </h3>
+
+      <div class="details-list">
+        <!-- Catégorie -->
+        <div class="detail-row">
+          <span class="detail-label">Catégorie</span>
+          <ion-chip class="detail-chip category-chip">
+            <ion-label>{{ getCategoryLabel(event.category) }}</ion-label>
+          </ion-chip>
+        </div>
+
+        <!-- Type d'accès -->
+        <div class="detail-row">
+          <span class="detail-label">Type d'événement</span>
+          <ion-chip 
+            class="detail-chip access-type-chip"
+            [attr.data-access-type]="getEventAccessType()">
+            <ion-icon [name]="getAccessTypeIcon()"></ion-icon>
+            <ion-label>{{ getAccessTypeLabel() }}</ion-label>
+          </ion-chip>
+        </div>
+
+        <!-- Approbation requise -->
+        <div class="detail-row" *ngIf="event.requiresApproval">
+          <span class="detail-label">Validation</span>
+          <ion-badge color="warning" class="detail-badge">
+            Approbation requise
+          </ion-badge>
+        </div>
+      </div>
+    </ion-card-content>
+  </ion-card>
+
+</div>

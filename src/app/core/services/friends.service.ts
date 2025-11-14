@@ -208,6 +208,12 @@ export class FriendsService {
     });
   }
 
+  getFriendshipStatus(userId1: string, userId2: string): Observable<FriendshipStatus | null> {
+    return from(this.checkExistingFriendship(userId1, userId2)).pipe(
+      map(friendship => friendship?.status || null)
+    );
+  }
+
   /**
    * 📬 Récupère les demandes d'amis reçues (temps réel)
    * 

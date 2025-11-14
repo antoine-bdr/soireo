@@ -1,0 +1,152 @@
+<!-- src/app/features/events/event-detail/components/participants-segment/participants-segment.component.html -->
+
+<div class="participants-segment-container">
+  
+  <!-- Loading State -->
+  <div class="loading-state" *ngIf="isLoading">
+    <ion-spinner name="crescent" color="primary"></ion-spinner>
+    <p>Chargement des participants...</p>
+  </div>
+
+  <!-- Content -->
+  <div *ngIf="!isLoading">
+
+    <!-- Card Demandes en Attente (Organisateur uniquement) -->
+    <ion-card 
+      class="pending-requests-card glassmorphism" 
+      *ngIf="isOrganizer && event.requiresApproval && pendingCount > 0"
+      (click)="openPendingRequestsModal()"
+      role="button"
+      tabindex="0"
+      aria-label="Voir les demandes en attente">
+      <ion-card-content>
+        <div class="pending-header">
+          <div class="pending-icon-wrapper">
+            <ion-icon name="mail-outline" color="danger"></ion-icon>
+          </div>
+          <div class="pending-info">
+            <h3 class="pending-title">Demandes en attente</h3>
+            <p class="pending-description">
+              {{ pendingCount }} personne(s) souhaite(nt) rejoindre
+            </p>
+          </div>
+          <ion-badge color="danger" class="pending-badge">
+            {{ pendingCount }}
+          </ion-badge>
+        </div>
+      </ion-card-content>
+    </ion-card>
+
+    <!-- ✅ NOUVEAU : Card Invitations Envoyées (Organisateur uniquement) -->
+    <ion-card 
+      class="invitations-card glassmorphism" 
+      *ngIf="isOrganizer && invitationsCount > 0">
+      <ion-card-content>
+        <div class="card-header">
+          <h3 class="section-title">
+            <ion-icon name="send-outline"></ion-icon>
+            Invitations envoyées ({{ invitationsCount }})
+          </h3>
+        </div>
+
+        <!-- Liste des invitations -->
+        <div class="invitations-list">
+          <div 
+            class="invitation-item" 
+            *ngFor="let invitation of pendingInvitations; trackBy: trackByInvitationId">
+            <ion-avatar class="invitation-avatar">
+              <img 
+                [src]="invitation.invitedUserPhoto || 'assets/default-avatar.png'" 
+                [alt]="invitation.invitedUserName" />
+            </ion-avatar>
+            <div class="invitation-info">
+              <p class="invitation-name">{{ invitation.invitedUserName }}</p>
+              <p class="invitation-status">
+                <ion-icon name="time-outline"></ion-icon>
+                En attente de réponse
+              </p>
+            </div>
+            <ion-button 
+              fill="clear" 
+              size="small" 
+              color="danger"
+              (click)="cancelInvitation(invitation)"
+              aria-label="Annuler l'invitation">
+              <ion-icon name="close-circle-outline" slot="icon-only"></ion-icon>
+            </ion-button>
+          </div>
+        </div>
+      </ion-card-content>
+    </ion-card>
+
+    <!-- Card Liste Participants -->
+    <ion-card class="participants-list-card glassmorphism">
+      <ion-card-content>
+        
+        <div class="card-header">
+          <h3 class="section-title">
+            <ion-icon name="people-outline"></ion-icon>
+            Participants ({{ filteredParticipants.length }})
+          </h3>
+
+          <ion-button 
+            fill="clear" 
+            size="small" 
+            class="invite-button"
+            (click)="inviteFriends()"
+            aria-label="Inviter des amis">
+            <ion-icon name="person-add-outline" slot="icon-only"></ion-icon>
+          </ion-button>
+        </div>
+
+        <!-- Searchbar -->
+        <ion-searchbar 
+          *ngIf="participants.length > 5"
+          placeholder="Rechercher un participant"
+          [(ngModel)]="searchTerm"
+          (ionInput)="filterParticipants($event)"
+          class="participants-searchbar"
+          aria-label="Rechercher un participant">
+        </ion-searchbar>
+
+        <!-- Empty State -->
+        <div class="empty-participants" *ngIf="filteredParticipants.length === 0 && !searchTerm">
+          <ion-icon name="people-outline" class="empty-icon"></ion-icon>
+          <p>Aucun participant pour le moment</p>
+        </div>
+
+        <!-- No results from search -->
+        <div class="empty-participants" *ngIf="filteredParticipants.length === 0 && searchTerm">
+          <ion-icon name="search-outline" class="empty-icon"></ion-icon>
+          <p>Aucun participant ne correspond à "{{ searchTerm }}"</p>
+        </div>
+
+        <!-- Participants Grid avec trackBy -->
+        <div class="participants-grid" *ngIf="filteredParticipants.length > 0">
+          <div 
+            class="participant-item" 
+            *ngFor="let participant of filteredParticipants; trackBy: trackById"
+            [attr.aria-label]="participant.userName">
+            <ion-avatar class="participant-avatar">
+              <img 
+                [src]="participant.userPhoto || 'assets/default-avatar.png'" 
+                [alt]="participant.userName" />
+            </ion-avatar>
+            <p class="participant-name">{{ participant.userName }}</p>
+            <ion-badge 
+              class="status-badge" 
+              [color]="participant.status === 'approved' ? 'success' : 'warning'">
+              <ion-icon 
+                [name]="participant.status === 'approved' ? 'checkmark-circle-outline' : 'time-outline'"
+                class="status-icon">
+              </ion-icon>
+            </ion-badge>
+          </div>
+        </div>
+
+      </ion-card-content>
+    </ion-card>
+
+  </div>
+
+</div>

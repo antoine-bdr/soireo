@@ -1,6 +1,6 @@
-// src/app/core/services/event-announcements.service.ts
+// src/app/core/services/event-announcement.service.ts
 // Service de gestion des annonces/posts sur les événements
-// ✅ Alternative simple au chat de groupe pour v1
+// ✅ VERSION MISE À JOUR avec nouveaux types
 
 import { Injectable, inject } from '@angular/core';
 import { 
@@ -30,11 +30,12 @@ export class EventAnnouncementsService {
   
   /**
    * Crée une nouvelle annonce
+   * ✅ TYPES MIS À JOUR
    */
   createAnnouncement(
     eventId: string,
     message: string,
-    type: 'info' | 'update' | 'alert' | 'photo' = 'info',
+    type: 'info' | 'important' | 'reminder' | 'live' | 'thanks' = 'info',
     images?: string[]
   ): Observable<string> {
     const userId = this.authService.getCurrentUserId();
@@ -66,30 +67,30 @@ export class EventAnnouncementsService {
    * Récupère les annonces d'un événement
    */
   getEventAnnouncements(eventId: string): Observable<EventAnnouncement[]> {
-  return new Observable<EventAnnouncement[]>(observer => {
-    const announcementsRef = collection(this.firestore, 'eventAnnouncements');
-    const q = query(
-      announcementsRef,
-      where('eventId', '==', eventId),
-      orderBy('timestamp', 'desc')  // ✅ Retirer orderBy('isPinned', 'desc')
-    );
-    
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const announcements = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      } as EventAnnouncement));
+    return new Observable<EventAnnouncement[]>(observer => {
+      const announcementsRef = collection(this.firestore, 'eventAnnouncements');
+      const q = query(
+        announcementsRef,
+        where('eventId', '==', eventId),
+        orderBy('timestamp', 'desc')
+      );
       
-      console.log(`✅ [EventAnnouncementsService] ${announcements.length} annonces récupérées`);
-      observer.next(announcements);
-    }, (error) => {
-      console.error('❌ [EventAnnouncementsService] Erreur:', error);
-      observer.error(error);
+      const unsubscribe = onSnapshot(q, (snapshot) => {
+        const announcements = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        } as EventAnnouncement));
+        
+        console.log(`✅ [EventAnnouncementsService] ${announcements.length} annonces récupérées`);
+        observer.next(announcements);
+      }, (error) => {
+        console.error('❌ [EventAnnouncementsService] Erreur:', error);
+        observer.error(error);
+      });
+      
+      return () => unsubscribe();
     });
-    
-    return () => unsubscribe();
-  });
-}
+  }
   
   /**
    * Épingle/désépingle une annonce (organisateur uniquement)
@@ -116,31 +117,35 @@ export class EventAnnouncementsService {
   }
   
   /**
-   * Poste une photo avec légende
-   */
-  postEventPhoto(
-    eventId: string,
-    photoUrl: string,
-    caption?: string
-  ): Observable<string> {
-    return this.createAnnouncement(
-      eventId,
-      caption || '📸 Nouvelle photo',
-      'photo',
-      [photoUrl]
-    );
-  }
-  
-  /**
-   * Envoie une alerte importante
+   * ✅ Envoie une alerte importante
    */
   sendAlert(eventId: string, message: string): Observable<string> {
-    return this.createAnnouncement(eventId, `⚠️ ${message}`, 'alert');
+    return this.createAnnouncement(eventId, `⚠️ ${message}`, 'important');
+  }
+
+  /**
+   * ✅ Envoie un rappel
+   */
+  sendReminder(eventId: string, message: string): Observable<string> {
+    return this.createAnnouncement(eventId, `⏰ ${message}`, 'reminder');
+  }
+
+  /**
+   * ✅ Envoie une annonce en direct
+   */
+  sendLiveUpdate(eventId: string, message: string): Observable<string> {
+    return this.createAnnouncement(eventId, `🔴 ${message}`, 'live');
+  }
+
+  /**
+   * ✅ Envoie des remerciements
+   */
+  sendThanks(eventId: string, message: string): Observable<string> {
+    return this.createAnnouncement(eventId, `💝 ${message}`, 'thanks');
   }
   
   /**
-   * Compte le nombre d'annonces non lues
-   * (Simplifiée pour v1 - pas de tracking individuel)
+   * Compte le nombre d'annonces
    */
   getAnnouncementCount(eventId: string): Observable<number> {
     return this.getEventAnnouncements(eventId).pipe(

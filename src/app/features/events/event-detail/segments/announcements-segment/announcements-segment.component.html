@@ -1,0 +1,162 @@
+<!-- announcements-segment.component.html -->
+<!-- ✅ VERSION OPTIMISÉE avec trackBy et formatage amélioré -->
+
+<div class="announcements-segment-container">
+  
+  <!-- LOADING -->
+  <div class="loading-state" *ngIf="isLoading">
+    <ion-spinner name="crescent" color="primary"></ion-spinner>
+    <p>Chargement des annonces...</p>
+  </div>
+
+  <!-- CONTENT -->
+  <div *ngIf="!isLoading">
+
+    <!-- FORMULAIRE CRÉATION (Organisateur uniquement) -->
+    <ion-card class="create-form-card glassmorphism" *ngIf="isOrganizer && showCreateForm">
+      <ion-card-content>
+        <div class="form-header">
+          <h3>Nouvelle annonce</h3>
+          <ion-button 
+            fill="clear" 
+            size="small" 
+            (click)="toggleCreateForm()"
+            aria-label="Fermer le formulaire">
+            <ion-icon name="close-outline" slot="icon-only"></ion-icon>
+          </ion-button>
+        </div>
+
+        <!-- Sélecteur de type -->
+        <ion-item class="type-selector" lines="none">
+          <ion-label position="stacked">Type d'annonce</ion-label>
+          <ion-select 
+            [(ngModel)]="newAnnouncementType" 
+            interface="popover"
+            aria-label="Sélectionner le type d'annonce">
+            <ion-select-option value="info">{{ getTypeIcon('info') }} Info</ion-select-option>
+            <ion-select-option value="important">{{ getTypeIcon('important') }} Important</ion-select-option>
+            <ion-select-option value="reminder">{{ getTypeIcon('reminder') }} Rappel</ion-select-option>
+            <ion-select-option value="live">{{ getTypeIcon('live') }} En direct</ion-select-option>
+            <ion-select-option value="thanks">{{ getTypeIcon('thanks') }} Remerciements</ion-select-option>
+          </ion-select>
+        </ion-item>
+
+        <!-- Textarea -->
+        <ion-textarea
+          [(ngModel)]="newAnnouncementText"
+          placeholder="Écrivez votre annonce..."
+          rows="4"
+          maxlength="500"
+          class="announcement-textarea"
+          aria-label="Message de l'annonce">
+        </ion-textarea>
+
+        <div class="form-footer">
+          <span class="char-count">{{ newAnnouncementText.length }}/500</span>
+          <ion-button 
+            expand="block" 
+            class="publish-button"
+            (click)="createAnnouncement()"
+            [disabled]="isCreating || !newAnnouncementText.trim()"
+            aria-label="Publier l'annonce">
+            <ion-icon name="send-outline" slot="start"></ion-icon>
+            {{ isCreating ? 'Publication...' : 'Publier' }}
+          </ion-button>
+        </div>
+      </ion-card-content>
+    </ion-card>
+
+    <!-- EMPTY STATE -->
+    <div class="empty-state" *ngIf="announcements.length === 0">
+      <ion-icon name="megaphone-outline" class="empty-icon"></ion-icon>
+      <h3>Aucune annonce</h3>
+      <p *ngIf="!isOrganizer">L'organisateur n'a pas encore publié d'annonce</p>
+      <p *ngIf="isOrganizer">Publiez la première annonce de votre événement</p>
+      
+      <ion-button 
+        *ngIf="isOrganizer && !showCreateForm" 
+        class="create-first-button"
+        (click)="toggleCreateForm()"
+        aria-label="Créer une annonce">
+        <ion-icon name="add-outline" slot="start"></ion-icon>
+        Créer une annonce
+      </ion-button>
+    </div>
+
+    <!-- LISTE ANNONCES avec trackBy -->
+    <div class="announcements-list" *ngIf="announcements.length > 0">
+      <ion-card 
+        class="announcement-card glassmorphism" 
+        [class.pinned]="announcement.isPinned"
+        *ngFor="let announcement of announcements; trackBy: trackById">
+        <ion-card-content>
+          
+          <!-- Header -->
+          <div class="announcement-header">
+            <div class="author-info">
+              <span class="author-name">{{ announcement.authorName }}</span>
+              <span class="announcement-time">{{ formatTimestamp(announcement.timestamp) }}</span>
+            </div>
+            
+            <div class="header-actions">
+              <ion-badge 
+                [color]="announcement.type === 'important' ? 'danger' : announcement.type === 'reminder' ? 'warning' : 'medium'" 
+                class="type-badge">
+                {{ getTypeIcon(announcement.type) }} {{ getTypeLabel(announcement.type) }}
+              </ion-badge>
+              
+              <ion-badge *ngIf="announcement.isPinned" color="warning" class="pinned-badge">
+                <ion-icon name="pin-outline"></ion-icon>
+                Épinglé
+              </ion-badge>
+            </div>
+          </div>
+          
+          <!-- Message avec formatage HTML sécurisé -->
+          <div 
+            class="announcement-message" 
+            [innerHTML]="formatMessage(announcement.message)">
+          </div>
+
+          <!-- Actions Organisateur -->
+          <div class="announcement-actions" *ngIf="isOrganizer">
+            <ion-button 
+              fill="clear" 
+              size="small" 
+              (click)="togglePin(announcement)"
+              [color]="announcement.isPinned ? 'warning' : 'medium'"
+              [attr.aria-label]="announcement.isPinned ? 'Désépingler l\'annonce' : 'Épingler l\'annonce'">
+              <ion-icon name="pin-outline" slot="icon-only"></ion-icon>
+            </ion-button>
+            
+            <ion-button 
+              fill="clear" 
+              size="small" 
+              color="danger"
+              (click)="deleteAnnouncement(announcement)"
+              aria-label="Supprimer l'annonce">
+              <ion-icon name="trash-outline" slot="icon-only"></ion-icon>
+            </ion-button>
+          </div>
+          
+        </ion-card-content>
+      </ion-card>
+    </div>
+
+  </div>
+
+  <!-- FAB (Organisateur uniquement) -->
+  <ion-fab 
+    slot="fixed" 
+    vertical="bottom" 
+    horizontal="end" 
+    *ngIf="isOrganizer && !showCreateForm && !isLoading">
+    <ion-fab-button 
+      (click)="toggleCreateForm()"
+      aria-label="Créer une annonce"
+      title="Créer une annonce">
+      <ion-icon name="add-outline"></ion-icon>
+    </ion-fab-button>
+  </ion-fab>
+
+</div>

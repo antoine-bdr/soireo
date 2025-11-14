@@ -1,0 +1,143 @@
+<!-- src/app/features/events/event-detail/components/photos-segment/photos-segment.component.html -->
+<!-- ✅ VERSION OPTIMISÉE avec Lightbox -->
+
+<div class="photos-segment-container">
+  
+  <!-- Loading State -->
+  <div class="loading-state" *ngIf="isLoading || isUploading">
+    <ion-spinner name="crescent" color="primary"></ion-spinner>
+    <p>{{ isUploading ? 'Upload en cours...' : 'Chargement des photos...' }}</p>
+  </div>
+
+  <!-- Empty State -->
+  <div class="empty-state" *ngIf="!isLoading && !isUploading && photos.length === 0">
+    <ion-icon name="images-outline" class="empty-icon"></ion-icon>
+    <h3>Aucune photo</h3>
+    <p>Soyez le premier à partager une photo de cet événement</p>
+    
+    <ion-button 
+      class="upload-button" 
+      (click)="uploadPhoto()" 
+      expand="block"
+      aria-label="Ajouter une photo">
+      <ion-icon name="camera-outline" slot="start"></ion-icon>
+      Ajouter une photo
+    </ion-button>
+  </div>
+
+  <!-- Photos Grid -->
+  <div class="photos-grid" *ngIf="!isLoading && !isUploading && photos.length > 0">
+    <div 
+      class="photo-item" 
+      *ngFor="let photo of photos; trackBy: trackByUrl" 
+      (click)="openPhoto(photo)"
+      [attr.aria-label]="'Photo de ' + photo.uploadedByName"
+      role="button"
+      tabindex="0">
+      <img [src]="photo.url" [alt]="'Photo de ' + photo.uploadedByName" loading="lazy" />
+      <div class="photo-overlay">
+        <span class="photo-author">{{ photo.uploadedByName }}</span>
+        <ion-button 
+          fill="clear" 
+          size="small" 
+          class="photo-action-btn"
+          (click)="showPhotoActions(photo); $event.stopPropagation()"
+          aria-label="Options de la photo">
+          <ion-icon name="ellipsis-vertical" slot="icon-only"></ion-icon>
+        </ion-button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Floating Action Button -->
+  <ion-fab 
+    slot="fixed" 
+    vertical="bottom" 
+    horizontal="end" 
+    *ngIf="!isLoading && !isUploading">
+    <ion-fab-button 
+      (click)="uploadPhoto()"
+      aria-label="Ajouter une photo"
+      title="Ajouter une photo">
+      <ion-icon name="add-outline"></ion-icon>
+    </ion-fab-button>
+  </ion-fab>
+
+  <!-- ✅ LIGHTBOX MODAL -->
+  <ion-modal 
+    [isOpen]="showLightbox" 
+    (didDismiss)="closeLightbox()"
+    class="lightbox-modal">
+    <ng-template>
+      <ion-header>
+        <ion-toolbar>
+          <ion-title>{{ currentPhoto?.uploadedByName }}</ion-title>
+          <ion-buttons slot="end">
+            <ion-button 
+              (click)="closeLightbox()"
+              aria-label="Fermer">
+              <ion-icon name="close-outline" slot="icon-only"></ion-icon>
+            </ion-button>
+          </ion-buttons>
+        </ion-toolbar>
+      </ion-header>
+      
+      <ion-content class="lightbox-content">
+        <div class="lightbox-container" *ngIf="currentPhoto">
+          
+          <!-- Navigation précédente -->
+          <ion-button 
+            *ngIf="currentPhotoIndex > 0"
+            fill="clear" 
+            class="nav-button prev-button"
+            (click)="previousPhoto()"
+            aria-label="Photo précédente">
+            <ion-icon name="chevron-back-outline" slot="icon-only"></ion-icon>
+          </ion-button>
+
+          <!-- Image -->
+          <div class="image-wrapper">
+            <img 
+              [src]="currentPhoto.url" 
+              [alt]="'Photo de ' + currentPhoto.uploadedByName"
+              class="lightbox-image" />
+          </div>
+
+          <!-- Navigation suivante -->
+          <ion-button 
+            *ngIf="currentPhotoIndex < photos.length - 1"
+            fill="clear" 
+            class="nav-button next-button"
+            (click)="nextPhoto()"
+            aria-label="Photo suivante">
+            <ion-icon name="chevron-forward-outline" slot="icon-only"></ion-icon>
+          </ion-button>
+
+          <!-- Info et actions -->
+          <div class="lightbox-footer">
+            <div class="photo-info">
+              <span class="photo-counter">{{ currentPhotoIndex + 1 }} / {{ photos.length }}</span>
+            </div>
+            <div class="photo-actions">
+              <ion-button 
+                fill="clear" 
+                (click)="downloadPhoto(currentPhoto)"
+                aria-label="Télécharger la photo">
+                <ion-icon name="download-outline" slot="icon-only"></ion-icon>
+              </ion-button>
+              <ion-button 
+                *ngIf="currentPhoto.uploadedBy === currentUserId"
+                fill="clear" 
+                color="danger"
+                (click)="confirmDeletePhoto(currentPhoto)"
+                aria-label="Supprimer la photo">
+                <ion-icon name="trash-outline" slot="icon-only"></ion-icon>
+              </ion-button>
+            </div>
+          </div>
+        </div>
+      </ion-content>
+    </ng-template>
+  </ion-modal>
+
+</div>

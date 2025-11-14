@@ -1,0 +1,314 @@
+// src/app/features/events/event-detail/components/info-segment/info-segment.component.scss
+// 📋 SEGMENT INFO - Styles
+
+// ========================================
+// 📦 CONTAINER
+// ========================================
+.info-segment-container {
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+// ========================================
+// 🎴 GLASSMORPHISM BASE (réutilisé depuis la page parent)
+// ========================================
+.glassmorphism {
+  background: linear-gradient(
+    135deg,
+    rgba(37, 40, 55, 0.95) 0%,
+    rgba(45, 49, 66, 0.95) 100%
+  ) !important;
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 20px;
+  box-shadow: 
+    0 8px 32px rgba(0, 0, 0, 0.3),
+    0 2px 8px rgba(0, 0, 0, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+
+  ion-card-content {
+    padding: 20px !important;
+  }
+}
+
+// ========================================
+// 📋 CARD METADATA (Date + Lieu)
+// ========================================
+.metadata-card {
+  
+  .meta-item {
+    display: flex;
+    gap: 16px;
+    padding: 16px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+
+    &:last-child {
+      border-bottom: none;
+      padding-bottom: 0;
+    }
+
+    &:first-child {
+      padding-top: 0;
+    }
+
+    .meta-icon {
+      font-size: 24px;
+      color: #FF2D55;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    .meta-text {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+
+      .meta-label {
+        font-size: 12px;
+        font-weight: 600;
+        color: #94A3B8;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+
+      .meta-value {
+        font-size: 15px;
+        font-weight: 600;
+        color: #FFFFFF;
+        line-height: 1.5;
+      }
+
+      .address-masked {
+        color: #F59E0B;
+      }
+    }
+  }
+
+  // Message adresse masquée
+  .location-message-box {
+    margin-top: 16px;
+    padding: 12px;
+    background: rgba(59, 130, 246, 0.1);
+    border: 1px solid rgba(59, 130, 246, 0.3);
+    border-radius: 12px;
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+
+    ion-icon {
+      font-size: 20px;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    p {
+      margin: 0;
+      font-size: 13px;
+      color: #93C5FD;
+      line-height: 1.6;
+      font-weight: 500;
+    }
+  }
+}
+
+// ========================================
+// 👤 CARD ORGANISATEUR
+// ========================================
+.organizer-card {
+
+  .organizer-info {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding-top: 12px;
+
+    .organizer-avatar {
+      width: 56px;
+      height: 56px;
+      border: 2px solid rgba(255, 45, 85, 0.3);
+      box-shadow: 0 0 16px rgba(255, 45, 85, 0.2);
+    }
+
+    .organizer-details {
+      flex: 1;
+
+      .organizer-name {
+        margin: 0 0 4px 0;
+        font-size: 17px;
+        font-weight: 700;
+        color: #FFFFFF;
+      }
+
+      .organizer-label {
+        margin: 0;
+        font-size: 13px;
+        color: #94A3B8;
+        font-weight: 500;
+      }
+    }
+  }
+}
+
+// ========================================
+// 📝 CARD DESCRIPTION
+// ========================================
+.description-card {
+
+  .description-text {
+    padding-top: 12px;
+    margin: 0;
+    font-size: 15px;
+    line-height: 1.7;
+    color: #CBD5E1;
+    white-space: pre-wrap;
+  }
+}
+
+// ========================================
+// ℹ️ CARD DÉTAILS
+// ========================================
+.details-card {
+
+  .details-list {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding-top: 12px;
+
+    .detail-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+
+      .detail-label {
+        font-size: 14px;
+        font-weight: 600;
+        color: #94A3B8;
+      }
+
+      .detail-chip {
+        height: 28px;
+        font-size: 12px;
+        padding: 0 12px;
+        margin: 0;
+        border-radius: 10px;
+        font-weight: 600;
+
+        ion-label {
+          color: #FFFFFF !important;
+          margin: 0;
+          font-size: 12px;
+        }
+
+        ion-icon {
+          font-size: 14px;
+          margin-right: 6px;
+          color: #FFFFFF !important;
+        }
+      }
+
+      .category-chip {
+        background: linear-gradient(
+          135deg,
+          rgba(255, 45, 85, 0.9) 0%,
+          rgba(255, 107, 157, 0.9) 100%
+        ) !important;
+        border: 1px solid rgba(255, 107, 157, 0.3);
+        box-shadow: 
+          0 2px 8px rgba(255, 45, 85, 0.3),
+          0 0 12px rgba(255, 45, 85, 0.2);
+      }
+
+      .access-type-chip {
+        background: rgba(255, 255, 255, 0.12);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        backdrop-filter: blur(10px);
+
+        // 🌍 Public (vert)
+        &[data-access-type="public"] {
+          background: rgba(16, 185, 129, 0.15);
+          border-color: rgba(16, 185, 129, 0.4);
+          
+          ion-label, ion-icon {
+            color: #10b981 !important;
+          }
+        }
+
+        // 📧 Sur invitation (orange)
+        &[data-access-type="invitation"] {
+          background: rgba(251, 146, 60, 0.15);
+          border-color: rgba(251, 146, 60, 0.4);
+          
+          ion-label, ion-icon {
+            color: #fb923c !important;
+          }
+        }
+
+        // 🔒 Privé (slate)
+        &[data-access-type="private"] {
+          background: rgba(100, 116, 139, 0.15);
+          border-color: rgba(100, 116, 139, 0.4);
+          
+          ion-label, ion-icon {
+            color: #94a3b8 !important;
+          }
+        }
+      }
+
+      .detail-badge {
+        font-size: 11px;
+        font-weight: 700;
+        padding: 6px 10px;
+        border-radius: 8px;
+      }
+    }
+  }
+}
+
+// ========================================
+// 🔧 SECTION TITRE (réutilisable)
+// ========================================
+.section-title {
+  margin: 0 0 4px 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: #FFFFFF;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  letter-spacing: 0.3px;
+
+  ion-icon {
+    font-size: 20px;
+    color: #FF2D55;
+  }
+}
+
+// ========================================
+// ✨ ANIMATIONS
+// ========================================
+.metadata-card,
+.organizer-card,
+.description-card,
+.details-card {
+  animation: fadeInUp 0.4s cubic-bezier(0.4, 0, 0.2, 1) backwards;
+
+  &:nth-child(1) { animation-delay: 0.05s; }
+  &:nth-child(2) { animation-delay: 0.1s; }
+  &:nth-child(3) { animation-delay: 0.15s; }
+  &:nth-child(4) { animation-delay: 0.2s; }
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

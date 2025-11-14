@@ -1,11 +1,7 @@
-// ========================================
-// 🎨 EVENT DETAIL - DARK PREMIUM GLASSMORPHISM
-// ✅ VERSION AVEC GESTION DE LA CONFIDENTIALITÉ DES ADRESSES
-// ========================================
+// event-detail.page.scss
+// ✅ VERSION REFACTORISÉE AVEC SEGMENTS
 
-// ========================================
-// ⏳ LOADING STATE
-// ========================================
+// LOADING
 .loading-container {
   height: 100vh;
   display: flex;
@@ -27,9 +23,7 @@
   }
 }
 
-// ========================================
-// 🖼️ IMAGE HEADER FULL-WIDTH
-// ========================================
+// IMAGE HEADER
 .event-image-header {
   position: relative;
   width: 100%;
@@ -42,45 +36,31 @@
     object-fit: cover;
   }
 
-  // Gradient overlay
   .image-overlay {
     position: absolute;
     inset: 0;
-    background: linear-gradient(
-      180deg,
-      transparent 0%,
-      rgba(10, 14, 39, 0.4) 50%,
-      rgba(10, 14, 39, 0.95) 100%
-    );
+    background: linear-gradient(180deg, transparent 0%, rgba(10, 14, 39, 0.4) 50%, rgba(10, 14, 39, 0.95) 100%);
     z-index: 1;
   }
 
-  // Bouton retour flottant
   .back-button {
     position: absolute;
     top: 16px;
     left: 16px;
     z-index: 10;
-    
     --background: rgba(255, 255, 255, 0.15);
-    --background-hover: rgba(255, 255, 255, 0.25);
-    --background-activated: rgba(255, 255, 255, 0.3);
     --color: #FFFFFF;
-    
     width: 44px;
     height: 44px;
     border-radius: 50%;
     backdrop-filter: blur(10px);
-    box-shadow: 
-      0 4px 16px rgba(0, 0, 0, 0.3),
-      inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
 
     ion-icon {
       font-size: 24px;
     }
   }
 
-  // Badges flottants
   .floating-badges {
     position: absolute;
     top: 16px;
@@ -97,119 +77,39 @@
     padding: 6px 12px;
     border-radius: 10px;
     font-weight: 700;
-    letter-spacing: 0.3px;
     backdrop-filter: blur(10px);
-    box-shadow: 
-      0 2px 8px rgba(0, 0, 0, 0.3),
-      inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
   }
 
   .organizer-badge {
-    background: linear-gradient(
-      135deg,
-      rgba(245, 158, 11, 0.95) 0%,
-      rgba(217, 119, 6, 0.95) 100%
-    );
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.95) 0%, rgba(217, 119, 6, 0.95) 100%);
   }
 
   .full-badge {
-    background: linear-gradient(
-      135deg,
-      rgba(239, 68, 68, 0.95) 0%,
-      rgba(220, 38, 38, 0.95) 100%
-    );
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.95) 0%, rgba(220, 38, 38, 0.95) 100%);
   }
 
   .participating-badge {
-    background: linear-gradient(
-      135deg,
-      rgba(16, 185, 129, 0.95) 0%,
-      rgba(5, 150, 105, 0.95) 100%
-    );
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.95) 0%, rgba(5, 150, 105, 0.95) 100%);
   }
 
   .private-badge {
-    background: linear-gradient(
-      135deg,
-      rgba(15, 23, 42, 0.95) 0%,
-      rgba(30, 41, 59, 0.95) 100%
-    );
-    border: 1px solid rgba(148, 163, 184, 0.3);
+    background: linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(30, 41, 59, 0.95) 100%);
   }
 
-  // ✅ NOUVEAU : Badge Adresse Masquée
   .masked-badge {
-    background: linear-gradient(
-      135deg,
-      rgba(100, 116, 139, 0.95) 0%,
-      rgba(71, 85, 105, 0.95) 100%
-    );
-    border: 1px solid rgba(148, 163, 184, 0.3);
-    box-shadow: 
-      0 2px 8px rgba(71, 85, 105, 0.3),
-      inset 0 1px 0 rgba(255, 255, 255, 0.15);
-  }
-
-  // Badge Statut
-  &.status-badge {
-    background: rgba(0, 0, 0, 0.5);
-    
-    &[color="primary"] {
-      background: linear-gradient(135deg, #5B7FFF 0%, #B06FFF 100%);
-    }
-    
-    &[color="success"] {
-      background: linear-gradient(135deg, #10B981 0%, #34D399 100%);
-      animation: pulseGlow 3s infinite;
-    }
-    
-    &[color="danger"] {
-      background: linear-gradient(135deg, #EF4444 0%, #F87171 100%);
-    }
-  }
-
-  &.checkin-badge {
-    background: linear-gradient(135deg, #B06FFF 0%, #FF2D55 100%);
+    background: linear-gradient(135deg, rgba(100, 116, 139, 0.95) 0%, rgba(71, 85, 105, 0.95) 100%);
   }
 }
 
-// ========================================
-// 📦 CONTENU PRINCIPAL
-// ========================================
+// CONTENT
 .detail-content {
   padding: 20px 16px;
   padding-bottom: 80px;
 }
 
-// ========================================
-// 🎴 GLASSMORPHISM BASE (réutilisable)
-// ========================================
-.glassmorphism {
-  background: linear-gradient(
-    135deg,
-    rgba(37, 40, 55, 0.95) 0%,
-    rgba(45, 49, 66, 0.95) 100%
-  ) !important;
-  backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 20px;
-  box-shadow: 
-    0 8px 32px rgba(0, 0, 0, 0.3),
-    0 2px 8px rgba(0, 0, 0, 0.2),
-    inset 0 1px 0 rgba(255, 255, 255, 0.05);
-
-  ion-card-content {
-    padding: 20px !important;
-  }
-}
-
-// ========================================
-// 📋 CARD INFO PRINCIPALE
-// ========================================
-.info-card {
+// HEADER SECTION
+.header-section {
   margin-bottom: 20px;
 
   .event-title {
@@ -218,24 +118,15 @@
     line-height: 1.3;
     margin-bottom: 16px;
     color: #FFFFFF;
-    letter-spacing: -0.5px;
-    
-    // Dégradé rose subtil
-    background: linear-gradient(
-    135deg,
-    #FFFFFF 0%,
-    #FFB3C6
-  );
+    background: linear-gradient(135deg, #FFFFFF 0%, #FFB3C6);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
-    background-clip: text;
   }
 
-  // Badges inline
   .inline-badges {
     display: flex;
     gap: 8px;
-    margin-bottom: 20px;
+    flex-wrap: wrap;
 
     ion-chip {
       height: 24px;
@@ -244,7 +135,6 @@
       margin: 0;
       border-radius: 8px;
       font-weight: 600;
-      letter-spacing: 0.3px;
 
       ion-label {
         color: #FFFFFF !important;
@@ -260,15 +150,9 @@
     }
 
     .category-chip {
-      background: linear-gradient(
-        135deg,
-        rgba(255, 45, 85, 0.9) 0%,
-        rgba(255, 107, 157, 0.9) 100%
-      ) !important;
+      background: linear-gradient(135deg, rgba(255, 45, 85, 0.9) 0%, rgba(255, 107, 157, 0.9) 100%) !important;
       border: 1px solid rgba(255, 107, 157, 0.3);
-      box-shadow: 
-        0 2px 8px rgba(255, 45, 85, 0.3),
-        0 0 12px rgba(255, 45, 85, 0.2);
+      box-shadow: 0 2px 8px rgba(255, 45, 85, 0.3);
     }
 
     .participants-chip {
@@ -276,344 +160,115 @@
       border: 1px solid rgba(255, 255, 255, 0.12);
 
       &[data-status="success"] {
-        background: linear-gradient(
-          135deg,
-          rgba(16, 185, 129, 0.15) 0%,
-          rgba(5, 150, 105, 0.15) 100%
-        );
+        background: linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(5, 150, 105, 0.15) 100%);
         border: 1px solid rgba(16, 185, 129, 0.4);
-        box-shadow: 0 0 12px rgba(16, 185, 129, 0.2);
-        
-        ion-label, ion-icon {
-          color: #34D399 !important;
-        }
+        ion-label, ion-icon { color: #34D399 !important; }
       }
 
       &[data-status="warning"] {
-        background: linear-gradient(
-          135deg,
-          rgba(245, 158, 11, 0.15) 0%,
-          rgba(217, 119, 6, 0.15) 100%
-        );
+        background: linear-gradient(135deg, rgba(245, 158, 11, 0.15) 0%, rgba(217, 119, 6, 0.15) 100%);
         border: 1px solid rgba(245, 158, 11, 0.4);
-        box-shadow: 0 0 12px rgba(245, 158, 11, 0.2);
-        
-        ion-label, ion-icon {
-          color: #FBBF24 !important;
-        }
+        ion-label, ion-icon { color: #FBBF24 !important; }
       }
 
       &[data-status="danger"] {
-        background: linear-gradient(
-          135deg,
-          rgba(239, 68, 68, 0.15) 0%,
-          rgba(220, 38, 38, 0.15) 100%
-        );
+        background: linear-gradient(135deg, rgba(239, 68, 68, 0.15) 0%, rgba(220, 38, 38, 0.15) 100%);
         border: 1px solid rgba(239, 68, 68, 0.4);
-        box-shadow: 0 0 12px rgba(239, 68, 68, 0.2);
-        
-        ion-label, ion-icon {
-          color: #F87171 !important;
-        }
+        ion-label, ion-icon { color: #F87171 !important; }
       }
     }
 
     .access-type-chip {
-      --background: rgba(255, 255, 255, 0.12);
-      --color: #ffffff;
+      background: rgba(255, 255, 255, 0.12);
       border: 1px solid rgba(255, 255, 255, 0.2);
-      backdrop-filter: blur(10px);
-      font-weight: 500;
-      font-size: 0.85rem;
-      padding: 8px 14px;
-      border-radius: 20px;
-      transition: all 0.3s ease;
-    
-      ion-icon {
-        margin-right: 6px;
-        font-size: 1.1rem;
-      }
-    
-      // 🌍 Public (vert)
+
       &[data-access-type="public"] {
-        --background: rgba(16, 185, 129, 0.15);
+        background: rgba(16, 185, 129, 0.15);
         border-color: rgba(16, 185, 129, 0.4);
-        color: #10b981;
-        
-        ion-icon {
-          color: #10b981;
-        }
-    
-        &:hover {
-          --background: rgba(16, 185, 129, 0.25);
-          border-color: rgba(16, 185, 129, 0.6);
-        }
+        ion-label, ion-icon { color: #10b981 !important; }
       }
-    
-      // 📧 Sur invitation (orange/warning)
+
       &[data-access-type="invitation"] {
-        --background: rgba(251, 146, 60, 0.15);
+        background: rgba(251, 146, 60, 0.15);
         border-color: rgba(251, 146, 60, 0.4);
-        color: #fb923c;
-        
-        ion-icon {
-          color: #fb923c;
-        }
-    
-        &:hover {
-          --background: rgba(251, 146, 60, 0.25);
-          border-color: rgba(251, 146, 60, 0.6);
-        }
+        ion-label, ion-icon { color: #fb923c !important; }
       }
-    
-      // 🔒 Privé (rouge/dark)
+
       &[data-access-type="private"] {
-        --background: rgba(239, 68, 68, 0.15);
-        border-color: rgba(239, 68, 68, 0.4);
-        color: #ef4444;
-        
-        ion-icon {
-          color: #ef4444;
-        }
-    
-        &:hover {
-          --background: rgba(239, 68, 68, 0.25);
-          border-color: rgba(239, 68, 68, 0.6);
-        }
+        background: rgba(100, 116, 139, 0.15);
+        border-color: rgba(100, 116, 139, 0.4);
+        ion-label, ion-icon { color: #94a3b8 !important; }
       }
-    }
-    
-    // Animation au hover pour tous les chips
-    .inline-badges ion-chip {
-      cursor: default;
-      transition: transform 0.2s ease;
-    
-      &:hover {
-        transform: translateY(-2px);
-      }
-    }
-  }
-
-  // Metadata
-  .event-metadata {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    padding: 16px;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 12px;
-    backdrop-filter: blur(10px);
-
-    .meta-item {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-
-      ion-icon {
-        font-size: 20px;
-        flex-shrink: 0;
-        color: #FF2D55;
-      }
-
-      .meta-text {
-        display: flex;
-        flex-direction: column;
-        gap: 2px;
-
-        .meta-label {
-          font-size: 11px;
-          color: #94A3B8;
-          font-weight: 600;
-          text-transform: uppercase;
-          letter-spacing: 0.5px;
-        }
-
-        .meta-value {
-          font-size: 15px;
-          color: #FFFFFF;
-          font-weight: 600;
-
-          // ✅ NOUVEAU : Style pour adresse masquée
-          &.address-masked {
-            color: #94A3B8;
-            font-style: italic;
-          }
-        }
-      }
-    }
-  }
-
-  // ✅ NOUVEAU : Box message explicatif pour adresse masquée
-  .location-message-box {
-    margin-top: 12px;
-    padding: 14px 16px;
-    background: linear-gradient(
-      135deg,
-      rgba(59, 130, 246, 0.08) 0%,
-      rgba(37, 99, 235, 0.08) 100%
-    );
-    border: 1px solid rgba(59, 130, 246, 0.25);
-    border-radius: 12px;
-    display: flex;
-    align-items: flex-start;
-    gap: 12px;
-    backdrop-filter: blur(10px);
-    box-shadow: 
-      0 2px 8px rgba(59, 130, 246, 0.1),
-      inset 0 1px 0 rgba(255, 255, 255, 0.05);
-
-    ion-icon {
-      font-size: 20px;
-      color: #60A5FA;
-      flex-shrink: 0;
-      margin-top: 2px;
-    }
-
-    p {
-      margin: 0;
-      font-size: 13px;
-      line-height: 1.6;
-      color: #93C5FD;
-      font-weight: 500;
     }
   }
 }
 
-// ========================================
-// 🎫 SECTION ACTION (PARTICIPATION)
-// ========================================
+// ACTION SECTION
 .action-section {
-  margin-bottom: 20px;
+  margin-bottom: 24px;
 
-  // ========================================
-  // BOUTON PARTICIPER (État 1 : Non inscrit)
-  // ========================================
   .participate-button {
     height: 56px;
     font-size: 16px;
     font-weight: 700;
-    letter-spacing: 0.3px;
-    --background: linear-gradient(
-      135deg,
-      rgba(255, 45, 85, 0.9) 0%,
-      rgba(255, 107, 157, 0.9) 100%
-    );
+    --background: linear-gradient(135deg, rgba(255, 45, 85, 0.9) 0%, rgba(255, 107, 157, 0.9) 100%);
     --border-radius: 14px;
-    --box-shadow: 
-      0 8px 24px rgba(255, 45, 85, 0.3),
-      0 0 20px rgba(255, 45, 85, 0.2),
-      inset 0 1px 0 rgba(255, 255, 255, 0.2);
-    border: 1px solid rgba(255, 107, 157, 0.3);
+    --box-shadow: 0 8px 24px rgba(255, 45, 85, 0.3);
     text-transform: none;
-
-    ion-icon {
-      font-size: 22px;
-    }
   }
 
-  // ========================================
-  // ✅ NOUVEAU : ÉTAT 2 - DEMANDE EN ATTENTE (PENDING)
-  // ========================================
-  .pending-status-container {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-
-    .pending-badge-box {
-      display: flex;
-      align-items: flex-start;
-      gap: 12px;
-      padding: 16px;
-      background: linear-gradient(
-        135deg,
-        rgba(245, 158, 11, 0.1) 0%,
-        rgba(217, 119, 6, 0.1) 100%
-      );
-      border: 2px solid rgba(245, 158, 11, 0.3);
-      border-radius: 14px;
-      box-shadow: 
-        0 4px 16px rgba(245, 158, 11, 0.15),
-        inset 0 1px 0 rgba(255, 255, 255, 0.05);
-
-      ion-icon {
-        font-size: 28px;
-        flex-shrink: 0;
-        margin-top: 2px;
-      }
-
-      .pending-text {
-        flex: 1;
-
-        h4 {
-          margin: 0 0 4px 0;
-          font-size: 16px;
-          font-weight: 700;
-          color: #F59E0B;
-        }
-
-        p {
-          margin: 0;
-          font-size: 13px;
-          color: #94A3B8;
-          line-height: 1.5;
-        }
-      }
-    }
-
-    .cancel-request-button {
-      height: 52px;
-      font-size: 15px;
-      font-weight: 600;
-      --border-radius: 14px;
-      --border-width: 2px;
-      text-transform: none;
-
-      ion-icon {
-        font-size: 20px;
-      }
-    }
-  }
-
-  // ========================================
-  // ✅ NOUVEAU : ÉTAT 3 - APPROUVÉ (APPROVED)
-  // ========================================
+  .pending-status-container,
   .approved-status-container {
     display: flex;
     flex-direction: column;
     gap: 12px;
+  }
 
-    .approved-badge-box {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      padding: 14px 16px;
-      background: linear-gradient(
-        135deg,
-        rgba(16, 185, 129, 0.1) 0%,
-        rgba(5, 150, 105, 0.1) 100%
-      );
-      border: 2px solid rgba(16, 185, 129, 0.3);
-      border-radius: 14px;
-      box-shadow: 
-        0 4px 16px rgba(16, 185, 129, 0.15),
-        inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  .pending-badge-box,
+  .approved-badge-box {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 14px 16px;
+    border-radius: 14px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
 
-      ion-icon {
-        font-size: 24px;
-        flex-shrink: 0;
-      }
-
-      span {
-        font-size: 15px;
-        font-weight: 600;
-        color: #10B981;
-      }
+    ion-icon {
+      font-size: 24px;
     }
   }
 
-  // BOUTON SE DÉSINSCRIRE (partagé)
-  .leave-button {
+  .pending-badge-box {
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.1) 0%, rgba(217, 119, 6, 0.1) 100%);
+    border: 2px solid rgba(245, 158, 11, 0.3);
+
+    .pending-text h4 {
+      margin: 0 0 4px 0;
+      font-size: 15px;
+      font-weight: 700;
+      color: #F59E0B;
+    }
+
+    .pending-text p {
+      margin: 0;
+      font-size: 13px;
+      color: #94A3B8;
+    }
+  }
+
+  .approved-badge-box {
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(5, 150, 105, 0.1) 100%);
+    border: 2px solid rgba(16, 185, 129, 0.3);
+
+    span {
+      font-size: 15px;
+      font-weight: 600;
+      color: #10B981;
+    }
+  }
+
+  .leave-button,
+  .cancel-request-button {
     height: 52px;
     font-size: 15px;
     font-weight: 600;
@@ -622,7 +277,6 @@
     text-transform: none;
   }
 
-  // MESSAGE COMPLET
   .full-message {
     padding: 16px;
     background: rgba(239, 68, 68, 0.1);
@@ -646,824 +300,202 @@
   }
 }
 
-// ========================================
-// 👤 CARD ORGANISATEUR
-// ========================================
-.organizer-card {
-  margin-bottom: 20px;
+// NAVIGATION SEGMENTS
+.segment-navigation {
+  margin-bottom: 24px;
+  background: linear-gradient(135deg, rgba(37, 40, 55, 0.95) 0%, rgba(45, 49, 66, 0.95) 100%);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  padding: 6px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
 
-  .organizer-info {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    padding-top: 12px;
+  ion-segment-button {
+    --color: #94A3B8;
+    --color-checked: #FFFFFF;
+    --indicator-color: rgba(255, 45, 85, 0.9);
+    --indicator-height: 100%;
+    --padding-start: 8px;
+    --padding-end: 8px;
+    min-height: 48px;
+    border-radius: 12px;
 
-    .organizer-avatar {
-      width: 56px;
-      height: 56px;
-      border: 2px solid rgba(255, 45, 85, 0.3);
-      box-shadow: 0 0 16px rgba(255, 45, 85, 0.2);
+    ion-label {
+      font-size: 12px;
+      font-weight: 600;
+      margin-top: 4px;
     }
-
-    .organizer-details {
-      flex: 1;
-
-      .organizer-name {
-        margin: 0 0 4px 0;
-        font-size: 17px;
-        font-weight: 700;
-        color: #FFFFFF;
-      }
-
-      .organizer-label {
-        margin: 0;
-        font-size: 13px;
-        color: #94A3B8;
-        font-weight: 500;
-      }
-    }
-  }
-}
-
-// ========================================
-// 📝 CARD DESCRIPTION
-// ========================================
-.description-card {
-  margin-bottom: 20px;
-
-  .description-text {
-    padding-top: 12px;
-    margin: 0;
-    font-size: 15px;
-    line-height: 1.7;
-    color: #CBD5E1;
-    white-space: pre-wrap;
-  }
-}
-
-// ========================================
-// 👥 CARD PARTICIPANTS
-// ========================================
-.participants-card {
-  margin-bottom: 20px;
-
-  .participants-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(70px, 1fr));
-    gap: 16px;
-    padding-top: 16px;
-
-    .participant-item {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 8px;
-
-      .participant-avatar {
-        width: 48px;
-        height: 48px;
-        border: 2px solid rgba(91, 127, 255, 0.3);
-        box-shadow: 0 0 12px rgba(91, 127, 255, 0.2);
-      }
-
-      .participant-name {
-        margin: 0;
-        font-size: 11px;
-        font-weight: 600;
-        color: #CBD5E1;
-        text-align: center;
-        line-height: 1.3;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        display: -webkit-box;
-        -webkit-line-clamp: 2;
-        -webkit-box-orient: vertical;
-      }
-    }
-  }
-}
-
-// ========================================
-// 🔧 SECTION TITRE (réutilisable)
-// ========================================
-.section-title {
-  margin: 0 0 4px 0;
-  font-size: 16px;
-  font-weight: 700;
-  color: #FFFFFF;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  letter-spacing: 0.3px;
-
-  ion-icon {
-    font-size: 20px;
-    color: #FF2D55;
-  }
-}
-
-// ========================================
-// ⚙️ ACTIONS ORGANISATEUR
-// ========================================
-.organizer-actions {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  margin-bottom: 20px;
-
-  // 🎨 Bouton Modifier
-  .edit-button {
-    height: 56px;
-    font-size: 16px;
-    font-weight: 700;
-    letter-spacing: 0.3px;
-    --background: linear-gradient(
-      135deg,
-      rgba(255, 45, 85, 0.9) 0%,
-      rgba(255, 107, 157, 0.9) 100%
-    );
-    --border-radius: 14px;
-    --box-shadow: 
-      0 8px 24px rgba(255, 45, 85, 0.3),
-      0 0 20px rgba(255, 45, 85, 0.2),
-      inset 0 1px 0 rgba(255, 255, 255, 0.2);
-    border: 1px solid rgba(255, 107, 157, 0.3);
-    text-transform: none;
-
-    ion-icon {
-      font-size: 22px;
-    }
-
-    &:hover:not([disabled]) {
-      --box-shadow: 
-        0 12px 32px rgba(255, 45, 85, 0.4),
-        inset 0 1px 0 rgba(255, 255, 255, 0.2);
-      transform: translateY(-2px);
-    }
-
-    &:active:not([disabled]) {
-      transform: scale(0.98) translateY(0);
-    }
-  }
-
-  // 🗑️ Bouton Supprimer
-  .delete-button {
-    height: 52px;
-    font-size: 15px;
-    font-weight: 600;
-    --border-radius: 14px;
-    --border-width: 2px;
-    text-transform: none;
-  }
-}
-
-// ========================================
-// 🔔 CARD DEMANDES EN ATTENTE
-// ========================================
-.pending-requests-card {
-  margin-bottom: 20px;
-  border: 2px solid rgba(255, 45, 85, 0.3) !important;
-  box-shadow: 
-    0 8px 32px rgba(255, 45, 85, 0.2),
-    0 2px 8px rgba(0, 0, 0, 0.3),
-    inset 0 1px 0 rgba(255, 255, 255, 0.05) !important;
-
-  // Animation pulse subtile
-  animation: pulseGlow 2s ease-in-out infinite;
-
-  .pending-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 12px;
-
-    .section-title {
-      margin: 0;
-      flex: 1;
-    }
-
-    .pending-badge {
-      font-size: 14px;
-      font-weight: 700;
-      padding: 6px 12px;
-      border-radius: 12px;
-      box-shadow: 0 0 12px rgba(239, 68, 68, 0.4);
-    }
-  }
-
-  .pending-description {
-    margin: 0 0 16px 0;
-    font-size: 14px;
-    color: #94A3B8;
-    line-height: 1.6;
-  }
-
-  .manage-requests-button {
-    height: 48px;
-    font-size: 15px;
-    font-weight: 700;
-    --background: linear-gradient(
-      135deg,
-      rgba(255, 45, 85, 0.9) 0%,
-      rgba(255, 107, 157, 0.9) 100%
-    );
-    --border-radius: 12px;
-    --box-shadow: 
-      0 6px 20px rgba(255, 45, 85, 0.3),
-      0 0 16px rgba(255, 45, 85, 0.2),
-      inset 0 1px 0 rgba(255, 255, 255, 0.2);
-    border: 1px solid rgba(255, 107, 157, 0.3);
-    text-transform: none;
 
     ion-icon {
       font-size: 20px;
     }
-  }
-}
 
-// SECTION CHECK-IN
-.checkin-card {
-  border: 1px solid rgba(16, 185, 129, 0.3);
-  
-  .checkin-stats {
-    margin: 16px 0;
-    
-    ion-chip {
-      background: linear-gradient(135deg, #FF2D55 0%, #FF6B9D 100%);
-      color: white;
-      font-weight: 600;
-    }
-  }
-  
-  .checkin-actions {
-    ion-button {
-      --background: linear-gradient(135deg, #10B981 0%, #34D399 100%);
-      font-weight: 700;
-      animation: pulseGlow 2s infinite;
-    }
-  }
-  
-  .checkin-success {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 16px;
-    background: rgba(16, 185, 129, 0.1);
-    border-radius: 12px;
-    
-    ion-icon {
-      font-size: 32px;
-      color: #10B981;
-    }
-    
-    p {
-      margin: 0;
-      color: #10B981;
-      font-weight: 600;
+    ion-badge {
+      position: absolute;
+      top: 6px;
+      right: 6px;
+      font-size: 9px;
+      padding: 2px 6px;
+      min-width: 16px;
+      height: 16px;
+      border-radius: 8px;
     }
   }
 }
 
-// SECTION ANNONCES
-.announcements-card {
-  .section-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 16px;
-  }
-  
-  .announcements-list {
-    max-height: 400px;
-    overflow-y: auto;
-  }
-  
-  .announcement-item {
-    background: rgba(26, 29, 41, 0.6);
-    border-radius: 12px;
-    padding: 12px;
-    margin-bottom: 12px;
-    border-left: 3px solid #FF2D55;
-    
-    .announcement-header {
-      display: flex;
-      justify-content: space-between;
-      margin-bottom: 8px;
-      
-      .announcement-author {
-        color: #FF2D55;
-        font-weight: 600;
-        font-size: 14px;
-      }
-      
-      .announcement-time {
-        color: #718096;
-        font-size: 12px;
-      }
-    }
-    
-    .announcement-message {
-      color: #A0AEC0;
-      line-height: 1.5;
-      margin: 0;
-    }
-  }
-  
-  .empty-announcements {
-    text-align: center;
-    padding: 32px;
-    color: #718096;
-  }
+// SEGMENT CONTENT
+.segment-content {
+  margin-bottom: 24px;
+  animation: fadeIn 0.3s ease;
 }
 
-// Animation pulseGlow
-@keyframes pulseGlow {
-  0% {
-    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
-  }
-  70% {
-    box-shadow: 0 0 0 10px rgba(16, 185, 129, 0);
-  }
-  100% {
-    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
-  }
-}
-
-// ========================================
-// 📏 SPACING
-// ========================================
 .bottom-spacing {
   height: 40px;
 }
 
-// ========================================
-// ✨ ANIMATIONS
-// ========================================
-@keyframes fadeInUp {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
-// ✅ AJOUT : Animation pulse pour les demandes en attente
-@keyframes pulseGlow {
-  0%, 100% {
-    box-shadow: 
-      0 8px 32px rgba(255, 45, 85, 0.2),
-      0 2px 8px rgba(0, 0, 0, 0.3),
-      inset 0 1px 0 rgba(255, 255, 255, 0.05);
-  }
-  50% {
-    box-shadow: 
-      0 8px 32px rgba(255, 45, 85, 0.4),
-      0 2px 8px rgba(0, 0, 0, 0.3),
-      inset 0 1px 0 rgba(255, 255, 255, 0.05);
-  }
-}
+.event-image-header {
+  position: relative;
+  width: 100%;
+  height: 300px;
+  overflow: hidden;
 
-.info-card,
-.organizer-card,
-.description-card,
-.participants-card {
-  animation: fadeInUp 0.4s cubic-bezier(0.4, 0, 0.2, 1) backwards;
-
-  &:nth-child(1) { animation-delay: 0.05s; }
-  &:nth-child(2) { animation-delay: 0.1s; }
-  &:nth-child(3) { animation-delay: 0.15s; }
-  &:nth-child(4) { animation-delay: 0.2s; }
-}
-
-
-
-// ========================================
-// STYLES POUR LES HORAIRES ET DURÉE
-// ========================================
-
-.duration-badge {
-  display: inline-block;
-  margin-left: 6px;
-  padding: 2px 8px;
-  background: var(--ion-color-primary-tint);
-  color: var(--ion-color-primary-contrast);
-  border-radius: 12px;
-  font-size: 0.85em;
-  font-weight: 600;
-}
-
-// ========================================
-// SECTION PHOTOS
-// ========================================
-.photos-card {
-  .section-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 16px;
-
-    .section-title {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      margin: 0;
-      font-size: 18px;
-      font-weight: 600;
-
-      ion-icon {
-        font-size: 24px;
-      }
-    }
+  .header-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
   }
 
-  .photos-preview {
-    margin-top: 16px;
+  .image-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(
+      to bottom,
+      rgba(0, 0, 0, 0.6) 0%,
+      transparent 30%,
+      transparent 70%,
+      rgba(0, 0, 0, 0.8) 100%
+    );
   }
 
-  .photos-grid {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 8px;
-    margin-bottom: 12px;
-
-    .photo-item {
-      position: relative;
-      width: 100%;
-      padding-bottom: 100%; // Ratio 1:1
-      border-radius: 12px;
-      overflow: hidden;
-      cursor: pointer;
-      transition: transform 0.2s;
-
-      &:hover {
-        transform: scale(1.02);
-      }
-
-      img {
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-      }
-    }
-  }
-
-  .view-all-btn {
-    margin-top: 12px;
-  }
-
-  .photos-placeholder {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 12px;
-    padding: 40px 20px;
-    text-align: center;
-    color: var(--ion-color-medium);
-    margin: 0;
-
-    ion-icon {
-      font-size: 48px;
-      opacity: 0.5;
-    }
-  }
-}
-
-.participants-list {
-  background: transparent;
-  padding: 0;
-  margin-top: 12px;
-
-  ion-item-sliding {
-    margin-bottom: 8px;
-    border-radius: 12px;
-    overflow: hidden;
-  }
-
-  .participant-item {
-    --background: rgba(255, 255, 255, 0.05);
-    --border-radius: 12px;
-    --padding-start: 12px;
-    --padding-end: 12px;
-    --min-height: 60px;
-    border-radius: 12px;
-    margin-bottom: 0;
-
-    &:hover {
-      --background: rgba(255, 255, 255, 0.08);
-    }
-  }
-
-  .participant-avatar {
+  // Bouton retour (à gauche)
+  .back-button,
+  .options-button {
+    position: absolute;
+    top: 16px;
+    z-index: 10;
+    --background: rgba(0, 0, 0, 0.5);
+    --color: white;
+    backdrop-filter: blur(10px);
+    border-radius: 50%;
     width: 44px;
     height: 44px;
-    margin-right: 12px;
-  }
-
-  .participant-name {
-    font-weight: 600;
-    font-size: 15px;
-    color: var(--ion-text-color);
     margin: 0;
-  }
-
-  .organizer-badge {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    font-size: 12px;
-    color: var(--ion-color-warning);
-    margin: 4px 0 0 0;
+    --padding-start: 0;
+    --padding-end: 0;
 
     ion-icon {
-      font-size: 14px;
-    }
-  }
-
-  // Styles pour les options de swipe
-  ion-item-options {
-    ion-item-option {
-      min-width: 60px;
-      
-      ion-icon {
-        font-size: 24px;
-      }
-    }
-  }
-}
-
-// Ajouter après les styles existants
-
-// ========================================
-// 👥 PRÉVISUALISATION PARTICIPANTS
-// ========================================
-.section-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 16px;
-
-  .section-title {
-    margin: 0;
-  }
-}
-
-.participants-preview {
-  display: flex;
-  gap: 16px;
-  overflow-x: auto;
-  padding: 8px 0;
-  
-  // Cacher la scrollbar
-  &::-webkit-scrollbar {
-    display: none;
-  }
-  -ms-overflow-style: none;
-  scrollbar-width: none;
-}
-
-.participant-preview-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  min-width: 70px;
-  cursor: pointer;
-  transition: transform 0.2s;
-
-  &:active {
-    transform: scale(0.95);
-  }
-}
-
-.preview-avatar {
-  width: 60px;
-  height: 60px;
-  position: relative;
-  border: 2px solid rgba(255, 255, 255, 0.1);
-  margin-bottom: 8px;
-}
-
-.organizer-star {
-  position: absolute;
-  bottom: -2px;
-  right: -2px;
-  background: var(--ion-color-primary);
-  border-radius: 50%;
-  width: 20px;
-  height: 20px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 12px;
-}
-
-.preview-name {
-  font-size: 12px;
-  text-align: center;
-  margin: 0;
-  max-width: 70px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.more-indicator {
-  .more-avatar {
-    width: 60px;
-    height: 60px;
-    border-radius: 50%;
-    background: rgba(var(--ion-color-primary-rgb), 0.2);
-    border: 2px dashed var(--ion-color-primary);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: 600;
-    font-size: 16px;
-    color: var(--ion-color-primary);
-    margin-bottom: 8px;
-  }
-}
-
-.floating-badges {
-  position: absolute;
-  top: 16px;
-  right: 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  align-items: flex-end;
-  z-index: 10;
-
-  .floating-badge {
-    padding: 6px 12px;
-    font-size: 12px;
-    font-weight: 600;
-    border-radius: 20px;
-    backdrop-filter: blur(10px);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-
-    &.primary-badge {
-      font-size: 13px;
-      padding: 8px 16px;
-    }
-
-    &.secondary-badge {
-      opacity: 0.9;
-      font-size: 11px;
-    }
-  }
-}
-
-// ========================================
-// 📨 INVITATIONS
-// ========================================
-
-// Badge invité
-.invited-badge {
-  background: linear-gradient(135deg, var(--ion-color-primary), var(--ion-color-primary-shade));
-}
-
-// Carte invitation (pour l'invité)
-.invitation-card {
-  margin: 16px;
-  
-  .invitation-header {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    margin-bottom: 16px;
-
-    ion-icon {
-      font-size: 32px;
-    }
-
-    h3 {
-      margin: 0;
-      font-size: 20px;
-      font-weight: 700;
-    }
-  }
-
-  .invitation-message {
-    margin: 0 0 20px 0;
-    font-size: 15px;
-    line-height: 1.5;
-  }
-
-  .invitation-actions {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-  }
-}
-
-// Stats invitations
-.invitation-stats {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 12px;
-  margin-bottom: 20px;
-  padding: 16px;
-  background: rgba(255, 255, 255, 0.03);
-  border-radius: 12px;
-
-  .stat-item {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    text-align: center;
-
-    .stat-value {
       font-size: 24px;
-      font-weight: 700;
-      color: var(--ion-color-medium);
     }
 
-    .stat-label {
-      font-size: 12px;
-      color: var(--ion-color-medium);
-      margin-top: 4px;
-    }
-
-    &.success .stat-value {
-      color: var(--ion-color-success);
-    }
-
-    &.warning .stat-value {
-      color: var(--ion-color-warning);
-    }
-
-    &.danger .stat-value {
-      color: var(--ion-color-danger);
+    &:hover {
+      --background: rgba(0, 0, 0, 0.7);
     }
   }
-}
 
-// Liste invitations
-.invitations-list {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin-bottom: 16px;
-}
-
-.invitation-item {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 12px;
-  background: rgba(255, 255, 255, 0.03);
-  border-radius: 12px;
-  border-left: 3px solid transparent;
-
-  &.pending {
-    border-left-color: var(--ion-color-warning);
+  .back-button {
+    left: 16px;
   }
 
-  &.accepted {
-    border-left-color: var(--ion-color-success);
+  .options-button {
+    right: 16px;
+
+    &:active {
+      transform: scale(0.95);
+    }
   }
 
-  &.declined {
-    border-left-color: var(--ion-color-danger);
-    opacity: 0.6;
-  }
+  // ✅ SOLUTION SIMPLE : Container pour badge + bouton
+  .floating-badges {
+    // Reset absolu
+    position: static;
 
-  ion-avatar {
-    width: 40px;
-    height: 40px;
-  }
-
-  .invitation-info {
-    flex: 1;
-
-    .name {
-      margin: 0 0 4px 0;
+    // Badge organisateur : à côté du bouton options
+    .organizer-badge {
+      position: absolute;
+      top: 20px;
+      right: 72px;
+      z-index: 10;
+      font-size: 11px; // ✅ Légèrement plus petit
       font-weight: 600;
-      font-size: 14px;
-    }
-
-    .status {
-      margin: 0;
+      padding: 8px 12px; // ✅ Réduire le padding horizontal
+      backdrop-filter: blur(10px);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+      height: 36px; // ✅ Réduire la hauteur
       display: flex;
       align-items: center;
       gap: 4px;
-      font-size: 12px;
-      color: var(--ion-color-medium);
+      --background: #ffa726; // Orange plus vif
+      color: #000; // Texte noir pour meilleur contraste
+      font-weight: 700; // Plus bold
 
-      ion-icon {
-        font-size: 14px;
+      @media (max-width: 360px) {
+        padding: 8px 10px;
+        
+        // Cacher le texte "Organisateur"
+        &::after {
+          content: '';
+        }
+      }
+
+      @media (hover: hover) {
+        &:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+        }
       }
     }
-  }
-}
 
-// Bouton inviter
-.invite-button {
-  margin-bottom: 12px;
+
+
+    // Autres badges : en bas à gauche
+    .full-badge,
+    .participating-badge,
+    .private-badge,
+    .masked-badge {
+      position: absolute;
+      top: auto;
+      bottom: 16px;
+      left: 16px;
+      z-index: 9;
+      font-size: 12px;
+      font-weight: 600;
+      padding: 6px 12px;
+      backdrop-filter: blur(10px);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    }
+
+    // Si plusieurs badges en bas, les espacer
+    .participating-badge {
+      left: auto;
+      right: 16px;
+    }
+
+    .private-badge {
+      bottom: 60px;
+    }
+
+    .masked-badge {
+      bottom: 60px;
+      left: auto;
+      right: 16px;
+    }
+  }
 }

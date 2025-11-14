@@ -1,705 +1,236 @@
-<!-- ========================================
-     🎨 EVENT DETAIL - DARK PREMIUM GLASSMORPHISM
-     ✅ VERSION AVEC GESTION CONDITIONNELLE PAR STATUT
-     ======================================== -->
+<!-- event-detail.page.html -->
+<!-- ✅ VERSION avec menu organisateur en haut à droite -->
 
-<!-- ========================================
-     LOADING STATE
-     ======================================== -->
-     <div class="loading-container" *ngIf="isLoading">
-      <ion-spinner name="crescent" color="primary"></ion-spinner>
-      <p>Chargement de l'événement...</p>
-    </div>
+<!-- LOADING -->
+<div class="loading-container" *ngIf="isLoading">
+  <ion-spinner name="crescent" color="primary"></ion-spinner>
+  <p>Chargement de l'événement...</p>
+</div>
+
+<!-- CONTENT -->
+<ion-content [fullscreen]="true" *ngIf="!isLoading && event">
+
+  <!-- ✅ PULL-TO-REFRESH -->
+  <ion-refresher slot="fixed" (ionRefresh)="refreshEvent($event)">
+    <ion-refresher-content
+      pullingIcon="chevron-down-circle-outline"
+      pullingText="Tirer pour actualiser"
+      refreshingSpinner="circles"
+      refreshingText="Actualisation...">
+    </ion-refresher-content>
+  </ion-refresher>
+
+  <!-- IMAGE HEADER -->
+  <div class="event-image-header">
+    <img 
+      [src]="event.imageUrl || 'assets/placeholder-event.jpg'" 
+      [alt]="event.title" 
+      class="header-image" />
+    <div class="image-overlay"></div>
     
-    <!-- ========================================
-         CONTENT PRINCIPAL
-         ======================================== -->
-    <ion-content [fullscreen]="true" *ngIf="!isLoading && event">
-    
-      <!-- ========================================
-           IMAGE HEADER FULL-WIDTH
-           ======================================== -->
-      <div class="event-image-header">
-        <img 
-          [src]="event.imageUrl || 'assets/placeholder-event.jpg'" 
-          [alt]="event.title"
-          class="header-image" />
-        
-        <!-- Gradient overlay -->
-        <div class="image-overlay"></div>
-        
-        <!-- Bouton retour flottant -->
-        <ion-button 
-          class="back-button"
-          fill="clear"
-          (click)="goBack()">
-          <ion-icon name="arrow-back" slot="icon-only"></ion-icon>
-        </ion-button>
-    
-        <!-- Badges flottants -->
-        <div class="floating-badges">
-          <!-- Badge principal (toujours visible) -->
-          <ion-badge 
-            class="floating-badge primary-badge"
-            [color]="getPrimaryBadge().color">
-            {{ getPrimaryBadge().text }}
-          </ion-badge>
-        
-          <!-- Badge secondaire (optionnel) -->
-          <ion-badge 
-            *ngIf="getSecondaryBadge()"
-            class="floating-badge secondary-badge"
-            [color]="getSecondaryBadge()!.color">
-            {{ getSecondaryBadge()!.text }}
-          </ion-badge>
-
-          <ion-badge 
-            class="floating-badge invited-badge" 
-            *ngIf="isInvited && !isParticipating"
-            color="primary">
-            ✉️ Invité
-          </ion-badge>
-        </div>
-      </div>
-    
-      <!-- ========================================
-           CONTENU PRINCIPAL
-           ======================================== -->
-      <div class="detail-content">
-            
-        <!-- ========================================
-             ✅ BOUTON PARTICIPATION (selon statut)
-             ======================================== -->
-             <div class="action-section" *ngIf="!isOrganizer && canRequestParticipation()">
-
-              <!-- ========================================
-     ✉️ INVITATION (pour l'invité)
-     ======================================== -->
-              <ion-card 
-              class="invitation-card glassmorphism" 
-              *ngIf="isInvited && userInvitation && !isParticipating">
-              <ion-card-content>
-                <div class="invitation-header">
-                  <ion-icon name="mail-outline" color="primary"></ion-icon>
-                  <h3>Vous êtes invité !</h3>
-                </div>
-                
-                <p class="invitation-message">
-                  <strong>{{ userInvitation.inviterName }}</strong> vous invite à participer à cet événement.
-                </p>
-
-                <div class="invitation-actions">
-                  <ion-button 
-                    expand="block" 
-                    color="success"
-                    (click)="acceptInvitation()">
-                    <ion-icon name="checkmark-circle-outline" slot="start"></ion-icon>
-                    Accepter l'invitation
-                  </ion-button>
-
-                  <ion-button 
-                    expand="block" 
-                    fill="outline" 
-                    color="medium"
-                    (click)="declineInvitation()">
-                    <ion-icon name="close-circle-outline" slot="start"></ion-icon>
-                    Refuser
-                  </ion-button>
-                </div>
-              </ion-card-content>
-              </ion-card>
-  
-              <!-- ÉTAT 1 : NON INSCRIT - Bouton Participer -->
-              <ion-button 
-                *ngIf="!isParticipating && !isPending() && canJoinEvent()"
-                expand="block"
-                class="participate-button"
-                (click)="joinEvent()"
-                [disabled]="isJoining">
-                <ion-icon name="person-add-outline" slot="start"></ion-icon>
-                {{ isJoining ? 'Inscription en cours...' : 'Participer à cet événement' }}
-              </ion-button>
-            
-              <!-- ÉTAT 2 : DEMANDE EN ATTENTE (PENDING) -->
-              <div *ngIf="isPending()" class="pending-status-container">
-                <!-- Badge statut -->
-                <div class="pending-badge-box">
-                  <ion-icon name="time-outline" color="warning"></ion-icon>
-                  <div class="pending-text">
-                    <h4>Demande envoyée</h4>
-                    <p>L'organisateur doit approuver votre participation</p>
-                  </div>
-                </div>
-            
-                <!-- Bouton Annuler la demande -->
-                <ion-button 
-                  expand="block"
-                  class="cancel-request-button"
-                  fill="outline"
-                  color="warning"
-                  (click)="cancelRequest()"
-                  [disabled]="isLeaving">
-                  <ion-icon name="close-circle-outline" slot="start"></ion-icon>
-                  {{ isLeaving ? 'Annulation...' : 'Annuler la demande' }}
-                </ion-button>
-              </div>
-            
-              <!-- ÉTAT 3 : APPROUVÉ - Bouton Se désinscrire -->
-              <div *ngIf="isParticipating && !isPending()" class="approved-status-container">
-                <!-- Badge confirmation -->
-                <div class="approved-badge-box">
-                  <ion-icon name="checkmark-circle-outline" color="success"></ion-icon>
-                  <span>Vous participez à cet événement</span>
-                </div>
-            
-                <!-- Bouton Se désinscrire -->
-                <ion-button 
-                  expand="block"
-                  class="leave-button"
-                  fill="outline"
-                  color="danger"
-                  (click)="leaveEvent()"
-                  [disabled]="isLeaving">
-                  <ion-icon name="exit-outline" slot="start"></ion-icon>
-                  {{ isLeaving ? 'Désinscription...' : 'Se désinscrire' }}
-                </ion-button>
-              </div>
-            
-              <!-- MESSAGE : ÉVÉNEMENT COMPLET -->
-              <div class="full-message" *ngIf="isEventFull() && !isParticipating && !isPending()">
-                <ion-icon name="warning-outline" color="warning"></ion-icon>
-                <p>Cet événement est complet</p>
-              </div>
-            
-              <!-- MESSAGE : NE PEUT PAS REJOINDRE (autre raison) -->
-              <div class="cannot-join-message" 
-                   *ngIf="!isParticipating && !isPending() && !canJoinEvent() && !isEventFull() && canJoinReason">
-                <ion-icon name="information-circle-outline" color="medium"></ion-icon>
-                <p>{{ canJoinReason }}</p>
-              </div>
-            </div>
-
-            <!-- ✅ MESSAGE : ÉVÉNEMENT TERMINÉ OU ANNULÉ -->
-            <div class="event-status-message" *ngIf="eventStatus === EventStatus.COMPLETED">
-              <ion-icon name="checkmark-circle-outline" color="success"></ion-icon>
-              <p>Cet événement est terminé</p>
-            </div>
-
-            <div class="event-status-message" *ngIf="eventStatus === EventStatus.CANCELLED">
-              <ion-icon name="close-circle-outline" color="danger"></ion-icon>
-              <p>Cet événement a été annulé</p>
-            </div>
-    
-        <!-- ========================================
-             CARD INFO PRINCIPALE
-             ======================================== -->
-        <ion-card class="info-card glassmorphism">
-          <ion-card-content>
-            
-            <!-- Titre -->
-            <h1 class="event-title">{{ event.title }}</h1>
-    
-            <!-- Badges catégorie, type d'accès et participants -->
-            <div class="inline-badges">
-              <ion-chip class="category-chip">
-                <ion-label>{{ getCategoryLabel(event.category) }}</ion-label>
-              </ion-chip>
-    
-              <!-- Badge type d'événement -->
-              <ion-chip 
-                class="access-type-chip"
-                [attr.data-access-type]="getEventAccessType()">
-                <ion-icon [name]="getAccessTypeIcon()"></ion-icon>
-                <ion-label>{{ getAccessTypeLabel() }}</ion-label>
-              </ion-chip>
-    
-              <ion-chip 
-                [attr.data-status]="getParticipantBadgeStatus()"
-                class="participants-chip">
-                <ion-icon name="people-outline"></ion-icon>
-                <ion-label>{{ participantCount }} / {{ event.maxParticipants }}</ion-label>
-              </ion-chip>
-            </div>
-    
-            <!-- Informations principales -->
-            <div class="event-meta">
-              <!-- Date -->
-              <div class="meta-row">
-                <ion-icon name="calendar-outline" class="meta-icon"></ion-icon>
-                <div class="meta-content">
-                  <span class="meta-label">Date</span>
-                  <span class="meta-value">
-                    {{ event.startTime && event.endTime ? formatDateOnly(event.date) : formatDate(event.date) }}
-                  </span>
-                </div>
-              </div>
-
-              <!-- Horaires et durée (si disponibles) -->
-              <div class="meta-row" *ngIf="event.startTime && event.endTime">
-                <ion-icon name="time-outline" class="meta-icon"></ion-icon>
-                <div class="meta-content">
-                  <span class="meta-label">Horaires</span>
-                  <span class="meta-value">
-                    {{ formatTime(event.startTime) }} - {{ formatTime(event.endTime) }}
-                    <span class="duration-badge" *ngIf="getEventDuration()">
-                      ({{ getEventDuration() }})
-                    </span>
-                  </span>
-                </div>
-              </div>
-    
-              <!-- Localisation -->
-              <div class="meta-row">
-                <ion-icon 
-                  [name]="isAddressMasked() ? 'eye-off-outline' : 'location-outline'" 
-                  class="meta-icon"
-                  [class.masked-icon]="isAddressMasked()">
-                </ion-icon>
-                <div class="meta-content">
-                  <span class="meta-label">Localisation</span>
-                  
-                  <!-- Adresse visible -->
-                  <span 
-                    class="meta-value" 
-                    *ngIf="!isAddressMasked()">
-                    📍 {{ getAddressDisplay() }}
-                  </span>
-                  
-                  <!-- Adresse masquée -->
-                  <span 
-                    class="meta-value address-masked" 
-                    *ngIf="isAddressMasked()">
-                    📍 {{ getAddressDisplay() }}
-                  </span>
-                </div>
-              </div>
-            </div>
-    
-            <!-- Message explicatif si adresse masquée -->
-            <div class="location-message-box" *ngIf="isAddressMasked()">
-              <ion-icon name="information-circle-outline" color="primary"></ion-icon>
-              <p>{{ getLocationMessage() }}</p>
-            </div>
-    
-          </ion-card-content>
-        </ion-card>
-
-        <!-- ========================================
-             ✅ SECTION CHECK-IN (uniquement ONGOING)
-             ======================================== -->
-        <ion-card 
-        class="checkin-card glassmorphism" 
-        *ngIf="eventStatus === EventStatus.ONGOING && isParticipating">
-        <ion-card-content>
-          <h3 class="section-title">
-            <ion-icon name="checkmark-done-outline"></ion-icon>
-            Check-in
-          </h3>
-
-          <div class="checkin-stats">
-            <ion-chip color="primary">
-              <ion-label>{{ checkInCount }} présent(s)</ion-label>
-            </ion-chip>
-          </div>
-
-          <!-- ✅ Bouton check-in avec vérification géolocalisation -->
-          <div class="checkin-actions" *ngIf="canDoCheckIn()">
-            <p class="checkin-info">
-              <ion-icon name="information-circle-outline"></ion-icon>
-              Vous devez être à l'adresse de l'événement (moins de 100m)
-            </p>
-            <ion-button expand="block" (click)="doCheckIn()">
-              <ion-icon name="checkmark-circle-outline" slot="start"></ion-icon>
-              Je suis arrivé(e) !
-            </ion-button>
-          </div>
-
-          <div class="checkin-success" *ngIf="hasCheckedIn">
-            <ion-icon name="checkmark-circle" color="success"></ion-icon>
-            <p>Présence confirmée !</p>
-          </div>
-        </ion-card-content>
-        </ion-card>
-
-        <!-- ========================================
-             ✅ SECTION ANNONCES (tous statuts sauf CANCELLED)
-             ======================================== -->
-        <ion-card 
-        class="announcements-card glassmorphism" 
-        *ngIf="(announcements.length > 0 || canPostAnnouncement()) && eventStatus !== EventStatus.CANCELLED">
-        <ion-card-content>
-          <div class="section-header">
-            <h3 class="section-title">
-              <ion-icon name="megaphone-outline"></ion-icon>
-              Annonces
-            </h3>
-            
-            <!-- ✅ Bouton ajouter annonce (selon statut) -->
-            <ion-button 
-              *ngIf="canPostAnnouncement()" 
-              fill="clear" 
-              size="small"
-              (click)="postAnnouncement()">
-              <ion-icon name="add-circle-outline"></ion-icon>
-            </ion-button>
-          </div>
-
-          <div class="announcements-list" *ngIf="announcements.length > 0">
-            <div class="announcement-item" *ngFor="let announcement of announcements">
-              <div class="announcement-header">
-                <span class="announcement-author">{{ announcement.authorName }}</span>
-                <span class="announcement-time">{{ formatDate(announcement.timestamp) }}</span>
-              </div>
-              <p class="announcement-message">{{ announcement.message }}</p>
-            </div>
-          </div>
-
-          <div class="empty-announcements" *ngIf="announcements.length === 0">
-            <p>Aucune annonce pour le moment</p>
-          </div>
-        </ion-card-content>
-      </ion-card>
-
-      <!-- ========================================
-           ✅ SECTION PHOTOS (ONGOING ou COMPLETED)
-           ======================================== -->
-      <!-- ========================================
-     ✅ SECTION PHOTOS (ONGOING ou COMPLETED)
-     ======================================== -->
-<ion-card 
-class="photos-card glassmorphism" 
-*ngIf="canAddPhotos()">
-<ion-card-content>
-  <div class="section-header">
-    <h3 class="section-title">
-      <ion-icon name="images-outline"></ion-icon>
-      Photos de l'événement
-    </h3>
-    
+    <!-- Bouton retour avec ARIA -->
     <ion-button 
+      class="back-button" 
       fill="clear" 
-      size="small"
-      (click)="addEventPhotos()">
-      <ion-icon name="camera-outline"></ion-icon>
+      (click)="goBack()"
+      aria-label="Retour à la liste des événements"
+      title="Retour">
+      <ion-icon name="arrow-back" slot="icon-only"></ion-icon>
     </ion-button>
+
+    <!-- ✅ NOUVEAU : Bouton Options Organisateur -->
+    <ion-button 
+      *ngIf="isOrganizer"
+      class="options-button" 
+      fill="clear" 
+      (click)="showOrganizerOptions()"
+      aria-label="Options de l'événement"
+      title="Options">
+      <ion-icon name="ellipsis-vertical" slot="icon-only"></ion-icon>
+    </ion-button>
+
+    <!-- Badges flottants -->
+    <div class="floating-badges">
+      <ion-badge class="floating-badge organizer-badge" *ngIf="isOrganizer" color="warning">
+        ⭐ Organisateur
+      </ion-badge>
+      <ion-badge class="floating-badge full-badge" *ngIf="isEventFull()" color="danger">
+        🔒 COMPLET
+      </ion-badge>
+      <ion-badge class="floating-badge participating-badge" *ngIf="isParticipating && !isOrganizer" color="success">
+        ✓ Inscrit
+      </ion-badge>
+      <ion-badge class="floating-badge private-badge" *ngIf="event.isPrivate" color="dark">
+        🔒 Privé
+      </ion-badge>
+      <ion-badge class="floating-badge masked-badge" *ngIf="isAddressMasked()" color="medium">
+        📍 Adresse masquée
+      </ion-badge>
+    </div>
   </div>
 
-  <!-- Aperçu des photos -->
-      <div class="photos-preview" *ngIf="photoPreview.length > 0">
-        <div class="photos-grid">
-          <div 
-            class="photo-item" 
-            *ngFor="let photo of photoPreview"
-            (click)="openPhotoGallery()">
-            <img [src]="photo" alt="Photo événement" />
+  <!-- CONTENU PRINCIPAL -->
+  <div class="detail-content">
+
+    <!-- TITRE + BADGES -->
+    <div class="header-section">
+      <h1 class="event-title">{{ event.title }}</h1>
+
+      <div class="inline-badges">
+        <ion-chip class="category-chip">
+          <ion-label>{{ getCategoryLabel(event.category) }}</ion-label>
+        </ion-chip>
+
+        <ion-chip class="access-type-chip" [attr.data-access-type]="getEventAccessType()">
+          <ion-icon [name]="getAccessTypeIcon()"></ion-icon>
+          <ion-label>{{ getAccessTypeLabel() }}</ion-label>
+        </ion-chip>
+
+        <ion-chip [attr.data-status]="getParticipantBadgeStatus()" class="participants-chip">
+          <ion-icon name="people-outline"></ion-icon>
+          <ion-label>{{ participantCount }}/{{ event.maxParticipants }}</ion-label>
+        </ion-chip>
+      </div>
+    </div>
+
+    <!-- BOUTONS PARTICIPATION -->
+    <div class="action-section" *ngIf="!isOrganizer">
+      
+      <!-- Non inscrit -->
+      <ion-button 
+        *ngIf="!isParticipating && !isPending() && !isEventFull()"
+        expand="block"
+        class="participate-button"
+        (click)="joinEvent()"
+        aria-label="Participer à cet événement">
+        <ion-icon name="person-add-outline" slot="start"></ion-icon>
+        Participer à cet événement
+      </ion-button>
+
+      <!-- En attente -->
+      <div *ngIf="isPending()" class="pending-status-container">
+        <div class="pending-badge-box">
+          <ion-icon name="time-outline" color="warning"></ion-icon>
+          <div class="pending-text">
+            <h4>Demande envoyée</h4>
+            <p>L'organisateur doit approuver votre participation</p>
           </div>
         </div>
-
-        <!-- Bouton "Voir tout" -->
         <ion-button 
           expand="block" 
+          class="cancel-request-button" 
           fill="outline" 
-          size="small"
-          class="view-all-btn"
-          (click)="openPhotoGallery()">
-          <ion-icon name="images-outline" slot="start"></ion-icon>
-          Voir toutes les photos ({{ event?.eventPhotos?.length || 0 }})
+          color="warning" 
+          (click)="cancelRequest()"
+          aria-label="Annuler ma demande de participation">
+          <ion-icon name="close-circle-outline" slot="start"></ion-icon>
+          Annuler la demande
         </ion-button>
       </div>
 
-      <!-- Placeholder si aucune photo -->
-      <p class="photos-placeholder" *ngIf="photoPreview.length === 0">
-        <ion-icon name="camera-outline"></ion-icon>
-        Les participants peuvent ajouter des photos pendant et après l'événement
-      </p>
-    </ion-card-content>
-    </ion-card>
-    
-        <!-- ========================================
-             CARD ORGANISATEUR
-             ======================================== -->
-        <ion-card class="organizer-card glassmorphism">
-          <ion-card-content>
-            <h3 class="section-title">
-              <ion-icon name="person-outline"></ion-icon>
-              Organisateur
-            </h3>
-    
-            <div class="organizer-info">
-              <ion-avatar class="organizer-avatar">
-                <img 
-                  [src]="event.organizerPhoto || 'assets/default-avatar.png'"
-                  [alt]="event.organizerName" />
-              </ion-avatar>
-              <div class="organizer-details">
-                <p class="organizer-name">{{ event.organizerName }}</p>
-                <p class="organizer-label">Créateur de l'événement</p>
-              </div>
-            </div>
-          </ion-card-content>
-        </ion-card>
-    
-        <!-- ========================================
-             CARD DESCRIPTION
-             ======================================== -->
-        <ion-card class="description-card glassmorphism">
-          <ion-card-content>
-            <h3 class="section-title">
-              <ion-icon name="document-text-outline"></ion-icon>
-              Description
-            </h3>
-            <p class="description-text">{{ event.description }}</p>
-          </ion-card-content>
-        </ion-card>
-    
-        <!-- ========================================
-             ✅ CARD DEMANDES EN ATTENTE (Organisateur + UPCOMING/ONGOING)
-             ======================================== -->
-        <ion-card 
-          class="pending-requests-card glassmorphism" 
-          *ngIf="isOrganizer && event.requiresApproval && pendingCount > 0 && canRequestParticipation()">
-          <ion-card-content>
-            <div class="pending-header">
-              <h3 class="section-title">
-                <ion-icon name="notifications-outline"></ion-icon>
-                Demandes en attente
-              </h3>
-              <ion-badge color="danger" class="pending-badge">
-                {{ pendingCount }}
-              </ion-badge>
-            </div>
-            
-            <p class="pending-description">
-              {{ pendingCount }} personne(s) souhaite(nt) rejoindre votre événement
-            </p>
-    
-            <ion-button
-              expand="block"
-              (click)="openPendingRequestsModal()"
-              class="manage-requests-button">
-              <ion-icon name="notifications-outline" slot="start"></ion-icon>
-              Gérer les demandes
-            </ion-button>
-          </ion-card-content>
-        </ion-card>
-    
-        <!-- ========================================
-     👥 LISTE DES PARTICIPANTS
-     ======================================== -->
-      <!-- ========================================
-     👥 APERÇU DES PARTICIPANTS
-     ======================================== -->
-      <ion-card class="participants-card glassmorphism" *ngIf="participants.length > 0">
-        <ion-card-content>
-          <div class="section-header">
-            <h3 class="section-title">
-              <ion-icon name="people-outline"></ion-icon>
-              Participants ({{ participantCount }})
-            </h3>
-            <ion-button 
-              fill="clear" 
-              size="small"
-              (click)="openParticipantsModal()">
-              Voir tous
-              <ion-icon name="chevron-forward-outline" slot="end"></ion-icon>
-            </ion-button>
-          </div>
-
-          <!-- Liste horizontale des 5 derniers -->
-          <div class="participants-preview">
-            <div 
-              class="participant-preview-item" 
-              *ngFor="let participant of getPreviewParticipants()"
-              (click)="viewParticipantProfile(participant.userId)">
-              <ion-avatar class="preview-avatar">
-                <img 
-                  [src]="participant.userPhoto || 'assets/default-avatar.png'" 
-                  [alt]="participant.userName" />
-                <div 
-                  *ngIf="participant.userId === event?.organizerId" 
-                  class="organizer-star">
-                  ⭐
-                </div>
-              </ion-avatar>
-              <p class="preview-name">{{ participant.userName }}</p>
-            </div>
-
-            <!-- Indicateur "+X autres" si plus de 5 participants -->
-            <div 
-              class="participant-preview-item more-indicator" 
-              *ngIf="participants.length > 5"
-              (click)="openParticipantsModal()">
-              <div class="more-avatar">
-                <span>+{{ participants.length - 5 }}</span>
-              </div>
-              <p class="preview-name">Autres</p>
-            </div>
-          </div>
-
-        </ion-card-content>
-        <!-- ========================================
-     📨 INVITATIONS (Organisateur uniquement)
-     ======================================== -->
-        <ion-card 
-        class="invitations-card glassmorphism" 
-        *ngIf="isOrganizer && invitations.length > 0">
-        <ion-card-content>
-          <div class="section-header">
-            <h3 class="section-title">
-              <ion-icon name="mail-outline"></ion-icon>
-              Invitations envoyées
-            </h3>
-            <ion-button 
-              fill="clear" 
-              size="small"
-              (click)="openInviteFriendsModal()">
-              <ion-icon name="add-circle-outline"></ion-icon>
-              Inviter
-            </ion-button>
-          </div>
-
-          <!-- Stats invitations -->
-          <div class="invitation-stats" *ngIf="invitationStats">
-            <div class="stat-item">
-              <span class="stat-value">{{ invitationStats.totalInvited }}</span>
-              <span class="stat-label">Envoyées</span>
-            </div>
-            <div class="stat-item success">
-              <span class="stat-value">{{ invitationStats.acceptedCount }}</span>
-              <span class="stat-label">Acceptées</span>
-            </div>
-            <div class="stat-item warning">
-              <span class="stat-value">{{ invitationStats.pendingCount }}</span>
-              <span class="stat-label">En attente</span>
-            </div>
-            <div class="stat-item danger">
-              <span class="stat-value">{{ invitationStats.declinedCount }}</span>
-              <span class="stat-label">Refusées</span>
-            </div>
-          </div>
-
-          <!-- Liste des invitations -->
-          <div class="invitations-list">
-            <div 
-              class="invitation-item" 
-              *ngFor="let invitation of invitations.slice(0, 5)"
-              [class.pending]="invitation.status === 'pending'"
-              [class.accepted]="invitation.status === 'accepted'"
-              [class.declined]="invitation.status === 'declined'">
-              
-              <ion-avatar>
-                <img 
-                  [src]="invitation.invitedUserPhoto || 'assets/default-avatar.png'" 
-                  [alt]="invitation.invitedUserName" />
-              </ion-avatar>
-
-              <div class="invitation-info">
-                <p class="name">{{ invitation.invitedUserName }}</p>
-                <p class="status">
-                  <ion-icon 
-                    [name]="invitation.status === 'pending' ? 'time-outline' : 
-                            invitation.status === 'accepted' ? 'checkmark-circle' : 
-                            'close-circle'"
-                    [color]="invitation.status === 'pending' ? 'warning' : 
-                            invitation.status === 'accepted' ? 'success' : 
-                            'danger'">
-                  </ion-icon>
-                  {{ invitation.status === 'pending' ? 'En attente' : 
-                    invitation.status === 'accepted' ? 'Acceptée' : 
-                    'Refusée' }}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <!-- Voir toutes les invitations -->
-          <ion-button 
-            *ngIf="invitations.length > 5"
-            expand="block" 
-            fill="outline" 
-            size="small">
-            Voir toutes les invitations ({{ invitations.length }})
-          </ion-button>
-        </ion-card-content>
-        </ion-card>
-      </ion-card>
-    
-        <!-- ========================================
-             ✅ ACTIONS ORGANISATEUR (selon statut)
-             ======================================== -->
-        <div class="organizer-actions" *ngIf="isOrganizer">
-          <!-- ✅ Modifier (UPCOMING ou ONGOING) -->
-
-          <ion-button 
-            *ngIf="canInviteFriends()"
-            expand="block"
-            color="primary"
-            class="invite-button"
-            (click)="openInviteFriendsModal()">
-            <ion-icon name="mail-outline" slot="start"></ion-icon>
-            Inviter des amis
-          </ion-button>
-
-          <ion-button 
-            *ngIf="canEditEvent()"
-            expand="block"
-            class="edit-button"
-            (click)="editEvent()">
-            <ion-icon name="create-outline" slot="start"></ion-icon>
-            Modifier l'événement
-          </ion-button>
-    
-          <!-- ✅ Supprimer (uniquement UPCOMING) -->
-          <ion-button 
-            *ngIf="canDeleteEvent()"
-            expand="block"
-            class="delete-button"
-            fill="outline"
-            color="danger"
-            (click)="deleteEvent()">
-            <ion-icon name="trash-outline" slot="start"></ion-icon>
-            Supprimer l'événement
-          </ion-button>
-
-          <!-- ✅ Message si pas possible de modifier/supprimer -->
-          <div class="action-disabled-message" *ngIf="!canEditEvent() && !canDeleteEvent()">
-            <ion-icon name="information-circle-outline" color="medium"></ion-icon>
-            <p *ngIf="eventStatus === EventStatus.COMPLETED">
-              Les événements terminés ne peuvent plus être modifiés
-            </p>
-            <p *ngIf="eventStatus === EventStatus.CANCELLED">
-              Les événements annulés ne peuvent plus être modifiés
-            </p>
-            <p *ngIf="eventStatus === EventStatus.ONGOING && !canDeleteEvent()">
-              Un événement en cours ne peut pas être supprimé
-            </p>
-          </div>
+      <!-- Approuvé -->
+      <div *ngIf="isParticipating && !isPending()" class="approved-status-container">
+        <div class="approved-badge-box">
+          <ion-icon name="checkmark-circle-outline" color="success"></ion-icon>
+          <span>Vous participez à cet événement</span>
         </div>
-    
-        <!-- Spacing bottom -->
-        <div class="bottom-spacing"></div>
-    
+        <ion-button 
+          expand="block" 
+          class="leave-button" 
+          fill="outline" 
+          color="danger" 
+          (click)="leaveEvent()"
+          aria-label="Me désinscrire de l'événement">
+          <ion-icon name="exit-outline" slot="start"></ion-icon>
+          Se désinscrire
+        </ion-button>
       </div>
-      <ion-fab *ngIf="hasFabActions()" vertical="bottom" horizontal="end" slot="fixed">
-        <ion-fab-button color="primary">
-          <ion-icon name="ellipsis-vertical"></ion-icon>
-        </ion-fab-button>
+
+      <!-- Complet -->
+      <div class="full-message" *ngIf="isEventFull() && !isParticipating && !isPending()">
+        <ion-icon name="warning-outline"></ion-icon>
+        <p>Cet événement est complet</p>
+      </div>
+    </div>
+
+    <!-- ✅ NAVIGATION SEGMENTS avec ngSwitch pour performance -->
+    <ion-segment 
+      [(ngModel)]="selectedSegment" 
+      class="segment-navigation"
+      aria-label="Navigation entre les sections">
+      <ion-segment-button 
+        value="info"
+        aria-label="Section informations">
+        <ion-icon name="information-circle-outline"></ion-icon>
+        <ion-label>Infos</ion-label>
+      </ion-segment-button>
+      
+      <ion-segment-button 
+        value="announcements"
+        aria-label="Section annonces">
+        <ion-icon name="megaphone-outline"></ion-icon>
+        <ion-label>Annonces</ion-label>
+        <ion-badge *ngIf="announcementCount > 0" color="danger">{{ announcementCount }}</ion-badge>
+      </ion-segment-button>
+      
+      <ion-segment-button 
+        value="photos"
+        aria-label="Section photos">
+        <ion-icon name="camera-outline"></ion-icon>
+        <ion-label>Photos</ion-label>
+        <ion-badge *ngIf="photoCount > 0" color="primary">{{ photoCount }}</ion-badge>
+      </ion-segment-button>
+      
+      <ion-segment-button 
+        value="participants"
+        aria-label="Section participants">
+        <ion-icon name="people-outline"></ion-icon>
+        <ion-label>Participants</ion-label>
+        <ion-badge color="success">{{ participantCount }}</ion-badge>
+      </ion-segment-button>
+    </ion-segment>
+
+    <!-- ✅ CONTENU SEGMENTS avec ngSwitch (meilleure performance) -->
+    <div class="segment-content">
+      <ng-container [ngSwitch]="selectedSegment">
         
-        <ion-fab-list side="top">
-          <!-- Actions contextuelles selon le statut et le rôle -->
-          <ion-fab-button 
-            *ngIf="canEditEvent()"
-            (click)="editEvent()"
-            data-desc="Modifier">
-            <ion-icon name="create-outline"></ion-icon>
-          </ion-fab-button>
-          
-          <ion-fab-button 
-            *ngIf="canShare()"
-            (click)="shareEvent()"
-            data-desc="Partager">
-            <ion-icon name="share-outline"></ion-icon>
-          </ion-fab-button>
-        </ion-fab-list>
-      </ion-fab>
-    </ion-content>
+        <app-info-segment 
+          *ngSwitchCase="'info'"
+          [event]="event"
+          [isOrganizer]="isOrganizer"
+          [participantStatus]="participantStatus">
+        </app-info-segment>
+        
+        <app-announcements-segment 
+          *ngSwitchCase="'announcements'"
+          [eventId]="eventId"
+          [isOrganizer]="isOrganizer"
+          (announcementCountChanged)="onAnnouncementCountChanged($event)">
+        </app-announcements-segment>
+        
+        <app-photos-segment 
+          *ngSwitchCase="'photos'"
+          [eventId]="eventId"
+          [event]="event"
+          (photoCountChanged)="onPhotoCountChanged($event)"
+          (eventUpdated)="onEventUpdated()">
+        </app-photos-segment>
+        
+        <app-participants-segment 
+          *ngSwitchCase="'participants'"
+          [eventId]="eventId"
+          [event]="event"
+          [isOrganizer]="isOrganizer"
+          (participantCountChanged)="onParticipantCountChanged($event)">
+        </app-participants-segment>
+        
+      </ng-container>
+    </div>
+
+    <!-- ❌ SUPPRIMÉ : Section organizer-actions -->
+
+    <div class="bottom-spacing"></div>
+
+  </div>
+
+</ion-content>

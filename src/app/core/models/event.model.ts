@@ -1,6 +1,8 @@
 // src/app/core/models/event.model.ts
-// Modèle Event - VERSION AMÉLIORÉE avec Statuts
-// ✅ Ajout des statuts, check-in, et fonctionnalités v1
+// Modèle Event - VERSION REFACTORÉE (ÉTAPE 1)
+// ✅ AddressVisibility simplifié
+// ✅ coOrganizers retiré (v2)
+// ✅ Champs d'annulation ajoutés
 
 import { Timestamp } from '@angular/fire/firestore';
 
@@ -41,10 +43,24 @@ export interface EventLocation {
   approximateLongitude?: number;
 }
 
+/**
+ * ✅ REFACTORÉ (ÉTAPE 1) : Visibilité d'adresse simplifiée
+ * 
+ * LOGIQUE UNIFIÉE :
+ * - Par défaut : Ville uniquement visible pour tous les externes
+ * - Si PARTICIPANTS_ONLY : Adresse complète visible uniquement pour APPROVED
+ * 
+ * MIGRATION :
+ * - Les valeurs 'public' et 'city' des événements existants seront migrées
+ * - Script de migration disponible dans /core/migrations/
+ * 
+ * DÉCISION PRODUIT (Section 3) :
+ * "Je souhaite que pour toutes les events, uniquement le nom de la ville 
+ * soit affiché pour un utilisateur extérieur à la soirée. Même en public. 
+ * L'adresse sera ensuite divulguée lorsque l'utilisateur est accepté."
+ */
 export enum AddressVisibility {
-  PUBLIC = 'public',
-  CITY_ONLY = 'city',
-  PARTICIPANTS_ONLY = 'participants'
+  PARTICIPANTS_ONLY = 'participants'  // ✅ Seul mode supporté
 }
 
 /**
@@ -62,7 +78,7 @@ export enum EventCategory {
 }
 
 /**
- * Interface Event principale - VERSION AMÉLIORÉE
+ * Interface Event principale - VERSION REFACTORÉE
  */
 export interface Event {
   id?: string;
@@ -71,9 +87,9 @@ export interface Event {
   title: string;
   description: string;
   date: Timestamp;
-  startTime?: Timestamp;      // ✅ NOUVEAU : Heure de début précise
-  endTime?: Timestamp;        // ✅ NOUVEAU : Heure de fin
-  status?: EventStatus;       // ✅ NOUVEAU : Statut de l'événement
+  startTime?: Timestamp;      // ✅ Heure de début précise
+  endTime?: Timestamp;        // ✅ Heure de fin
+  status?: EventStatus;       // ✅ Statut de l'événement
   
   location: EventLocation;
   
@@ -81,13 +97,15 @@ export interface Event {
   organizerId: string;
   organizerName: string;
   organizerPhoto?: string;
-  coOrganizers?: string[];    // ✅ NOUVEAU : Co-organisateurs
+  
+  // ❌ RETIRÉ POUR v1 (ÉTAPE 1) - À réimplémenter en v2
+  // coOrganizers?: string[];    // Co-organisateurs
   
   // Participants
   maxParticipants: number;
   currentParticipants: number;
   participants: string[];
-  actualAttendees?: string[];  // ✅ NOUVEAU : Présences réelles (check-in)
+  actualAttendees?: string[];  // ✅ Présences réelles (check-in)
   
   // Catégorisation
   category: EventCategory;
@@ -96,22 +114,27 @@ export interface Event {
   // Médias
   imageUrl: string;
   images?: string[];
-  eventPhotos?: EventPhoto[] | string[];      // ✅ NOUVEAU : Photos pendant/après l'événement
+  eventPhotos?: EventPhoto[] | string[];      // ✅ Photos pendant/après l'événement
   
   // Configuration
-  accessType: EventAccessType;     // ✅ NOUVEAU : Type d'accès (remplace isPrivate)
+  accessType: EventAccessType;     // ✅ Type d'accès (remplace isPrivate)
   requiresApproval: boolean;
-  allowSharing?: boolean;          // ✅ NOUVEAU : Si participants peuvent partager
-  allowCheckIn?: boolean;          // ✅ NOUVEAU : Active le check-in
-  checkInQRCode?: string;          // ✅ NOUVEAU : QR code pour check-in
+  allowSharing?: boolean;          // ✅ Si participants peuvent partager
+  allowCheckIn?: boolean;          // ✅ Active le check-in
+  checkInQRCode?: string;          // ✅ QR code pour check-in
   
   // ⚠️ DEPRECATED - Conservé pour compatibilité, sera supprimé
   isPrivate?: boolean;             // @deprecated Utiliser accessType à la place
   
+  // ✅ NOUVEAU (ÉTAPE 1) : Champs pour événements annulés
+  cancellationReason?: string;     // Raison de l'annulation
+  cancelledBy?: string;            // User ID qui a annulé
+  cancelledAt?: Timestamp;         // Date d'annulation
+  
   // Métadonnées
   createdAt: Timestamp;
   updatedAt: Timestamp;
-  lastStatusUpdate?: Timestamp; // ✅ NOUVEAU : Dernier changement de statut
+  lastStatusUpdate?: Timestamp;    // ✅ Dernier changement de statut
 }
 
 /**
@@ -121,40 +144,42 @@ export interface CreateEventDto {
   title: string;
   description: string;
   date: Date;
-  startTime?: Date;           // ✅ NOUVEAU
-  endTime?: Date;             // ✅ NOUVEAU
+  startTime?: Date;
+  endTime?: Date;
   location: EventLocation;
   maxParticipants: number;
   category: EventCategory;
   imageUrl?: string;
-  accessType: EventAccessType;    // ✅ NOUVEAU : Type d'accès
+  accessType: EventAccessType;
   requiresApproval: boolean;
-  allowSharing?: boolean;         // ✅ NOUVEAU : Si participants peuvent partager
+  allowSharing?: boolean;
   tags?: string[];
-  coOrganizers?: string[];    // ✅ NOUVEAU
-  allowCheckIn?: boolean;     // ✅ NOUVEAU
+  
+  // ❌ RETIRÉ POUR v1 (ÉTAPE 1)
+  // coOrganizers?: string[];
+  
+  allowCheckIn?: boolean;
 }
 
 /**
  * Interface pour les annonces/posts sur l'événement
- * ✅ NOUVEAU : Pour la v1
+ * ✅ Pour la v1
  */
 export interface EventAnnouncement {
   id?: string;
   eventId: string;
   authorId: string;
   authorName: string;
-  authorPhoto?: string;
   message: string;
   images?: string[];
   timestamp: Timestamp;
-  isPinned?: boolean;
-  type: 'info' | 'update' | 'alert' | 'photo';
+  type: 'info' | 'important' | 'reminder' | 'live' | 'thanks';
+  isPinned: boolean;
 }
 
 /**
  * Interface pour le check-in
- * ✅ NOUVEAU : Pour la v1
+ * ✅ Pour la v1
  */
 export interface EventCheckIn {
   id?: string;
@@ -175,8 +200,8 @@ export interface EventStats {
   spotsRemaining: number;
   isFull: boolean;
   participationRate: number;
-  actualAttendanceRate?: number; // ✅ NOUVEAU : Taux de présence réelle
-  checkInCount?: number;         // ✅ NOUVEAU : Nombre de check-ins
+  actualAttendanceRate?: number; // ✅ Taux de présence réelle
+  checkInCount?: number;         // ✅ Nombre de check-ins
 }
 
 /**
@@ -204,11 +229,13 @@ export interface EventWithConditionalLocation extends Omit<Event, "location"> {
 
 /**
  * Interface pour une photo d'événement avec métadonnées
- * ✅ NOUVEAU : Pour tracker qui a uploadé chaque photo
+ * ✅ Pour tracker qui a uploadé chaque photo
  */
 export interface EventPhoto {
-  url: string;              // URL de la photo
-  uploadedBy: string;       // userId de l'auteur
-  uploadedByName: string;   // Nom de l'auteur
-  uploadedAt: Timestamp;    // Date d'upload
+  id?: string;
+  eventId: string;
+  url: string;
+  uploadedBy: string;
+  uploadedByName: string;
+  uploadedAt: Timestamp;
 }
