@@ -1,6 +1,5 @@
 // src/app/core/services/event-checkin.service.ts
-// Service de gestion des check-ins
-// ✅ Gère les présences réelles aux événements
+// ✅ SÉCURISÉ (ÉTAPE 9) - Vérifications permissions ajoutées
 
 import { Injectable, inject } from '@angular/core';
 import { 
@@ -15,10 +14,13 @@ import {
   arrayUnion,
   onSnapshot
 } from '@angular/fire/firestore';
-import { Observable, from } from 'rxjs';
+import { Observable, from, throwError } from 'rxjs';
 import { map, switchMap } from 'rxjs/operators';
 import { AuthenticationService } from './authentication.service';
-import { EventCheckIn } from '../models/event.model';
+import { ParticipantsService } from './participants.service';
+import { EventsService } from './events.service';
+import { EventCheckIn, EventStatus } from '../models/event.model';
+import { ParticipantStatus } from '../models/participant.model';
 
 @Injectable({
   providedIn: 'root'
@@ -26,38 +28,59 @@ import { EventCheckIn } from '../models/event.model';
 export class EventCheckInService {
   private firestore = inject(Firestore);
   private authService = inject(AuthenticationService);
+  private participantsService = inject(ParticipantsService);
+  private eventsService = inject(EventsService);
   
   /**
-   * Effectue un check-in à un événement
+   * ✅ SÉCURISÉ : Effectue un check-in avec vérifications
    */
   checkIn(eventId: string, method: 'manual' | 'qr' = 'manual'): Observable<void> {
     const userId = this.authService.getCurrentUserId();
     const userName = this.authService.getCurrentUserDisplayName();
     
     if (!userId) {
-      throw new Error('Utilisateur non connecté');
+      return throwError(() => new Error('Utilisateur non connecté'));
     }
     
-    // Créer le document check-in
-    const checkInData: Omit<EventCheckIn, 'id'> = {
-      eventId,
-      userId,
-      userName: userName || 'Participant',
-      checkInTime: Timestamp.now(),
-      method
-    };
-    
-    // Ajouter le check-in et mettre à jour l'événement
-    return from(addDoc(collection(this.firestore, 'checkIns'), checkInData)).pipe(
-      switchMap(() => {
-        // Mettre à jour la liste des présents dans l'événement
-        const eventRef = doc(this.firestore, 'events', eventId);
-        return from(updateDoc(eventRef, {
-          actualAttendees: arrayUnion(userId),
-          updatedAt: Timestamp.now()
-        }));
+    // ✅ VÉRIFIER statut participant
+    return this.participantsService.getParticipantDocumentRealtime(eventId, userId).pipe(
+      switchMap(participant => {
+        if (!participant || participant.status !== ParticipantStatus.APPROVED) {
+          return throwError(() => new Error('Vous devez être participant confirmé pour faire un check-in'));
+        }
+        
+        // ✅ VÉRIFIER statut événement
+        return this.eventsService.getEventById(eventId);
       }),
-      map(() => void 0)
+      switchMap(event => {
+        if (event?.status !== EventStatus.ONGOING) {
+          return throwError(() => new Error('Le check-in n\'est disponible que pendant l\'événement'));
+        }
+        
+        if (event.allowCheckIn === false) {
+          return throwError(() => new Error('Le check-in n\'est pas activé pour cet événement'));
+        }
+        
+        // ✅ Procéder au check-in
+        const checkInData: Omit<EventCheckIn, 'id'> = {
+          eventId,
+          userId,
+          userName: userName || 'Participant',
+          checkInTime: Timestamp.now(),
+          method
+        };
+        
+        return from(addDoc(collection(this.firestore, 'checkIns'), checkInData)).pipe(
+          switchMap(() => {
+            const eventRef = doc(this.firestore, 'events', eventId);
+            return from(updateDoc(eventRef, {
+              actualAttendees: arrayUnion(userId),
+              updatedAt: Timestamp.now()
+            }));
+          }),
+          map(() => void 0)
+        );
+      })
     );
   }
   
@@ -119,11 +142,8 @@ export class EventCheckInService {
    * Génère un QR code pour check-in (côté organisateur)
    */
   generateCheckInQRCode(eventId: string): string {
-    // Format: eventapp://checkin/{eventId}/{timestamp}
     const timestamp = Date.now();
     const data = `eventapp://checkin/${eventId}/${timestamp}`;
-    
-    // Encoder en base64 pour simplicité
     return btoa(data);
   }
   
@@ -132,7 +152,6 @@ export class EventCheckInService {
    */
   checkInWithQRCode(qrCodeData: string): Observable<void> {
     try {
-      // Décoder le QR code
       const decoded = atob(qrCodeData);
       const parts = decoded.split('/');
       
@@ -141,8 +160,6 @@ export class EventCheckInService {
       }
       
       const eventId = parts[3];
-      
-      // Effectuer le check-in
       return this.checkIn(eventId, 'qr');
       
     } catch (error) {

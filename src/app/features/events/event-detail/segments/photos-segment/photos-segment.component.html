@@ -54,7 +54,7 @@
     slot="fixed" 
     vertical="bottom" 
     horizontal="end" 
-    *ngIf="!isLoading && !isUploading">
+    *ngIf="permissions?.canUploadPhoto && !isReadOnly">
     <ion-fab-button 
       (click)="uploadPhoto()"
       aria-label="Ajouter une photo"

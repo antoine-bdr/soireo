@@ -20,6 +20,17 @@
     </ion-refresher-content>
   </ion-refresher>
 
+  <div class="cancelled-banner" *ngIf="isEventCancelled()">
+    <ion-icon name="close-circle-outline" color="danger"></ion-icon>
+    <div class="banner-content">
+      <h3>Événement annulé</h3>
+      <p *ngIf="event.cancellationReason">{{ event.cancellationReason }}</p>
+      <p *ngIf="event.cancelledAt" class="cancelled-date">
+        Annulé le {{ event.cancelledAt.toDate() | date:'short':'':'fr' }}
+      </p>
+    </div>
+  </div>
+
   <!-- IMAGE HEADER -->
   <div class="event-image-header">
     <img 
@@ -74,6 +85,15 @@
 
     <!-- TITRE + BADGES -->
     <div class="header-section">
+      <div class="invite-only-notice" 
+        *ngIf="!permissions.canJoinEvent && event.accessType === 'invite_only'">
+      <ion-icon name="mail-outline" color="primary"></ion-icon>
+      <div class="notice-content">
+        <h3>Événement sur invitation uniquement</h3>
+        <p>Contactez l'organisateur si vous souhaitez participer</p>
+      </div>
+    </div>
+
       <h1 class="event-title">{{ event.title }}</h1>
 
       <div class="inline-badges">
@@ -158,6 +178,8 @@
       [(ngModel)]="selectedSegment" 
       class="segment-navigation"
       aria-label="Navigation entre les sections">
+      
+      <!-- Info : Toujours visible -->
       <ion-segment-button 
         value="info"
         aria-label="Section informations">
@@ -165,7 +187,9 @@
         <ion-label>Infos</ion-label>
       </ion-segment-button>
       
+      <!-- Annonces : Si permission -->
       <ion-segment-button 
+        *ngIf="canViewAnnouncements()"
         value="announcements"
         aria-label="Section annonces">
         <ion-icon name="megaphone-outline"></ion-icon>
@@ -173,7 +197,9 @@
         <ion-badge *ngIf="announcementCount > 0" color="danger">{{ announcementCount }}</ion-badge>
       </ion-segment-button>
       
+      <!-- Photos : Si permission -->
       <ion-segment-button 
+        *ngIf="canViewPhotos()"
         value="photos"
         aria-label="Section photos">
         <ion-icon name="camera-outline"></ion-icon>
@@ -181,46 +207,57 @@
         <ion-badge *ngIf="photoCount > 0" color="primary">{{ photoCount }}</ion-badge>
       </ion-segment-button>
       
+      <!-- Participants : Si permission -->
       <ion-segment-button 
+        *ngIf="canViewParticipants()"
         value="participants"
         aria-label="Section participants">
         <ion-icon name="people-outline"></ion-icon>
         <ion-label>Participants</ion-label>
         <ion-badge color="success">{{ participantCount }}</ion-badge>
       </ion-segment-button>
+      
     </ion-segment>
 
     <!-- ✅ CONTENU SEGMENTS avec ngSwitch (meilleure performance) -->
     <div class="segment-content">
       <ng-container [ngSwitch]="selectedSegment">
         
+        <!-- Info : Toujours visible -->
         <app-info-segment 
           *ngSwitchCase="'info'"
           [event]="event"
-          [isOrganizer]="isOrganizer"
-          [participantStatus]="participantStatus">
+          [permissions]="permissions"
+          [addressDisplay]="addressDisplay">
         </app-info-segment>
         
+        <!-- Annonces : Si permission -->
         <app-announcements-segment 
           *ngSwitchCase="'announcements'"
           [eventId]="eventId"
-          [isOrganizer]="isOrganizer"
+          [permissions]="permissions"
+          [isReadOnly]="isReadOnly()"
           (announcementCountChanged)="onAnnouncementCountChanged($event)">
         </app-announcements-segment>
         
+        <!-- Photos : Si permission -->
         <app-photos-segment 
           *ngSwitchCase="'photos'"
           [eventId]="eventId"
           [event]="event"
+          [permissions]="permissions"
+          [isReadOnly]="isReadOnly()"
           (photoCountChanged)="onPhotoCountChanged($event)"
           (eventUpdated)="onEventUpdated()">
         </app-photos-segment>
         
+        <!-- Participants : Si permission -->
         <app-participants-segment 
           *ngSwitchCase="'participants'"
           [eventId]="eventId"
           [event]="event"
-          [isOrganizer]="isOrganizer"
+          [permissions]="permissions"
+          [isReadOnly]="isReadOnly()"
           (participantCountChanged)="onParticipantCountChanged($event)">
         </app-participants-segment>
         

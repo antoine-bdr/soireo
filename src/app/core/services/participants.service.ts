@@ -1089,7 +1089,7 @@ export class ParticipantsService {
    * @param userId - ID de l'utilisateur
    * @returns Observable<Participant | null> qui émet à chaque changement
    */
-  private getParticipantDocumentRealtime(eventId: string, userId: string): Observable<Participant | null> {
+  getParticipantDocumentRealtime(eventId: string, userId: string): Observable<Participant | null> {
     return new Observable(observer => {
       const participantsRef = collection(this.firestore, this.participantsCollection);
       const q = query(

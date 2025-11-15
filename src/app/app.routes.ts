@@ -1,5 +1,6 @@
 import { Routes } from '@angular/router';
 import { authGuard } from '../app/core/guards/auth-guard';
+import { eventAccessGuard } from './core/guards/event-access.guard';
 
 /**
  * 🛣️ Configuration des routes de l'application
@@ -82,7 +83,8 @@ export const routes: Routes = [
       // Détail événement
       {
         path: ':id',
-        loadComponent: () => import('./features/events/event-detail/event-detail.page').then(m => m.EventDetailPage)
+        loadComponent: () => import('./features/events/event-detail/event-detail.page').then(m => m.EventDetailPage),
+        canActivate: [authGuard, eventAccessGuard]
       },
       
       // Éditer événement

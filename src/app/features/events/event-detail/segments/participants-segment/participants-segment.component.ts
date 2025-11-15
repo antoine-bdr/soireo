@@ -22,6 +22,7 @@ import { ParticipantsService } from '../../../../../core/services/participants.s
 import { InvitationsService } from '../../../../../core/services/invitations.service';
 import { PendingRequestsModalComponent } from '../../../../../shared/components/pending-requests-modal/pending-requests-modal.component';
 import { InviteFriendsModalComponent } from '../../../../../shared/components/invite-friends-modal/invite-friends-modal.component';
+import { AddressDisplayInfo, EventPermissions } from 'src/app/core/models/event-permissions.model';
 
 // ❌ SUPPRIMER cette interface locale
 // interface EventInvitation { ... }
@@ -40,8 +41,10 @@ import { InviteFriendsModalComponent } from '../../../../../shared/components/in
 export class ParticipantsSegmentComponent implements OnInit, OnDestroy {
   @Input() eventId!: string;
   @Input() event!: EventWithConditionalLocation;
-  @Input() isOrganizer: boolean = false;
   @Output() participantCountChanged = new EventEmitter<number>();
+
+  @Input() permissions!: EventPermissions;
+  @Input() isReadOnly = false;
 
   private readonly participantsService = inject(ParticipantsService);
   private readonly invitationsService = inject(InvitationsService);
@@ -74,7 +77,7 @@ export class ParticipantsSegmentComponent implements OnInit, OnDestroy {
     console.log('👥 ParticipantsSegment initialized');
     this.loadParticipants();
     
-    if (this.isOrganizer) {
+    if (this.permissions?.canManageRequests && !this.isReadOnly) {
       if (this.event.requiresApproval) {
         this.loadPendingCount();
       }
@@ -253,5 +256,13 @@ export class ParticipantsSegmentComponent implements OnInit, OnDestroy {
       color
     });
     await toast.present();
+  }
+
+  get canInviteFriends(): boolean {
+    return this.permissions?.canInviteFriends && !this.isReadOnly;
+  }
+
+  get canManageRequests(): boolean {
+    return this.permissions?.canManageRequests && !this.isReadOnly;
   }
 }

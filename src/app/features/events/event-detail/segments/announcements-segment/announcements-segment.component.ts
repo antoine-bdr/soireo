@@ -19,6 +19,7 @@ import { Subject, takeUntil } from 'rxjs';
 
 import { EventAnnouncement } from '../../../../../core/models/event.model';
 import { EventAnnouncementsService } from '../../../../../core/services/event-announcement.service';
+import { AddressDisplayInfo, EventPermissions } from 'src/app/core/models/event-permissions.model';
 
 @Component({
   selector: 'app-announcements-segment',
@@ -34,8 +35,10 @@ import { EventAnnouncementsService } from '../../../../../core/services/event-an
 })
 export class AnnouncementsSegmentComponent implements OnInit, OnDestroy {
   @Input() eventId!: string;
-  @Input() isOrganizer: boolean = false;
   @Output() announcementCountChanged = new EventEmitter<number>();
+
+  @Input() permissions!: EventPermissions;
+  @Input() isReadOnly = false;
 
   private readonly announcementsService = inject(EventAnnouncementsService);
   private readonly alertCtrl = inject(AlertController);
@@ -261,5 +264,9 @@ export class AnnouncementsSegmentComponent implements OnInit, OnDestroy {
       color
     });
     await toast.present();
+  }
+
+  get canCreateAnnouncement(): boolean {
+    return this.permissions?.canCreateAnnouncement && !this.isReadOnly;
   }
 }

@@ -5,7 +5,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import {
   IonContent, IonButton, IonIcon, IonChip, IonLabel, IonSpinner, IonBadge, 
   IonSegment, IonSegmentButton, IonRefresher, IonRefresherContent,
-  AlertController, ToastController, LoadingController, ActionSheetController
+  AlertController, ToastController, LoadingController, ActionSheetController,
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import {
@@ -28,6 +28,10 @@ import { InfoSegmentComponent } from './segments/info-segment/info-segment.compo
 import { AnnouncementsSegmentComponent } from './segments/announcements-segment/announcements-segment.component';
 import { PhotosSegmentComponent } from './segments/photos-segment/photos-segment.component';
 import { ParticipantsSegmentComponent } from './segments/participants-segment/participants-segment.component';
+
+import { EventPermissionsService } from '../../../core/services/event-permissions.service';
+import { EventPermissions, AddressDisplayInfo } from '../../../core/models/event-permissions.model';
+import { Event, EventStatus } from '../../../core/models/event.model';
 
 @Component({
   selector: 'app-event-detail',
@@ -53,7 +57,8 @@ export class EventDetailPage implements OnInit, OnDestroy {
   private readonly toastCtrl = inject(ToastController);
   private readonly loadingCtrl = inject(LoadingController);
   private readonly actionSheetCtrl = inject(ActionSheetController);
-  private readonly cdr = inject(ChangeDetectorRef); // ✅ AJOUT
+  private readonly cdr = inject(ChangeDetectorRef);
+  private readonly permissionsService = inject(EventPermissionsService);
 
   private destroy$ = new Subject<void>();
 
@@ -73,6 +78,9 @@ export class EventDetailPage implements OnInit, OnDestroy {
 
   announcementCount = 0;
   photoCount = 0;
+
+  permissions!: EventPermissions;
+  addressDisplay!: AddressDisplayInfo;
 
   constructor() {
     addIcons({arrowBack,ellipsisVertical,peopleOutline,personAddOutline,timeOutline,closeCircleOutline,checkmarkCircleOutline,exitOutline,warningOutline,informationCircleOutline,megaphoneOutline,cameraOutline,createOutline,trashOutline,eyeOffOutline,globeOutline,mailOutline,lockClosedOutline,chevronDownCircleOutline});
@@ -139,6 +147,18 @@ export class EventDetailPage implements OnInit, OnDestroy {
         this.event = eventWithLocation;
         console.log('🔵 [12] Appel loadParticipationInfo');
         this.loadParticipationInfo();
+        this.permissions = this.permissionsService.calculatePermissions(
+          this.event as Event,
+          currentUserId,
+          this.participantStatus
+        );
+        this.addressDisplay = this.permissionsService.getAddressDisplay(
+        this.event as Event,
+        this.permissions.canViewFullAddress
+        );
+
+        console.log('🔐 Permissions calculées:', this.permissions);
+        console.log('📍 Adresse display:', this.addressDisplay);
         console.log('✅ [13] isLoading = false');
         this.isLoading = false;
         this.cdr.markForCheck(); // ✅ FORCER LA DÉTECTION
@@ -263,6 +283,16 @@ private loadAnnouncementsCount() {
         this.loadParticipationInfo(); // Recharge tout, y compris photos et annonces
         this.cdr.markForCheck();
         event?.target?.complete();
+        this.permissions = this.permissionsService.calculatePermissions(
+          this.event as Event,
+          currentUserId,
+          this.participantStatus
+        );
+
+        this.addressDisplay = this.permissionsService.getAddressDisplay(
+          this.event as Event,
+          this.permissions.canViewFullAddress
+        );
         this.showToast('Événement mis à jour', 'success');
       },
       error: (error) => {
@@ -515,5 +545,41 @@ private loadAnnouncementsCount() {
   async showToast(message: string, color: 'success' | 'danger' | 'warning' = 'success') {
     const toast = await this.toastCtrl.create({ message, duration: 3000, position: 'bottom', color });
     await toast.present();
+  }
+
+  /**
+   * ✅ NOUVEAU : Peut voir section annonces
+   */
+  canViewAnnouncements(): boolean {
+    return this.permissions?.canViewAnnouncements || false;
+  }
+
+  /**
+   * ✅ NOUVEAU : Peut voir section photos
+   */
+  canViewPhotos(): boolean {
+    return this.permissions?.canViewPhotos || false;
+  }
+
+  /**
+   * ✅ NOUVEAU : Peut voir section participants
+   */
+  canViewParticipants(): boolean {
+    return this.permissions?.canViewParticipants || false;
+  }
+
+  /**
+   * ✅ NOUVEAU : Événement annulé ?
+   */
+  isEventCancelled(): boolean {
+    return this.event?.status === EventStatus.CANCELLED;
+  }
+
+  /**
+   * ✅ NOUVEAU : Mode lecture seule ?
+   */
+  isReadOnly(): boolean {
+    if (!this.event) return false;
+    return this.permissionsService.isReadOnly(this.event as Event);
   }
 }

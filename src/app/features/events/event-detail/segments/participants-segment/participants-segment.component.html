@@ -14,7 +14,7 @@
     <!-- Card Demandes en Attente (Organisateur uniquement) -->
     <ion-card 
       class="pending-requests-card glassmorphism" 
-      *ngIf="isOrganizer && event.requiresApproval && pendingCount > 0"
+      *ngIf="canManageRequests && event.requiresApproval && pendingCount > 0"
       (click)="openPendingRequestsModal()"
       role="button"
       tabindex="0"
@@ -40,7 +40,7 @@
     <!-- ✅ NOUVEAU : Card Invitations Envoyées (Organisateur uniquement) -->
     <ion-card 
       class="invitations-card glassmorphism" 
-      *ngIf="isOrganizer && invitationsCount > 0">
+      *ngIf="canInviteFriends && invitationsCount > 0">
       <ion-card-content>
         <div class="card-header">
           <h3 class="section-title">

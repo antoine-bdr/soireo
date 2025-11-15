@@ -15,6 +15,7 @@ import {
 import { EventWithConditionalLocation } from '../../../../../core/models/event.model';
 import { ParticipantStatus } from '../../../../../core/models/participant.model';
 import { EventLocationVisibilityService } from '../../../../../core/services/event-location-visibility.service';
+import { AddressDisplayInfo, EventPermissions } from 'src/app/core/models/event-permissions.model';
 
 /**
  * ========================================
@@ -39,8 +40,9 @@ import { EventLocationVisibilityService } from '../../../../../core/services/eve
 })
 export class InfoSegmentComponent implements OnInit {
   @Input() event!: EventWithConditionalLocation;
-  @Input() isOrganizer: boolean = false;
-  @Input() participantStatus?: ParticipantStatus;
+
+  @Input() permissions!: EventPermissions;
+  @Input() addressDisplay!: AddressDisplayInfo;
 
   constructor(
     private locationVisibilityService: EventLocationVisibilityService
@@ -53,28 +55,6 @@ export class InfoSegmentComponent implements OnInit {
 
   ngOnInit() {
     console.log('📋 InfoSegment initialized');
-  }
-
-  // ========================================
-  // MÉTHODES D'AFFICHAGE
-  // ========================================
-
-  isAddressMasked(): boolean {
-    if (!this.event) return false;
-    return !this.event.canSeeFullAddress;
-  }
-
-  getAddressDisplay(): string {
-    if (!this.event) return '';
-    return this.locationVisibilityService.formatAddressForDisplay(
-      this.event.location
-    );
-  }
-
-  getLocationMessage(): string {
-    if (!this.event || this.event.canSeeFullAddress) return '';
-    const location = this.event.location as any;
-    return location.message || '';
   }
 
   // ✅ Formatage amélioré avec gestion des erreurs

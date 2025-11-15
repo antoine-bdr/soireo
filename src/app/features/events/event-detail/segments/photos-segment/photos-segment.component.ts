@@ -1,6 +1,3 @@
-// src/app/features/events/event-detail/components/photos-segment/photos-segment.component.ts
-// ✅ CORRECTION : Utilisation de optimizeImage du service
-
 import { Component, Input, Output, EventEmitter, OnInit, OnDestroy, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { 
@@ -12,8 +9,7 @@ import {
 import { addIcons } from 'ionicons';
 import {
   cameraOutline, imagesOutline, addOutline, trashOutline, downloadOutline,
-  closeOutline, expandOutline, chevronBackOutline, chevronForwardOutline
-} from 'ionicons/icons';
+  closeOutline, expandOutline, chevronBackOutline, chevronForwardOutline, ellipsisVertical } from 'ionicons/icons';
 import { Subject, takeUntil } from 'rxjs';
 import { Timestamp } from '@angular/fire/firestore';
 
@@ -21,6 +17,7 @@ import { EventWithConditionalLocation, EventPhoto, Event } from '../../../../../
 import { EventsService } from '../../../../../core/services/events.service';
 import { StorageService } from '../../../../../core/services/storage.service';
 import { AuthenticationService } from '../../../../../core/services/authentication.service';
+import { AddressDisplayInfo, EventPermissions } from 'src/app/core/models/event-permissions.model';
 
 @Component({
   selector: 'app-photos-segment',
@@ -38,6 +35,9 @@ export class PhotosSegmentComponent implements OnInit, OnDestroy {
   @Input() event!: EventWithConditionalLocation;
   @Output() photoCountChanged = new EventEmitter<number>();
   @Output() eventUpdated = new EventEmitter<void>();
+
+  @Input() permissions!: EventPermissions;
+  @Input() isReadOnly = false;
 
   photos: EventPhoto[] = [];
   isLoading = true;
@@ -58,10 +58,7 @@ export class PhotosSegmentComponent implements OnInit, OnDestroy {
     private toastController: ToastController,
     private modalCtrl: ModalController
   ) {
-    addIcons({
-      cameraOutline, imagesOutline, addOutline, trashOutline, downloadOutline,
-      closeOutline, expandOutline, chevronBackOutline, chevronForwardOutline
-    });
+    addIcons({imagesOutline,cameraOutline,ellipsisVertical,addOutline,closeOutline,chevronBackOutline,chevronForwardOutline,downloadOutline,trashOutline,expandOutline});
   }
 
   async ngOnInit() {
@@ -102,6 +99,10 @@ export class PhotosSegmentComponent implements OnInit, OnDestroy {
   }
 
   async uploadPhoto() {
+    if (!this.permissions?.canUploadPhoto || this.isReadOnly) {
+      this.showToast('Vous ne pouvez pas uploader de photo actuellement', 'warning');
+      return;
+    }
     try {
       const actionSheet = await this.actionSheetController.create({
         header: 'Ajouter une photo',

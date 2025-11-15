@@ -20,33 +20,16 @@
 
       <!-- Lieu avec gestion conditionnelle -->
       <div class="meta-item">
-        <ion-icon 
-          [name]="isAddressMasked() ? 'eye-off-outline' : 'location-outline'"
-          class="meta-icon">
-        </ion-icon>
+        <ion-icon name="location-outline"></ion-icon>
         <div class="meta-text">
           <span class="meta-label">Lieu</span>
-          
-          <!-- Adresse complète (si visible) -->
-          <span 
-            class="meta-value" 
-            *ngIf="!isAddressMasked()">
-            {{ getAddressDisplay() }}
-          </span>
-          
-          <!-- Ville uniquement (si masquée) -->
-          <span 
-            class="meta-value address-masked" 
-            *ngIf="isAddressMasked()">
-            📍 {{ getAddressDisplay() }}
-          </span>
+          <span class="meta-value">{{ addressDisplay.displayAddress }}</span>
         </div>
       </div>
 
-      <!-- Message explicatif si adresse masquée -->
-      <div class="location-message-box" *ngIf="isAddressMasked()">
+      <div class="location-message-box" *ngIf="addressDisplay.showMaskedMessage">
         <ion-icon name="information-circle-outline" color="primary"></ion-icon>
-        <p>{{ getLocationMessage() }}</p>
+        <p>{{ addressDisplay.maskedMessage }}</p>
       </div>
 
     </ion-card-content>
