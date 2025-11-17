@@ -1,32 +1,17 @@
-// src/app/features/events/event-detail/components/info-segment/info-segment.component.ts
-// ✅ VERSION OPTIMISÉE avec meilleure gestion des erreurs
-
 import { Component, Input, OnInit, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { 
-  IonCard, IonCardContent, IonChip, IonLabel, IonIcon, IonAvatar, IonBadge, IonButton
+  IonCard, IonCardContent, IonChip, IonLabel, IonIcon, IonBadge, IonAvatar 
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import {
   calendarOutline, locationOutline, personOutline, documentTextOutline,
-  eyeOffOutline, informationCircleOutline, globeOutline, mailOutline, lockClosedOutline
+  globeOutline, mailOutline, lockClosedOutline, informationCircleOutline 
 } from 'ionicons/icons';
 
-import { EventWithConditionalLocation } from '../../../../../core/models/event.model';
-import { ParticipantStatus } from '../../../../../core/models/participant.model';
-import { EventLocationVisibilityService } from '../../../../../core/services/event-location-visibility.service';
-import { AddressDisplayInfo, EventPermissions } from 'src/app/core/models/event-permissions.model';
+import { EventWithConditionalLocation, EventAccessType } from '../../../../../core/models/event.model';
+import { EventPermissions, AddressDisplayInfo } from '../../../../../core/models/event-permissions.model';
 
-/**
- * ========================================
- * 📋 SEGMENT INFO - VERSION OPTIMISÉE
- * ========================================
- * 
- * Améliorations :
- * - ✅ Meilleure gestion des dates
- * - ✅ Formatage d'erreurs user-friendly
- * - ✅ ARIA labels
- */
 @Component({
   selector: 'app-info-segment',
   templateUrl: './info-segment.component.html',
@@ -34,75 +19,42 @@ import { AddressDisplayInfo, EventPermissions } from 'src/app/core/models/event-
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
-    IonButton, CommonModule, IonCard, IonCardContent, IonChip, IonLabel,
-    IonIcon, IonAvatar, IonBadge
+    IonAvatar, CommonModule, IonCard, IonCardContent, IonChip, IonLabel, IonIcon, IonBadge
   ]
 })
 export class InfoSegmentComponent implements OnInit {
   @Input() event!: EventWithConditionalLocation;
-
   @Input() permissions!: EventPermissions;
-  @Input() addressDisplay!: AddressDisplayInfo;
+  @Input() addressDisplay!: AddressDisplayInfo | null;
 
-  constructor(
-    private locationVisibilityService: EventLocationVisibilityService
-  ) {
+  constructor() {
     addIcons({
-      calendarOutline, locationOutline, personOutline, documentTextOutline,
-      eyeOffOutline, informationCircleOutline, globeOutline, mailOutline, lockClosedOutline
+      calendarOutline, locationOutline, informationCircleOutline, 
+      personOutline, documentTextOutline, globeOutline, mailOutline, lockClosedOutline
     });
   }
 
-  ngOnInit() {
-    console.log('📋 InfoSegment initialized');
-  }
+  ngOnInit() {}
 
-  // ✅ Formatage amélioré avec gestion des erreurs
   formatDate(dateValue: any): string {
     if (!dateValue) return 'Date non disponible';
-    
     try {
-      let date: Date;
-      
-      if (dateValue?.toDate) {
-        date = dateValue.toDate();
-      } else if (typeof dateValue === 'string') {
-        date = new Date(dateValue);
-      } else if (dateValue instanceof Date) {
-        date = dateValue;
-      } else {
-        return 'Date non disponible';
-      }
-      
-      if (isNaN(date.getTime())) {
-        return 'Date non disponible';
-      }
-      
-      // ✅ Formatage français amélioré
-      const options: Intl.DateTimeFormatOptions = {
+      const date = dateValue?.toDate ? dateValue.toDate() : new Date(dateValue);
+      return date.toLocaleDateString('fr-FR', {
         weekday: 'long',
         day: 'numeric',
         month: 'long',
         year: 'numeric',
         hour: '2-digit',
         minute: '2-digit'
-      };
-      
-      const formatted = date.toLocaleDateString('fr-FR', options);
-      
-      // Capitaliser la première lettre
-      return formatted.charAt(0).toUpperCase() + formatted.slice(1);
-      
-    } catch (error) {
-      console.error('Erreur formatDate:', error);
+      });
+    } catch {
       return 'Date non disponible';
     }
   }
 
-  getCategoryLabel(category: any): string {
-    const categoryStr = String(category).toUpperCase();
-    
-    const labels: Record<string, string> = {
+  getCategoryLabel(category: string): string {
+    const labels: {[key: string]: string} = {
       'PARTY': '🎉 Soirée',
       'CONCERT': '🎵 Concert',
       'FESTIVAL': '🎪 Festival',
@@ -112,20 +64,26 @@ export class InfoSegmentComponent implements OnInit {
       'PRIVATE': '🔒 Privé',
       'OTHER': '📌 Autre'
     };
-    
-    return labels[categoryStr] || `📌 ${category}`;
+    return labels[category?.toUpperCase()] || '📌 Autre';
   }
 
+  // AJOUT de la méthode manquante
   getEventAccessType(): string {
     if (!this.event) return 'public';
     
-    const originalEvent = this.event as any;
+    // Récupérer accessType ou déterminer depuis les propriétés legacy
+    const eventData = this.event as any;
     
-    if (originalEvent.isPrivate) {
+    if (eventData.accessType) {
+      return eventData.accessType;
+    }
+    
+    // Compatibilité avec les anciens événements
+    if (eventData.isPrivate) {
       return 'private';
     }
     
-    if (originalEvent.requiresApproval) {
+    if (eventData.requiresApproval) {
       return 'invitation';
     }
     
@@ -133,30 +91,44 @@ export class InfoSegmentComponent implements OnInit {
   }
 
   getAccessTypeLabel(): string {
-    const type = this.getEventAccessType();
+    if (!this.event) return 'Public';
     
-    switch (type) {
+    const eventData = this.event as any;
+    const accessType = eventData.accessType || this.getEventAccessType();
+    
+    switch (accessType) {
+      case EventAccessType.PUBLIC:
       case 'public':
         return 'Public';
-      case 'invitation':
-        return 'Sur invitation';
+      case EventAccessType.PRIVATE:
       case 'private':
         return 'Privé';
+      case EventAccessType.INVITE_ONLY:
+      case 'invite_only':
+      case 'invitation':
+        return 'Sur invitation';
       default:
         return 'Public';
     }
   }
 
   getAccessTypeIcon(): string {
-    const type = this.getEventAccessType();
+    if (!this.event) return 'globe-outline';
     
-    switch (type) {
+    const eventData = this.event as any;
+    const accessType = eventData.accessType || this.getEventAccessType();
+    
+    switch (accessType) {
+      case EventAccessType.PUBLIC:
       case 'public':
         return 'globe-outline';
-      case 'invitation':
-        return 'mail-outline';
+      case EventAccessType.PRIVATE:
       case 'private':
         return 'lock-closed-outline';
+      case EventAccessType.INVITE_ONLY:
+      case 'invite_only':
+      case 'invitation':
+        return 'mail-outline';
       default:
         return 'globe-outline';
     }

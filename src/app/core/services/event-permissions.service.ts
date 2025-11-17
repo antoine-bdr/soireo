@@ -42,7 +42,8 @@ export class EventPermissionsService {
     event: Event,
     userId: string | null,
     participantStatus?: ParticipantStatus,
-    isFriend?: boolean
+    isFriend?: boolean,
+    hasInvitation?: boolean
   ): EventPermissions {
     
     // Déterminer le rôle de l'utilisateur

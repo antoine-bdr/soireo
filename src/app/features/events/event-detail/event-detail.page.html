@@ -1,357 +1,132 @@
-<!-- ==========================================================================
-     EVENT DETAIL PAGE - VERSION OPTIMISÉE (Étape 1)
-     ==========================================================================
-     
-     ✅ CORRECTIONS APPLIQUÉES :
-     - Suppression du code HTML dupliqué (infos affichées 2 fois)
-     - Structure simplifiée : Header → Bouton Action → Segments
-     - Toutes les infos détaillées sont dans les segments
-     - Amélioration des états de chargement
-     - Meilleure gestion des erreurs visuelles
-     
-     ========================================================================== -->
-
-<ion-header [translucent]="true">
+<ion-header>
   <ion-toolbar>
     <ion-buttons slot="start">
       <ion-back-button defaultHref="/tabs/events"></ion-back-button>
     </ion-buttons>
-    <ion-title>Détail de l'événement</ion-title>
-    
-    <!-- Actions organisateur (Edit + Delete) -->
-    <ion-buttons slot="end" *ngIf="isOrganizer && event && event.status !== 'cancelled'">
-      <ion-button (click)="editEvent()" color="primary" aria-label="Modifier l'événement">
+    <ion-title>Détail</ion-title>
+    <ion-buttons slot="end" *ngIf="permissions?.canEditEvent">
+      <ion-button (click)="editEvent()">
         <ion-icon slot="icon-only" name="create-outline"></ion-icon>
       </ion-button>
-      <ion-button (click)="deleteEvent()" color="danger" aria-label="Supprimer l'événement">
+      <ion-button (click)="deleteEvent()" color="danger">
         <ion-icon slot="icon-only" name="trash-outline"></ion-icon>
       </ion-button>
     </ion-buttons>
   </ion-toolbar>
 </ion-header>
 
-<ion-content [fullscreen]="true">
+<ion-content>
+  <ion-refresher slot="fixed" (ionRefresh)="refreshEvent($event)">
+    <ion-refresher-content></ion-refresher-content>
+  </ion-refresher>
   
-  <!-- ==========================================================================
-       LOADING STATE
-       ========================================================================== -->
   <div *ngIf="isLoading" class="loading-container">
-    <ion-spinner name="crescent" color="primary"></ion-spinner>
-    <p>Chargement de l'événement...</p>
+    <ion-spinner></ion-spinner>
+    <p>Chargement...</p>
   </div>
 
-  <!-- ==========================================================================
-       ERROR STATE (si échec de chargement)
-       ========================================================================== -->
-  <div *ngIf="!isLoading && !event" class="error-container">
-    <ion-icon name="alert-circle-outline" color="danger"></ion-icon>
-    <h3>Événement introuvable</h3>
-    <p>Cet événement n'existe pas ou a été supprimé.</p>
-    <ion-button expand="block" routerLink="/tabs/events">
-      Retour aux événements
-    </ion-button>
-  </div>
-
-  <!-- ==========================================================================
-       EVENT CONTENT (visible une fois chargé)
-       ========================================================================== -->
-  <div *ngIf="!isLoading && event" class="event-detail-container">
-    
-    <!-- ======================================================================
-         HERO SECTION - Image + Badges + Titre
-         ====================================================================== -->
+  <div *ngIf="!isLoading && event && permissions" class="event-detail-container">
     <div class="event-hero">
+      <img [src]="event.imageUrl || 'assets/default-event.jpg'" (error)="onImageError($event)" />
       
-      <!-- Image de couverture -->
-      <div class="event-image-container">
-        <!-- ✅ Skeleton pendant chargement -->
-        <div *ngIf="!imageLoaded && !imageError" class="image-skeleton">
-          <ion-spinner name="crescent"></ion-spinner>
-        </div>
-
-        <!-- ✅ Image optimisée avec toutes les best practices -->
-        <img 
-          [src]="getOptimizedImageUrl(event.imageUrl || 'assets/default-event.jpg', 800)" 
-          [srcset]="
-            getOptimizedImageUrl(event.imageUrl || 'assets/default-event.jpg', 400) + ' 400w, ' +
-            getOptimizedImageUrl(event.imageUrl || 'assets/default-event.jpg', 800) + ' 800w, ' +
-            getOptimizedImageUrl(event.imageUrl || 'assets/default-event.jpg', 1200) + ' 1200w'
-          "
-          sizes="(max-width: 768px) 100vw, 800px"
-          [alt]="event.title"
-          class="event-image"
-          [class.loaded]="imageLoaded"
-          loading="lazy"
-          decoding="async"
-          fetchpriority="high"
-          (load)="onImageLoad()"
-          (error)="onImageError($event)"
-        />
-
-        <!-- ✅ Message d'erreur si image originale n'a pas chargé -->
-        <div *ngIf="imageError && imageLoaded" class="image-error-overlay">
-          <ion-icon name="image-outline"></ion-icon>
-          <p>Image non disponible</p>
-        </div>
-        
-        <!-- Overlay gradient pour lisibilité -->
-        <div class="image-overlay"></div>
-        
-        <!-- Badge Organisateur (top-right) -->
-        <ion-chip 
-          *ngIf="isOrganizer" 
-          class="organizer-badge" 
-          color="warning"
-          aria-label="Vous êtes l'organisateur">
-          <ion-icon name="star-outline"></ion-icon>
+      <div class="event-badges">
+        <ion-chip *ngIf="isOrganizer" color="success">
+          <ion-icon name="checkmark-circle-outline"></ion-icon>
           <ion-label>Organisateur</ion-label>
         </ion-chip>
-
-        <!-- Badge Événement Complet (bottom-left) -->
-        <ion-chip 
-          *ngIf="isEventFull() && !isOrganizer" 
-          class="full-badge" 
-          color="danger"
-          aria-label="Événement complet">
-          <ion-icon name="close-circle-outline"></ion-icon>
+        <ion-chip *ngIf="isEventFull()" color="danger">
           <ion-label>Complet</ion-label>
         </ion-chip>
-
-        <!-- Badge Participation (bottom-right) -->
-        <ion-chip 
-          *ngIf="isParticipating && !isOrganizer" 
-          class="participating-badge" 
-          color="success"
-          aria-label="Vous participez à cet événement">
-          <ion-icon name="checkmark-circle-outline"></ion-icon>
-          <ion-label>Vous participez</ion-label>
-        </ion-chip>
-
-        <!-- Badge Événement Annulé (center) -->
-        <ion-chip 
-          *ngIf="event.status === 'cancelled'" 
-          class="cancelled-badge" 
-          color="danger"
-          aria-label="Événement annulé">
-          <ion-icon name="ban-outline"></ion-icon>
-          <ion-label>Annulé</ion-label>
+        <ion-chip *ngIf="isParticipating" color="success">
+          <ion-label>Participant</ion-label>
         </ion-chip>
       </div>
-
-      <!-- Informations principales (Titre + Catégorie + Participants) -->
-      <div class="event-header-info">
-        <h1 class="event-title">{{ event.title }}</h1>
-        
-        <div class="event-meta">
-          <!-- Catégorie -->
-          <ion-chip [color]="getCategoryColor(event.category)" class="category-chip">
-            <ion-label>{{ getCategoryLabel(event.category) }}</ion-label>
-          </ion-chip>
-          
-          <!-- Compteur Participants -->
-          <ion-chip 
-            [color]="isEventFull() ? 'danger' : 'primary'" 
-            class="participants-chip"
-            aria-label="Nombre de participants">
-            <ion-icon name="people-outline"></ion-icon>
-            <ion-label>{{ participantCount }} / {{ event.maxParticipants }}</ion-label>
-          </ion-chip>
-        </div>
-      </div>
+    </div>
+    
+    <div class="event-header-info">
+      <h1>{{ event.title }}</h1>
+      <ion-chip>
+        <ion-icon name="people-outline"></ion-icon>
+        <ion-label>{{ participantCount }}/{{ event.maxParticipants }}</ion-label>
+      </ion-chip>
     </div>
 
-    <!-- ======================================================================
-         BANNIÈRE ÉVÉNEMENT ANNULÉ
-         ====================================================================== -->
-    <div *ngIf="event.status === 'cancelled'" class="cancelled-banner">
-      <ion-icon name="warning-outline" color="danger"></ion-icon>
-      <div class="banner-content">
-        <h3>Événement annulé</h3>
-        <p *ngIf="event.cancellationReason">{{ event.cancellationReason }}</p>
-        <p *ngIf="event.cancelledAt" class="cancelled-date">
-          Annulé le {{ formatDate(event.cancelledAt) }}
-        </p>
-      </div>
-    </div>
-
-    <!-- ======================================================================
-         BANNIÈRE ÉVÉNEMENT PRIVÉ (INVITE_ONLY)
-         ====================================================================== -->
-    <div *ngIf="event.accessType === 'invite_only' && !isOrganizer" class="invite-only-notice">
-      <ion-icon name="lock-closed-outline" color="primary"></ion-icon>
-      <div class="notice-content">
-        <h3>Événement sur invitation uniquement</h3>
-        <p>Vous avez été invité à participer à cet événement privé.</p>
-      </div>
-    </div>
-
-    <!-- ======================================================================
-         BOUTON D'ACTION PRINCIPAL (Participer / Annuler participation)
-         ====================================================================== -->
-    <div *ngIf="!isOrganizer && event.status !== 'cancelled'" class="participation-section">
-      
-      <!-- CAS 1 : Utilisateur participe déjà (APPROVED) -->
+    <div class="action-section" *ngIf="!isOrganizer">
       <ion-button 
-        *ngIf="isParticipating && participantStatus === 'approved'"
+        *ngIf="!isParticipating && canJoin"
         expand="block" 
-        size="large" 
+        [disabled]="isJoining"
+        (click)="joinEvent()">
+        <ion-spinner *ngIf="isJoining"></ion-spinner>
+        <span *ngIf="!isJoining">Participer</span>
+      </ion-button>
+      
+      <ion-button 
+        *ngIf="isParticipating"
+        expand="block" 
         color="medium"
         [disabled]="isLeaving"
-        (click)="leaveEvent()"
-        aria-label="Annuler ma participation">
-        <ion-spinner *ngIf="isLeaving" slot="start"></ion-spinner>
-        <ion-icon *ngIf="!isLeaving" slot="start" name="exit-outline"></ion-icon>
-        {{ isLeaving ? 'Annulation...' : 'Annuler ma participation' }}
+        (click)="leaveEvent()">
+        <ion-spinner *ngIf="isLeaving"></ion-spinner>
+        <span *ngIf="!isLeaving">Annuler</span>
       </ion-button>
-
-      <!-- CAS 2 : Demande en attente -->
-      <ion-button 
-        *ngIf="participantStatus === 'pending'"
-        expand="block" 
-        size="large" 
-        color="warning"
-        disabled="true"
-        aria-label="Demande en attente d'approbation">
-        <ion-icon slot="start" name="time-outline"></ion-icon>
-        En attente d'approbation
-      </ion-button>
-
-      <!-- CAS 3 : Événement complet -->
-      <ion-button 
-        *ngIf="!isParticipating && isEventFull()"
-        expand="block" 
-        size="large" 
-        color="danger"
-        disabled="true"
-        aria-label="Événement complet">
-        <ion-icon slot="start" name="close-circle-outline"></ion-icon>
-        Événement complet
-      </ion-button>
-
-      <!-- CAS 4 : Peut rejoindre l'événement -->
-      <ion-button 
-        *ngIf="!isParticipating && !isEventFull() && canJoin && participantStatus !== 'pending'"
-        expand="block" 
-        size="large" 
-        color="success"
-        [disabled]="isJoining"
-        (click)="joinEvent()"
-        aria-label="Participer à cet événement">
-        <ion-spinner *ngIf="isJoining" slot="start"></ion-spinner>
-        <ion-icon *ngIf="!isJoining" slot="start" name="person-add-outline"></ion-icon>
-        {{ isJoining ? 'Inscription...' : 'Participer à cet événement' }}
-      </ion-button>
-
-      <!-- CAS 5 : Ne peut pas rejoindre (autre raison) -->
-      <div *ngIf="!isParticipating && !canJoin && !isEventFull() && participantStatus !== 'pending'" 
-           class="cannot-join-message">
-        <ion-chip color="warning">
-          <ion-icon name="warning-outline"></ion-icon>
-          <ion-label>{{ canJoinReason }}</ion-label>
-        </ion-chip>
-      </div>
-
-      <!-- CAS 6 : Demande rejetée -->
-      <div *ngIf="participantStatus === 'rejected'" class="rejected-message">
-        <ion-chip color="danger">
-          <ion-icon name="close-circle-outline"></ion-icon>
-          <ion-label>Votre demande a été refusée par l'organisateur</ion-label>
-        </ion-chip>
-      </div>
+      
+      <ion-chip *ngIf="!canJoin && canJoinReason" color="warning">
+        <ion-label>{{ canJoinReason }}</ion-label>
+      </ion-chip>
     </div>
 
-    <!-- ======================================================================
-         NAVIGATION PAR SEGMENTS (Onglets)
-         ====================================================================== -->
-    <ion-segment 
-      [(ngModel)]="selectedSegment" 
-      mode="md"
-      class="event-segments"
-      (ionChange)="onSegmentChange($event)">
-      
-      <ion-segment-button value="info" aria-label="Informations de l'événement">
-        <ion-icon name="information-circle-outline"></ion-icon>
+    <ion-segment [(ngModel)]="selectedSegment" (ionChange)="onSegmentChange($event)">
+      <ion-segment-button value="info">
         <ion-label>Infos</ion-label>
       </ion-segment-button>
-
-      <ion-segment-button value="participants" aria-label="Liste des participants">
-        <ion-icon name="people-outline"></ion-icon>
-        <ion-label>Participants</ion-label>
-        <ion-badge *ngIf="participantCount > 0" color="primary">
-          {{ participantCount }}
-        </ion-badge>
-      </ion-segment-button>
-
-      <ion-segment-button value="announcements" aria-label="Annonces de l'événement">
-        <ion-icon name="megaphone-outline"></ion-icon>
+      
+      <ion-segment-button value="announcements" *ngIf="permissions.canViewAnnouncements">
         <ion-label>Annonces</ion-label>
-        <ion-badge *ngIf="announcementCount > 0" color="danger">
-          {{ announcementCount }}
-        </ion-badge>
+        <ion-badge *ngIf="announcementCount">{{ announcementCount }}</ion-badge>
       </ion-segment-button>
-
-      <ion-segment-button value="photos" aria-label="Photos de l'événement">
-        <ion-icon name="camera-outline"></ion-icon>
+      
+      <ion-segment-button value="photos" *ngIf="permissions.canViewPhotos">
         <ion-label>Photos</ion-label>
-        <ion-badge *ngIf="photoCount > 0" color="tertiary">
-          {{ photoCount }}
-        </ion-badge>
+        <ion-badge *ngIf="photoCount">{{ photoCount }}</ion-badge>
+      </ion-segment-button>
+      
+      <ion-segment-button value="participants" *ngIf="permissions.canViewParticipants">
+        <ion-label>Participants</ion-label>
       </ion-segment-button>
     </ion-segment>
 
-    <!-- ======================================================================
-         CONTENU DES SEGMENTS
-         ====================================================================== -->
-    
-    <!-- Segment INFO -->
-    <app-info-segment
-      *ngIf="selectedSegment === 'info' && event"
-      [event]="event"
-      [permissions]="permissions"
-      [addressDisplay]="addressDisplay"
-      class="segment-content">
-    </app-info-segment>
-
-    <!-- Segment PARTICIPANTS -->
-    <app-participants-segment
-      *ngIf="selectedSegment === 'participants' && event"
-      [eventId]="eventId"
-      [event]="event"
-      [permissions]="permissions"
-      (participantCountChanged)="onParticipantCountChanged($event)"
-      class="segment-content">
-    </app-participants-segment>
-
-    <!-- Segment ANNONCES -->
-    <app-announcements-segment
-      *ngIf="selectedSegment === 'announcements' && event"
-      [eventId]="eventId"
-      [permissions]="permissions"
-      (announcementCountChanged)="onAnnouncementCountChanged($event)"
-      class="segment-content">
-    </app-announcements-segment>
-
-    <!-- Segment PHOTOS -->
-    <app-photos-segment
-      *ngIf="selectedSegment === 'photos' && event"
-      [eventId]="eventId"
-      [event]="event"
-      [permissions]="permissions"
-      (photoCountChanged)="onPhotoCountChanged($event)"
-      (eventUpdated)="refreshEvent()"
-      class="segment-content">
-    </app-photos-segment>
-
+    <div [ngSwitch]="selectedSegment">
+      <app-info-segment 
+        *ngSwitchCase="'info'"
+        [event]="event"
+        [permissions]="permissions"
+        [addressDisplay]="addressDisplay">
+      </app-info-segment>
+      
+      <app-announcements-segment 
+        *ngSwitchCase="'announcements'"
+        [eventId]="eventId"
+        [permissions]="permissions"
+        (announcementCountChanged)="onAnnouncementCountChanged($event)">
+      </app-announcements-segment>
+      
+      <app-photos-segment 
+        *ngSwitchCase="'photos'"
+        [eventId]="eventId"
+        [event]="event"
+        [permissions]="permissions"
+        (photoCountChanged)="onPhotoCountChanged($event)"
+        (eventUpdated)="refreshEvent()">
+      </app-photos-segment>
+      
+      <app-participants-segment 
+        *ngSwitchCase="'participants'"
+        [eventId]="eventId"
+        [event]="event"
+        [permissions]="permissions"
+        (participantCountChanged)="onParticipantCountChanged($event)">
+      </app-participants-segment>
+    </div>
   </div>
-
-  <!-- ======================================================================
-       PULL TO REFRESH
-       ====================================================================== -->
-  <ion-refresher slot="fixed" (ionRefresh)="handleRefresh($event)">
-    <ion-refresher-content
-      pullingText="Tirer pour actualiser"
-      refreshingText="Actualisation...">
-    </ion-refresher-content>
-  </ion-refresher>
-
 </ion-content>

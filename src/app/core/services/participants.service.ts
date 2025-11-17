@@ -1127,7 +1127,7 @@ export class ParticipantsService {
    * @param userId - ID de l'utilisateur
    * @returns Observable<Participant | null> qui émet une seule fois
    */
-  private getParticipantDocumentOneTime(eventId: string, userId: string): Observable<Participant | null> {
+  getParticipantDocumentOneTime(eventId: string, userId: string): Observable<Participant | null> {
     const participantsRef = collection(this.firestore, this.participantsCollection);
     const q = query(
       participantsRef,

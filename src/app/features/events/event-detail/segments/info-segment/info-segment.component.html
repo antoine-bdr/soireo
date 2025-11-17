@@ -11,7 +11,7 @@
       
       <!-- Date -->
       <div class="meta-item">
-        <ion-icon name="calendar-outline" class="meta-icon"></ion-icon>
+        <ion-icon name="calendar-outline"></ion-icon>
         <div class="meta-text">
           <span class="meta-label">Date</span>
           <span class="meta-value">{{ formatDate(event.date) }}</span>
@@ -23,13 +23,14 @@
         <ion-icon name="location-outline"></ion-icon>
         <div class="meta-text">
           <span class="meta-label">Lieu</span>
-          <span class="meta-value">{{ addressDisplay.displayAddress }}</span>
+          <span class="meta-value">{{ addressDisplay?.displayAddress || 'Adresse non disponible' }}</span>
         </div>
       </div>
 
-      <div class="location-message-box" *ngIf="addressDisplay.showMaskedMessage">
+      <!-- Message d'adresse masquée -->
+      <div class="location-message-box" *ngIf="addressDisplay?.showMaskedMessage">
         <ion-icon name="information-circle-outline" color="primary"></ion-icon>
-        <p>{{ addressDisplay.maskedMessage }}</p>
+        <p>{{ addressDisplay?.maskedMessage }}</p>
       </div>
 
     </ion-card-content>
