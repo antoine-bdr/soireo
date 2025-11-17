@@ -570,3 +570,46 @@ ion-chip {
     }
   }
 }
+
+.invitation-section,
+.participation-section {
+  padding: 16px;
+}
+
+.invitation-only-card,
+.invitation-received-card {
+  margin: 0;
+  
+  .invitation-message,
+  .invitation-received-message {
+    text-align: center;
+    padding: 24px 16px;
+
+    .large-icon {
+      font-size: 64px;
+      margin-bottom: 16px;
+    }
+
+    h2 {
+      margin: 16px 0 8px;
+      font-size: 20px;
+      font-weight: 600;
+    }
+
+    p {
+      margin: 8px 0 0;
+      font-size: 14px;
+    }
+  }
+
+  .invitation-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 24px;
+
+    ion-button {
+      margin: 0;
+    }
+  }
+}

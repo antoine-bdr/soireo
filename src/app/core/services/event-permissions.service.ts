@@ -42,8 +42,7 @@ export class EventPermissionsService {
     event: Event,
     userId: string | null,
     participantStatus?: ParticipantStatus,
-    isFriend?: boolean,
-    hasInvitation?: boolean
+    isFriend?: boolean
   ): EventPermissions {
     
     // Déterminer le rôle de l'utilisateur
@@ -140,13 +139,10 @@ export class EventPermissionsService {
       return role !== UserRole.EXTERNAL;
     }
     
-    // INVITE_ONLY → Uniquement participants
+    // ✅ MODIFIÉ : INVITE_ONLY → Tous les connectés peuvent voir la page
+    // (l'affichage sera conditionnel dans le template)
     if (event.accessType === EventAccessType.INVITE_ONLY) {
-      return [
-        UserRole.ORGANIZER,
-        UserRole.PARTICIPANT_APPROVED,
-        UserRole.PARTICIPANT_PENDING
-      ].includes(role);
+      return role !== UserRole.EXTERNAL; // ✅ Autoriser tous les connectés
     }
     
     return false;

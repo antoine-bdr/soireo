@@ -6,16 +6,17 @@ import {
   IonContent, IonButton, IonIcon, IonChip, IonLabel, IonSpinner, IonBadge, 
   IonSegment, IonSegmentButton, IonRefresher, IonRefresherContent,
   AlertController, ToastController, LoadingController, IonHeader, IonToolbar, 
-  IonButtons, IonBackButton, IonTitle, IonCard } from '@ionic/angular/standalone';
+  IonButtons, IonBackButton, IonTitle, IonCard, IonCardContent } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import {
   peopleOutline, informationCircleOutline, megaphoneOutline, cameraOutline,
   personAddOutline, exitOutline, createOutline, trashOutline, checkmarkCircleOutline,
-  closeCircleOutline, warningOutline, imageOutline, banOutline } from 'ionicons/icons';
+  closeCircleOutline, warningOutline, imageOutline, banOutline, mailOutline, lockClosedOutline } from 'ionicons/icons';
 
 import { EventsService } from '../../../core/services/events.service';
 import { AuthenticationService } from '../../../core/services/authentication.service';
 import { ParticipantsService } from '../../../core/services/participants.service';
+import { InvitationsService } from '../../../core/services/invitations.service';
 import { EventLocationVisibilityService } from '../../../core/services/event-location-visibility.service';
 import { EventWithConditionalLocation, EventStatus, EventAccessType, Event } from '../../../core/models/event.model';
 import { ParticipantStatus } from '../../../core/models/participant.model';
@@ -29,6 +30,7 @@ import { ParticipantsSegmentComponent } from './segments/participants-segment/pa
 
 import { EventPermissionsService } from '../../../core/services/event-permissions.service';
 import { EventPermissions, AddressDisplayInfo } from '../../../core/models/event-permissions.model';
+import { EventInvitation } from 'src/app/core/models/invitation.model';
 
 @Component({
   selector: 'app-event-detail',
@@ -36,7 +38,7 @@ import { EventPermissions, AddressDisplayInfo } from '../../../core/models/event
   styleUrls: ['./event-detail.page.scss'],
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [IonCard, 
+  imports: [IonCardContent, IonCard, 
     CommonModule, FormsModule, IonContent, IonButton, IonIcon, IonChip, IonLabel, 
     IonSpinner, IonBadge, IonSegment, IonSegmentButton, IonRefresher, IonRefresherContent,
     InfoSegmentComponent, AnnouncementsSegmentComponent, PhotosSegmentComponent, 
@@ -55,6 +57,7 @@ export class EventDetailPage implements OnInit, OnDestroy {
   private readonly loadingCtrl = inject(LoadingController);
   private readonly cdr = inject(ChangeDetectorRef);
   private readonly permissionsService = inject(EventPermissionsService);
+  private readonly invitationsService = inject(InvitationsService);
 
   private destroy$ = new Subject<void>();
   
@@ -82,8 +85,13 @@ export class EventDetailPage implements OnInit, OnDestroy {
   permissions: EventPermissions | null = null;
   addressDisplay: AddressDisplayInfo | null = null;
 
+  userInvitation: EventInvitation | null = null;
+  hasInvitation = false;
+  isAcceptingInvitation = false;
+  isDecliningInvitation = false;
+
   constructor() {
-    addIcons({createOutline,trashOutline,imageOutline,checkmarkCircleOutline,closeCircleOutline,banOutline,peopleOutline,personAddOutline,exitOutline,warningOutline,informationCircleOutline,megaphoneOutline,cameraOutline});
+    addIcons({createOutline,trashOutline,checkmarkCircleOutline,peopleOutline,lockClosedOutline,mailOutline,closeCircleOutline,exitOutline,personAddOutline,warningOutline,imageOutline,banOutline,informationCircleOutline,megaphoneOutline,cameraOutline});
   }
 
   ngOnInit() {
@@ -104,7 +112,6 @@ export class EventDetailPage implements OnInit, OnDestroy {
     this.isLoading = true;
     this.cdr.markForCheck();
 
-    // Utiliser getUser() au lieu de currentUser$
     this.authService.getUser().pipe(
       take(1),
       switchMap(user => {
@@ -112,86 +119,133 @@ export class EventDetailPage implements OnInit, OnDestroy {
         
         return this.eventsService.getEventById(this.eventId).pipe(
           switchMap(event => {
-            if (!event) return of(null);
-            
-            this.originalEvent = event; // Garder l'event original
-            this.isOrganizer = userId ? event.organizerId === userId : false;
-            
-            if (userId && !this.isOrganizer) {
-              // Utiliser getParticipantDocumentOneTime
-              return this.participantsService.getParticipantDocumentOneTime(this.eventId, userId).pipe(
-                map(participant => ({
-                  event,
-                  userId,
-                  participant
-                }))
-              );
+            if (!event) {
+              this.isLoading = false;
+              this.cdr.markForCheck();
+              return of(null);
             }
             
-            return of({ event, userId, participant: null });
-          })
-        );
-      }),
-      takeUntil(this.destroy$)
-    ).subscribe({
-      next: result => {
-        if (!result || !result.event) {
-          this.isLoading = false;
-          this.cdr.markForCheck();
-          return;
-        }
-        
-        const { event, userId, participant } = result;
-        
-        if (participant) {
-          this.isParticipating = participant.status === ParticipantStatus.APPROVED;
-          this.participantStatus = participant.status;
-        }
-        
-        // Charger le nombre de participants
-        this.participantsService.getParticipantCount(this.eventId).pipe(
-          take(1),
+            this.originalEvent = event;
+            this.isOrganizer = userId ? event.organizerId === userId : false;
+
+            if (userId) {
+              return this.participantsService.getParticipantDocumentRealtime(this.eventId, userId).pipe(
+                switchMap(participant => {
+                  this.participantStatus = participant?.status;
+                  this.isParticipating = participant?.status === ParticipantStatus.APPROVED;
+
+                  // ✅ Calculer les permissions
+                  this.permissions = this.permissionsService.calculatePermissions(
+                    event,
+                    userId,
+                    participant?.status
+                  );
+
+                  this.addressDisplay = this.permissionsService.getAddressDisplay(
+                    event,
+                    this.permissions.canViewFullAddress
+                  );
+
+                  this.canJoin = this.permissions.canJoinEvent;
+                  this.canJoinReason = this.getCannotJoinReason();
+
+                  // ✅ NOUVEAU : Charger le compteur de participants en temps réel
+                  this.loadParticipantCount();
+
+                  // ✅ Si INVITE_ONLY, charger l'invitation
+                  if (event.accessType === EventAccessType.INVITE_ONLY && !this.isOrganizer) {
+                    return this.invitationsService.getUserInvitationForEvent(this.eventId, userId).pipe(
+                      map(invitation => {
+                        this.userInvitation = invitation;
+                        this.hasInvitation = !!invitation;
+                        
+                        const canViewAddress = this.permissions?.canViewFullAddress ?? false;
+                        this.event = this.applyLocationVisibility(event, canViewAddress);
+                        
+                        return { event, participant };
+                      })
+                    );
+                  }
+
+                  const canViewAddress = this.permissions?.canViewFullAddress ?? false;
+                  this.event = this.applyLocationVisibility(event, canViewAddress);
+                  
+                  return of({ event, participant });
+                })
+              );
+            } else {
+              // Utilisateur non connecté
+              this.permissions = this.permissionsService.calculatePermissions(event, null);
+              this.addressDisplay = this.permissionsService.getAddressDisplay(
+                event,
+                this.permissions.canViewFullAddress
+              );
+              
+              // ✅ NOUVEAU : Charger le compteur même pour non-connecté
+              this.loadParticipantCount();
+              
+              const canViewAddress = this.permissions?.canViewFullAddress ?? false;
+              this.event = this.applyLocationVisibility(event, canViewAddress);
+              
+              return of({ event, participant: null });
+            }
+          }),
           takeUntil(this.destroy$)
-        ).subscribe(count => {
-          this.participantCount = count;
-          this.cdr.markForCheck();
-        });
-        
-        this.photoCount = (event as any).eventPhotos?.length || 0;
-        
-        this.permissions = this.permissionsService.calculatePermissions(
-          event,
-          userId,
-          this.participantStatus
         );
-        
-        this.addressDisplay = this.permissionsService.getAddressDisplay(
-          event,
-          this.permissions.canViewFullAddress
-        );
-        
-        this.event = this.locationVisibilityService.getEventWithMaskedLocation(
-          event,
-          userId || '',
-          this.participantStatus
-        );
-        
-        this.canJoin = this.permissions.canJoinEvent && !this.isEventFull();
-        if (!this.canJoin && !this.isOrganizer && !this.isParticipating) {
-          this.canJoinReason = this.getCannotJoinReason();
-        }
-        
+      })
+    ).subscribe({
+      next: () => {
         this.isLoading = false;
         this.cdr.markForCheck();
       },
-      error: error => {
-        console.error('Erreur:', error);
+      error: (error) => {
+        console.error('Erreur chargement événement:', error);
         this.isLoading = false;
+        this.showToast('Erreur de chargement', 'danger');
         this.cdr.markForCheck();
-        this.showToast('Erreur lors du chargement', 'danger');
       }
     });
   }
+
+  private loadParticipantCount() {
+    this.participantsService
+      .getAllParticipants(this.eventId)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (participants) => {
+          this.participantCount = participants.length;
+          this.cdr.markForCheck();
+        },
+        error: (error) => {
+          console.error('Erreur chargement compteur participants:', error);
+        }
+      });
+  }
+
+  private applyLocationVisibility(event: Event, canViewFullAddress: boolean): EventWithConditionalLocation {
+  if (canViewFullAddress) {
+    // L'utilisateur peut voir l'adresse complète
+    return event as EventWithConditionalLocation;
+  } else {
+    // Masquer l'adresse complète, ne garder que la ville
+    return {
+      ...event,
+      location: {
+        ...event.location,
+        address: '', // Masquer l'adresse
+        zipCode: '',  // Masquer le code postal
+      }
+    } as EventWithConditionalLocation;
+  }
+}
+
+isInviteOnly(): boolean {
+  if (!this.event) return false;
+  
+  const eventData = this.event as any;
+  return eventData.accessType === EventAccessType.INVITE_ONLY || 
+         eventData.accessType === 'invite_only';
+}
 
   async refreshEvent(event?: any) {
     this.loadEventData();
@@ -379,5 +433,74 @@ export class EventDetailPage implements OnInit, OnDestroy {
       color
     });
     await toast.present();
+  }
+
+  async acceptInvitation() {
+    if (!this.userInvitation?.id) return;
+    
+    this.isAcceptingInvitation = true;
+    this.cdr.markForCheck();
+
+    const loading = await this.loadingCtrl.create({
+      message: 'Acceptation en cours...'
+    });
+    await loading.present();
+
+    try {
+      await this.invitationsService.acceptInvitation(this.userInvitation.id);
+      await loading.dismiss();
+      await this.showToast('Invitation acceptée ! Bienvenue 🎉', 'success');
+      
+      // Recharger les données pour mettre à jour le statut
+      this.loadEventData();
+    } catch (error: any) {
+      await loading.dismiss();
+      await this.showToast(error.message || 'Erreur lors de l\'acceptation', 'danger');
+    } finally {
+      this.isAcceptingInvitation = false;
+      this.cdr.markForCheck();
+    }
+  }
+
+  async declineInvitation() {
+    if (!this.userInvitation?.id) return;
+
+    const alert = await this.alertCtrl.create({
+      header: 'Refuser l\'invitation',
+      message: 'Êtes-vous sûr de vouloir refuser cette invitation ?',
+      buttons: [
+        { text: 'Annuler', role: 'cancel' },
+        {
+          text: 'Refuser',
+          role: 'destructive',
+          handler: async () => {
+            this.isDecliningInvitation = true;
+            this.cdr.markForCheck();
+
+            const loading = await this.loadingCtrl.create({
+              message: 'Refus en cours...'
+            });
+            await loading.present();
+
+            try {
+              await this.invitationsService.declineInvitation(this.userInvitation!.id!);
+              await loading.dismiss();
+              await this.showToast('Invitation refusée', 'medium');
+              
+              // Rediriger vers la liste des événements
+              this.router.navigate(['/tabs/events']);
+            } catch (error: any) {
+              await loading.dismiss();
+              await this.showToast(error.message || 'Erreur lors du refus', 'danger');
+            } finally {
+              this.isDecliningInvitation = false;
+              this.cdr.markForCheck();
+            }
+          }
+        }
+      ]
+    });
+
+    await alert.present();
   }
 }

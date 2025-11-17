@@ -278,7 +278,7 @@ export class InvitationsService {
    * @param userId - ID de l'utilisateur
    * @returns Observable<boolean> - true si invité avec status PENDING
    */
-  hasBeenInvited(eventId: string, userId: string): Observable<boolean> {
+  getUserInvitationForEvent(eventId: string, userId: string): Observable<EventInvitation | null> {
     return new Observable(observer => {
       const invitationsRef = collection(this.firestore, this.invitationsCollection);
       const q = query(
@@ -291,10 +291,19 @@ export class InvitationsService {
       const unsubscribe = onSnapshot(
         q,
         (snapshot) => {
-          observer.next(!snapshot.empty);
+          if (snapshot.empty) {
+            observer.next(null);
+          } else {
+            const invitation = {
+              id: snapshot.docs[0].id,
+              ...snapshot.docs[0].data()
+            } as EventInvitation;
+            
+            observer.next(isInvitationExpired(invitation) ? null : invitation);
+          }
         },
         (error) => {
-          console.error('❌ Erreur vérification invitation:', error);
+          console.error('❌ Erreur récupération invitation utilisateur:', error);
           observer.error(error);
         }
       );
@@ -302,7 +311,6 @@ export class InvitationsService {
       return () => unsubscribe();
     });
   }
-
   /**
    * Récupère une invitation spécifique par son ID
    * 

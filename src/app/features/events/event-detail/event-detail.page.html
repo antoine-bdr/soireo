@@ -20,63 +20,207 @@
     <ion-refresher-content></ion-refresher-content>
   </ion-refresher>
   
+  <!-- ========================================
+       LOADING STATE
+       ======================================== -->
   <div *ngIf="isLoading" class="loading-container">
     <ion-spinner></ion-spinner>
-    <p>Chargement...</p>
+    <p>Chargement de l'événement...</p>
   </div>
 
+  <!-- ========================================
+       EVENT DETAIL CONTENT
+       ======================================== -->
   <div *ngIf="!isLoading && event && permissions" class="event-detail-container">
+    
+    <!-- ========================================
+         HERO SECTION (Image + Badges + Titre)
+         ======================================== -->
     <div class="event-hero">
-      <img [src]="event.imageUrl || 'assets/default-event.jpg'" (error)="onImageError($event)" />
-      
-      <div class="event-badges">
-        <ion-chip *ngIf="isOrganizer" color="success">
+      <div class="event-image-container">
+        <!-- Image principale -->
+        <img 
+          [src]="event.imageUrl || 'assets/default-event.jpg'" 
+          [class.loaded]="imageLoaded"
+          class="event-image"
+          (load)="onImageLoad()"
+          (error)="onImageError($event)" 
+          alt="{{ event.title }}" />
+        
+        <!-- Skeleton loading -->
+        <div class="image-skeleton" *ngIf="!imageLoaded && !imageError">
+          <ion-spinner></ion-spinner>
+        </div>
+
+        <!-- Error overlay -->
+        <div class="image-error-overlay" *ngIf="imageError">
+          <ion-icon name="image-outline"></ion-icon>
+          <p>Image non disponible</p>
+        </div>
+
+        <!-- Gradient overlay -->
+        <div class="image-overlay"></div>
+        
+        <!-- Badge Organisateur (top-right) -->
+        <ion-chip *ngIf="isOrganizer" class="organizer-badge">
           <ion-icon name="checkmark-circle-outline"></ion-icon>
           <ion-label>Organisateur</ion-label>
         </ion-chip>
-        <ion-chip *ngIf="isEventFull()" color="danger">
+
+        <!-- Badge Complet (bottom-left) -->
+        <ion-chip *ngIf="isEventFull()" class="full-badge" color="danger">
+          <ion-icon name="close-circle-outline"></ion-icon>
           <ion-label>Complet</ion-label>
         </ion-chip>
-        <ion-chip *ngIf="isParticipating" color="success">
+
+        <!-- Badge Participant (bottom-right) -->
+        <ion-chip *ngIf="isParticipating && !isOrganizer" class="participating-badge" color="success">
+          <ion-icon name="checkmark-circle-outline"></ion-icon>
           <ion-label>Participant</ion-label>
         </ion-chip>
+
+        <!-- Badge Annulé (center) -->
+        <ion-chip *ngIf="event.status === 'cancelled'" class="cancelled-badge" color="danger">
+          <ion-icon name="ban-outline"></ion-icon>
+          <ion-label>ANNULÉ</ion-label>
+        </ion-chip>
+      </div>
+
+      <!-- Informations principales (Titre + Compteur) -->
+      <div class="event-header-info">
+        <h1 class="event-title">{{ event.title }}</h1>
+        <div class="event-meta">
+          <ion-chip class="participants-chip" [color]="isEventFull() ? 'danger' : 'primary'">
+            <ion-icon name="people-outline"></ion-icon>
+            <ion-label>{{ participantCount }}/{{ event.maxParticipants }}</ion-label>
+          </ion-chip>
+        </div>
       </div>
     </div>
-    
-    <div class="event-header-info">
-      <h1>{{ event.title }}</h1>
-      <ion-chip>
-        <ion-icon name="people-outline"></ion-icon>
-        <ion-label>{{ participantCount }}/{{ event.maxParticipants }}</ion-label>
-      </ion-chip>
+
+    <!-- ========================================
+         BANNIÈRE ÉVÉNEMENT ANNULÉ
+         ======================================== -->
+    <div *ngIf="event.status === 'cancelled'" class="cancelled-banner">
+      <ion-icon name="warning-outline" color="danger"></ion-icon>
+      <div class="banner-content">
+        <h3>Événement annulé</h3>
+        <p>Cet événement a été annulé par l'organisateur.</p>
+        <p class="cancelled-date" *ngIf="event.cancelledAt">
+          Annulé le {{ formatDate(event.cancelledAt) }}
+        </p>
+      </div>
     </div>
 
-    <div class="action-section" *ngIf="!isOrganizer">
-      <ion-button 
-        *ngIf="!isParticipating && canJoin"
-        expand="block" 
-        [disabled]="isJoining"
-        (click)="joinEvent()">
-        <ion-spinner *ngIf="isJoining"></ion-spinner>
-        <span *ngIf="!isJoining">Participer</span>
-      </ion-button>
+    <!-- ========================================
+         📨 SECTION INVITATION (INVITE_ONLY)
+         ======================================== -->
+    <div *ngIf="isInviteOnly() && !isOrganizer && event.status !== 'cancelled'" class="participation-section">
       
+      <!-- Cas 1: Utilisateur NON invité et NON participant -->
+      <div *ngIf="!hasInvitation && !isParticipating" class="invite-only-notice">
+        <ion-icon name="lock-closed-outline" color="primary"></ion-icon>
+        <div class="notice-content">
+          <h3>Événement sur invitation uniquement</h3>
+          <p>Cet événement est privé et accessible uniquement sur invitation de l'organisateur.</p>
+        </div>
+      </div>
+
+      <!-- Cas 2: Utilisateur INVITÉ (avec invitation PENDING) -->
+      <div *ngIf="hasInvitation && !isParticipating">
+        <ion-card class="invitation-received-card">
+          <ion-card-content>
+            <div class="invitation-received-message">
+              <ion-icon name="mail-outline" color="primary" class="large-icon"></ion-icon>
+              <h2>Vous êtes invité !</h2>
+              <p>{{ event.organizerName }} vous a invité à participer à cet événement.</p>
+            </div>
+
+            <div class="invitation-buttons">
+              <ion-button 
+                expand="block" 
+                color="success"
+                [disabled]="isAcceptingInvitation"
+                (click)="acceptInvitation()">
+                <ion-spinner *ngIf="isAcceptingInvitation" slot="start"></ion-spinner>
+                <ion-icon *ngIf="!isAcceptingInvitation" slot="start" name="checkmark-circle-outline"></ion-icon>
+                <span *ngIf="!isAcceptingInvitation">Accepter l'invitation</span>
+              </ion-button>
+
+              <ion-button 
+                expand="block" 
+                fill="outline"
+                color="danger"
+                [disabled]="isDecliningInvitation"
+                (click)="declineInvitation()">
+                <ion-spinner *ngIf="isDecliningInvitation" slot="start"></ion-spinner>
+                <ion-icon *ngIf="!isDecliningInvitation" slot="start" name="close-circle-outline"></ion-icon>
+                <span *ngIf="!isDecliningInvitation">Refuser</span>
+              </ion-button>
+            </div>
+          </ion-card-content>
+        </ion-card>
+      </div>
+
+      <!-- Cas 3: Déjà participant -->
       <ion-button 
         *ngIf="isParticipating"
         expand="block" 
         color="medium"
         [disabled]="isLeaving"
         (click)="leaveEvent()">
-        <ion-spinner *ngIf="isLeaving"></ion-spinner>
-        <span *ngIf="!isLeaving">Annuler</span>
+        <ion-spinner *ngIf="isLeaving" slot="start"></ion-spinner>
+        <ion-icon *ngIf="!isLeaving" slot="start" name="exit-outline"></ion-icon>
+        <span *ngIf="!isLeaving">Annuler ma participation</span>
       </ion-button>
-      
-      <ion-chip *ngIf="!canJoin && canJoinReason" color="warning">
-        <ion-label>{{ canJoinReason }}</ion-label>
-      </ion-chip>
     </div>
 
-    <ion-segment [(ngModel)]="selectedSegment" (ionChange)="onSegmentChange($event)">
+    <!-- ========================================
+         🔄 SECTION PARTICIPATION (PUBLIC/PRIVATE)
+         ======================================== -->
+    <div *ngIf="!isInviteOnly() && !isOrganizer && event.status !== 'cancelled'" class="participation-section">
+      
+      <!-- Bouton Participer -->
+      <ion-button 
+        *ngIf="!isParticipating && canJoin"
+        expand="block" 
+        color="primary"
+        [disabled]="isJoining"
+        (click)="joinEvent()">
+        <ion-spinner *ngIf="isJoining" slot="start"></ion-spinner>
+        <ion-icon *ngIf="!isJoining" slot="start" name="person-add-outline"></ion-icon>
+        <span *ngIf="!isJoining">Participer à cet événement</span>
+      </ion-button>
+      
+      <!-- Bouton Annuler participation -->
+      <ion-button 
+        *ngIf="isParticipating"
+        expand="block" 
+        color="medium"
+        [disabled]="isLeaving"
+        (click)="leaveEvent()">
+        <ion-spinner *ngIf="isLeaving" slot="start"></ion-spinner>
+        <ion-icon *ngIf="!isLeaving" slot="start" name="exit-outline"></ion-icon>
+        <span *ngIf="!isLeaving">Annuler ma participation</span>
+      </ion-button>
+      
+      <!-- Message si ne peut pas rejoindre -->
+      <div *ngIf="!canJoin && !isParticipating && canJoinReason" class="cannot-join-message">
+        <ion-chip color="warning">
+          <ion-icon name="warning-outline"></ion-icon>
+          <ion-label>{{ canJoinReason }}</ion-label>
+        </ion-chip>
+      </div>
+    </div>
+
+    <!-- ========================================
+         📑 SEGMENTS DE NAVIGATION
+         ======================================== -->
+    <ion-segment 
+      [(ngModel)]="selectedSegment" 
+      (ionChange)="onSegmentChange($event)"
+      class="event-segments">
+      
       <ion-segment-button value="info">
         <ion-label>Infos</ion-label>
       </ion-segment-button>
@@ -96,7 +240,10 @@
       </ion-segment-button>
     </ion-segment>
 
-    <div [ngSwitch]="selectedSegment">
+    <!-- ========================================
+         CONTENU DES SEGMENTS
+         ======================================== -->
+    <div [ngSwitch]="selectedSegment" class="segment-content">
       <app-info-segment 
         *ngSwitchCase="'info'"
         [event]="event"
