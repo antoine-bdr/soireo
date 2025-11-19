@@ -133,9 +133,23 @@
                 [alt]="participant.userName" />
             </ion-avatar>
             <p class="participant-name">{{ participant.userName }}</p>
+            
+            <!-- ✅ NOUVEAU : Bouton de suppression pour l'organisateur -->
+            <ion-button 
+              *ngIf="canManageParticipants"
+              fill="clear" 
+              size="small" 
+              color="danger"
+              class="remove-participant-btn"
+              (click)="removeParticipant(participant)"
+              aria-label="Retirer le participant">
+              <ion-icon name="close-circle-outline" slot="icon-only"></ion-icon>
+            </ion-button>
+            
             <ion-badge 
               class="status-badge" 
-              [color]="participant.status === 'approved' ? 'success' : 'warning'">
+              [color]="participant.status === 'approved' ? 'success' : 'warning'"
+              *ngIf="!canManageParticipants">
               <ion-icon 
                 [name]="participant.status === 'approved' ? 'checkmark-circle-outline' : 'time-outline'"
                 class="status-icon">

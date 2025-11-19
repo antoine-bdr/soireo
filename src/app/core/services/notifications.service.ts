@@ -910,5 +910,39 @@ private buildAggregatedMessage(
       throw error;
     }
   }
+
+  async notifyEventCancelled(
+    eventId: string,
+    eventTitle: string,
+    participantIds: string[]
+  ): Promise<void> {
+    if (participantIds.length === 0) {
+      console.log('ℹ️ Aucun participant à notifier');
+      return;
+    }
+    
+    console.log(`📬 Notification de suppression à ${participantIds.length} participant(s)`);
+    
+    try {
+      const notifications = participantIds.map(userId =>
+        this.createNotification({
+          userId,
+          type: NotificationType.EVENT_CANCELLED,
+          title: 'Événement annulé',
+          message: `L'événement "${eventTitle}" a été supprimé par l'organisateur`,
+          icon: 'trash-outline',
+          color: 'danger',
+          relatedEntityId: eventId,
+          relatedEntityType: 'event'
+        })
+      );
+      
+      await Promise.all(notifications);
+      console.log('✅ Notifications d\'annulation envoyées');
+    } catch (error) {
+      console.error('❌ Erreur envoi notifications annulation:', error);
+      // Ne pas bloquer le processus principal
+    }
+  }
  
 }

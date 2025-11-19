@@ -327,3 +327,35 @@
     }
   }
 }
+
+// ✅ AJOUT : Styles pour la limite et le compteur
+.photo-limit-info {
+  font-size: 0.9rem;
+  color: var(--ion-color-medium);
+  margin-top: 0.5rem;
+}
+
+.photos-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  
+  h3 {
+    margin: 0;
+    font-size: 1.2rem;
+    font-weight: 600;
+  }
+  
+  .photo-count {
+    font-size: 0.9rem;
+    color: var(--ion-color-medium);
+    font-weight: 500;
+  }
+}
+
+// Désactiver le FAB si limite atteinte
+ion-fab-button[disabled] {
+  opacity: 0.5;
+  pointer-events: none;
+}

@@ -16,13 +16,17 @@ import {
   Timestamp,
   onSnapshot
 } from '@angular/fire/firestore';
-import { Observable, from, map, switchMap, take, of, throwError, catchError } from 'rxjs';
+import { Observable, from, map, switchMap, take, of, throwError, catchError, combineLatest } from 'rxjs';
 import { AuthenticationService } from './authentication.service';
 import { UsersService } from './users.service';
 import { NotificationsService } from './notifications.service';
 import { NotificationType } from '../models/notification.model';
 import { Event, CreateEventDto, EventCategory, EventAnnouncement } from '../models/event.model';
 import { Participant, ParticipantStatus } from '../models/participant.model';
+import { ParticipantsService } from './participants.service';
+import { InvitationsService } from './invitations.service';
+import { EventAnnouncementsService } from './event-announcement.service';
+import { StorageService } from './storage.service';
 
 @Injectable({
   providedIn: 'root'
@@ -39,7 +43,10 @@ export class EventsService {
 
   private readonly announcementsCollection = 'eventAnnouncements';
 
-  constructor() {}
+  private readonly participantsService = inject(ParticipantsService);
+  private readonly invitationsService = inject(InvitationsService);
+  private readonly eventAnnouncementsService = inject(EventAnnouncementsService);
+  private readonly storageService = inject(StorageService);
 
   /**
    * Crée un nouvel événement dans Firestore
@@ -442,28 +449,107 @@ export class EventsService {
 
   // Remplacer la méthode deleteEvent() (ligne 441-449)
 
-  deleteEvent(eventId: string): Observable<void> {
-    const eventDocRef = doc(this.firestore, this.eventsCollection, eventId);
+  /**
+ * 🗑️ Supprime un événement et TOUTES ses données associées
+ * ✅ VERSION COMPLÈTE avec nettoyage
+ * 
+ * @param eventId - ID de l'événement à supprimer
+ * @returns Observable<void>
+ */
+deleteEvent(eventId: string): Observable<void> {
+  console.log(`🗑️ Suppression complète de l'événement ${eventId}`);
+  
+  // D'abord récupérer l'événement pour avoir les infos
+  return this.getEventById(eventId).pipe(
+    take(1),
+    switchMap(event => {
+      if (!event) {
+        throw new Error('Événement non trouvé');
+      }
+      
+      console.log(`📋 Suppression de l'événement "${event.title}"`);
+      
+      // 1. Notifier tous les participants AVANT la suppression
+      const notifyPromise = event.participants.length > 0
+        ? this.notificationsService.notifyEventCancelled(
+            eventId,
+            event.title,
+            event.participants.filter(id => id !== event.organizerId)
+          )
+        : Promise.resolve();
+      
+      return from(notifyPromise).pipe(
+        switchMap(() => {
+          console.log('✅ Participants notifiés');
+          
+          // 2. Supprimer toutes les données associées en parallèle
+          const cleanupOperations = [
+            // Supprimer l'événement lui-même
+            from(deleteDoc(doc(this.firestore, this.eventsCollection, eventId))),
+            
+            // Supprimer les participants
+            this.participantsService.deleteAllEventParticipants(eventId),
+            
+            // Supprimer les invitations
+            from(this.invitationsService.deleteEventInvitations(eventId)),
+            
+            // Supprimer les annonces
+            this.eventAnnouncementsService.deleteEventAnnouncements(eventId),
+            
+            // Supprimer les notifications existantes
+            from(this.notificationsService.deleteEventNotifications(eventId)),
+            
+            // Supprimer les photos du Storage si elles existent
+            event.eventPhotos && Array.isArray(event.eventPhotos) && event.eventPhotos.length > 0
+              ? from(this.deleteEventPhotos(event.eventPhotos as any[]))
+              : of(void 0)
+          ];
+          
+          // Exécuter toutes les suppressions en parallèle
+          return combineLatest(cleanupOperations).pipe(
+            map(() => {
+              console.log(`✅ Événement ${eventId} et toutes ses données supprimés`);
+            }),
+            catchError(error => {
+              console.error('❌ Erreur lors du nettoyage:', error);
+              // L'événement principal est déjà supprimé, on continue
+              return of(void 0);
+            })
+          );
+        })
+      );
+    }),
+    catchError(error => {
+      console.error('❌ Erreur suppression événement:', error);
+      throw error;
+    })
+  );
+}
 
-    return from(deleteDoc(eventDocRef)).pipe(
-      switchMap(() => {
-        console.log('✅ Événement supprimé:', eventId);
-        
-        // ✅ NOUVEAU : Supprimer toutes les notifications liées
-        return from(
-          this.notificationsService.deleteEventNotifications(eventId)
-        ).pipe(
-          map(() => {
-            console.log('✅ Notifications d\'événement supprimées');
-          }),
-          catchError((error) => {
-            console.error('⚠️ Erreur suppression notifications (non bloquant):', error);
-            return of(void 0); // ✅ Continuer même si erreur
-          })
-        );
-      })
-    );
+/**
+ * 🗑️ Helper : Supprime les photos du Storage
+ * 
+ * @param photos - Tableau des photos
+ * @returns Promise<void>
+ */
+private async deleteEventPhotos(photos: any[]): Promise<void> {
+  console.log(`🗑️ Suppression de ${photos.length} photo(s)`);
+  
+  try {
+    const deletePromises = photos
+      .filter(photo => photo?.url)
+      .map(photo => this.storageService.deleteImagePromise(photo.url).catch(err => {
+        console.error(`⚠️ Erreur suppression photo:`, err);
+        // Continuer même si une photo ne peut pas être supprimée
+      }));
+    
+    await Promise.all(deletePromises);
+    console.log('✅ Photos supprimées');
+  } catch (error) {
+    console.error('❌ Erreur suppression photos:', error);
+    // Ne pas bloquer le processus principal
   }
+}
 
   searchEvents(searchTerm: string): Observable<Event[]> {
     return this.getAllEvents().pipe(

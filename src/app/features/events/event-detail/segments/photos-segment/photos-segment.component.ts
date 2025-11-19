@@ -103,6 +103,13 @@ export class PhotosSegmentComponent implements OnInit, OnDestroy {
       this.showToast('Vous ne pouvez pas uploader de photo actuellement', 'warning');
       return;
     }
+    
+    // ✅ AJOUT : Vérifier la limite de photos
+    if (this.photos.length >= 50) {
+      this.showToast('Limite atteinte : maximum 50 photos par événement', 'warning');
+      return;
+    }
+    
     try {
       const actionSheet = await this.actionSheetController.create({
         header: 'Ajouter une photo',
@@ -140,6 +147,13 @@ export class PhotosSegmentComponent implements OnInit, OnDestroy {
     try {
       this.isUploading = true;
 
+      // ✅ AJOUT : Vérification préalable de la limite
+      if (this.photos.length >= 50) {
+        this.showToast('Limite atteinte : maximum 50 photos par événement', 'warning');
+        this.isUploading = false;
+        return;
+      }
+
       const blob = await this.storageService.selectImage(source);
       
       if (!blob) {
@@ -147,29 +161,59 @@ export class PhotosSegmentComponent implements OnInit, OnDestroy {
         return;
       }
 
+      // Créer un File à partir du blob
       const file = new File([blob], `photo_${Date.now()}.jpg`, { type: 'image/jpeg' });
 
+      // ✅ VALIDATION 1 : Type de fichier
       if (!this.storageService.isValidImage(file)) {
-        this.showToast('Format d\'image non valide', 'danger');
+        this.showToast('Format non supporté. Utilisez JPG, PNG ou WEBP', 'danger');
         this.isUploading = false;
         return;
       }
 
-      if (!this.storageService.isValidSize(file, 10)) {
-        this.showToast('L\'image est trop volumineuse (max 10MB)', 'danger');
+      // ✅ VALIDATION 2 : Taille avant compression (max 20MB pour fichier original)
+      if (!this.storageService.isValidSize(file, 20)) {
+        const sizeMB = (file.size / (1024 * 1024)).toFixed(1);
+        this.showToast(`Photo trop volumineuse (${sizeMB}MB). Maximum 20MB`, 'danger');
         this.isUploading = false;
         return;
       }
 
-      // ✅ CORRECTION : Utiliser optimizeImage du service
-      // Redimensionne à 1920x1920 max + compression qualité 0.8
-      const optimizedFile = await this.storageService.optimizeImage(file, 1920, 1920, 0.8);
+      // ✅ AJOUT : Message de compression
+      this.showToast('Optimisation de la photo...', 'success');
 
+      // ✅ OPTIMISATION : Compression et redimensionnement
+      let optimizedFile: File;
+      try {
+        optimizedFile = await this.storageService.optimizeImage(file, 1920, 1920, 0.8);
+        
+        // Vérifier que la compression a fonctionné
+        const originalSizeMB = (file.size / (1024 * 1024)).toFixed(1);
+        const optimizedSizeMB = (optimizedFile.size / (1024 * 1024)).toFixed(1);
+        console.log(`✅ Compression : ${originalSizeMB}MB → ${optimizedSizeMB}MB`);
+        
+      } catch (compressionError) {
+        console.error('⚠️ Erreur compression, utilisation du fichier original:', compressionError);
+        optimizedFile = file; // Utiliser l'original si la compression échoue
+      }
+
+      // ✅ VALIDATION 3 : Vérifier la taille après compression (max 5MB)
+      if (!this.storageService.isValidSize(optimizedFile, 5)) {
+        const sizeMB = (optimizedFile.size / (1024 * 1024)).toFixed(1);
+        this.showToast(`Photo encore trop volumineuse après compression (${sizeMB}MB)`, 'danger');
+        this.isUploading = false;
+        return;
+      }
+
+      // Upload vers Firebase Storage
+      this.showToast('Upload en cours...', 'success');
+      
       const photoUrl = await this.storageService.uploadImageWithAutoNamePromise(
         optimizedFile,
         `events/${this.eventId}/photos`
       );
 
+      // Créer l'objet EventPhoto
       const newPhoto: EventPhoto = {
         eventId: this.eventId,
         url: photoUrl,
@@ -178,24 +222,53 @@ export class PhotosSegmentComponent implements OnInit, OnDestroy {
         uploadedAt: Timestamp.now()
       };
 
+      // Mettre à jour l'événement avec la nouvelle photo
       const originalEvent = this.event as any;
       const currentPhotos = originalEvent.eventPhotos || [];
+      
+      // ✅ VALIDATION 4 : Dernière vérification avant ajout
+      if (currentPhotos.length >= 50) {
+        // Au cas où une autre photo a été ajoutée pendant l'upload
+        await this.storageService.deleteImagePromise(photoUrl); // Nettoyer
+        this.showToast('Limite atteinte pendant l\'upload', 'warning');
+        this.isUploading = false;
+        return;
+      }
+      
       const updatedPhotos = [...currentPhotos, newPhoto];
       
       await this.eventsService.updateEvent(
         this.eventId, 
         { eventPhotos: updatedPhotos } as Partial<Event>,
-        false
+        false // Pas de notification pour l'ajout de photo
       ).toPromise();
 
+      // Recharger les photos
+      this.loadPhotos();
       this.eventUpdated.emit();
 
-      this.showToast('Photo ajoutée avec succès', 'success');
+      // ✅ Message de succès avec compte
+      const photoCount = updatedPhotos.length;
+      this.showToast(`Photo ajoutée (${photoCount}/50)`, 'success');
       this.isUploading = false;
 
-    } catch (error) {
+    } catch (error: any) {
       console.error('❌ Erreur upload photo:', error);
-      this.showToast('Erreur lors de l\'ajout de la photo', 'danger');
+      
+      // ✅ Messages d'erreur plus détaillés
+      let errorMessage = 'Erreur lors de l\'ajout de la photo';
+      
+      if (error.code === 'storage/unauthorized') {
+        errorMessage = 'Accès non autorisé au stockage';
+      } else if (error.code === 'storage/quota-exceeded') {
+        errorMessage = 'Quota de stockage dépassé';
+      } else if (error.code === 'storage/canceled') {
+        errorMessage = 'Upload annulé';
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      this.showToast(errorMessage, 'danger');
       this.isUploading = false;
     }
   }

@@ -16,10 +16,11 @@ import {
   Timestamp,
   onSnapshot
 } from '@angular/fire/firestore';
-import { Observable, from } from 'rxjs';
-import { map } from 'rxjs/operators';
+import { Observable, from, of } from 'rxjs';
+import { catchError, map, switchMap } from 'rxjs/operators';
 import { AuthenticationService } from './authentication.service';
 import { EventAnnouncement } from '../models/event.model';
+import { getDocs, writeBatch } from 'firebase/firestore';
 
 @Injectable({
   providedIn: 'root'
@@ -150,6 +151,39 @@ export class EventAnnouncementsService {
   getAnnouncementCount(eventId: string): Observable<number> {
     return this.getEventAnnouncements(eventId).pipe(
       map(announcements => announcements.length)
+    );
+  }
+
+  deleteEventAnnouncements(eventId: string): Observable<void> {
+    console.log(`🗑️ Suppression de toutes les annonces pour l'événement ${eventId}`);
+    
+    const announcementsRef = collection(this.firestore, 'eventAnnouncements');
+    const q = query(announcementsRef, where('eventId', '==', eventId));
+    
+    return from(getDocs(q)).pipe(
+      switchMap(snapshot => {
+        if (snapshot.empty) {
+          console.log('ℹ️ Aucune annonce à supprimer');
+          return of(void 0);
+        }
+        
+        // Utiliser un batch pour supprimer tous les documents
+        const batch = writeBatch(this.firestore);
+        snapshot.docs.forEach(doc => {
+          batch.delete(doc.ref);
+        });
+        
+        return from(batch.commit()).pipe(
+          map(() => {
+            console.log(`✅ ${snapshot.size} annonce(s) supprimée(s)`);
+          })
+        );
+      }),
+      catchError(error => {
+        console.error('❌ Erreur suppression annonces:', error);
+        // Ne pas bloquer le processus principal
+        return of(void 0);
+      })
     );
   }
 }

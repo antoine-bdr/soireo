@@ -157,28 +157,47 @@ export class InvitationsService {
 
   /**
    * Vérifie les invitations existantes pour éviter les doublons
-   * Retourne un Set des IDs des amis déjà invités avec status PENDING
+   * ✅ CORRIGÉ : Gère les requêtes par batches de 10 (limite Firestore)
+   * Retourne une Map<userId, invitationId> de toutes les invitations existantes
    */
   private async getExistingInvitations(
     eventId: string,
     friendIds: string[]
-  ): Promise<Map<string, string>> {  // ✅ Retourne Map<userId, invitationId>
+  ): Promise<Map<string, string>> {
     const invitationsMap = new Map<string, string>();
   
     try {
       const invitationsRef = collection(this.firestore, this.invitationsCollection);
-      const q = query(
-        invitationsRef,
-        where('eventId', '==', eventId),
-        where('invitedUserId', 'in', friendIds.slice(0, 10))
-        // ✅ Supprimé le filtre sur status pour récupérer TOUS les statuts
-      );
-  
-      const snapshot = await getDocs(q);
-      snapshot.docs.forEach(doc => {
-        const invitation = doc.data() as EventInvitation;
-        invitationsMap.set(invitation.invitedUserId, doc.id);
+      
+      // ✅ Firestore limite les requêtes 'in' à 10 éléments
+      // On découpe donc friendIds en batches de 10
+      const batches: string[][] = [];
+      for (let i = 0; i < friendIds.length; i += 10) {
+        batches.push(friendIds.slice(i, i + 10));
+      }
+      
+      console.log(`🔍 Vérification invitations existantes : ${batches.length} batch(es) de 10 max`);
+      
+      // ✅ Exécuter toutes les requêtes en parallèle
+      const batchPromises = batches.map(async (batch) => {
+        const q = query(
+          invitationsRef,
+          where('eventId', '==', eventId),
+          where('invitedUserId', 'in', batch)
+          // ✅ Pas de filtre sur status = récupère TOUS les statuts
+        );
+        
+        const snapshot = await getDocs(q);
+        snapshot.docs.forEach(doc => {
+          const invitation = doc.data() as EventInvitation;
+          invitationsMap.set(invitation.invitedUserId, doc.id);
+        });
       });
+      
+      // ✅ Attendre que tous les batches soient traités
+      await Promise.all(batchPromises);
+      
+      console.log(`✅ ${invitationsMap.size} invitation(s) existante(s) trouvée(s)`);
     } catch (error) {
       console.error('❌ Erreur vérification invitations existantes:', error);
     }

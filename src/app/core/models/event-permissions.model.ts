@@ -56,6 +56,8 @@ export interface EventPermissions {
   
   /** Peut voir la section Participants */
   canViewParticipants: boolean;
+
+  canManageParticipants: boolean;
   
   // ========================================
   // ACTIONS SUR L'ÉVÉNEMENT

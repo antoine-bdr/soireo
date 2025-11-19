@@ -6,14 +6,14 @@ import { FormsModule } from '@angular/forms';
 import { 
   IonCard, IonCardContent, IonButton, IonIcon, IonSpinner, IonAvatar, IonBadge,
   IonList, IonItem, IonLabel, IonSearchbar, AlertController, // ✅ Ajouter AlertController
-  ModalController, ToastController
+  ModalController, ToastController, LoadingController
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import {
   peopleOutline, personAddOutline, mailOutline, checkmarkCircleOutline,
   timeOutline, searchOutline, sendOutline, closeCircleOutline
 } from 'ionicons/icons';
-import { Subject, takeUntil } from 'rxjs';
+import { Subject, takeUntil, take } from 'rxjs';
 
 import { EventWithConditionalLocation } from '../../../../../core/models/event.model';
 import { Participant, ParticipantStatus } from '../../../../../core/models/participant.model';
@@ -51,6 +51,7 @@ export class ParticipantsSegmentComponent implements OnInit, OnDestroy {
   private readonly modalCtrl = inject(ModalController);
   private readonly toastCtrl = inject(ToastController);
   private readonly alertCtrl = inject(AlertController);
+  private readonly loadingCtrl = inject(LoadingController);
   private readonly cdr = inject(ChangeDetectorRef);
 
   participants: Participant[] = [];
@@ -226,6 +227,63 @@ export class ParticipantsSegmentComponent implements OnInit, OnDestroy {
     await alert.present();
   }
 
+  async removeParticipant(participant: Participant) {
+    if (!this.permissions?.canManageParticipants || !participant.id) return;
+    
+    const alert = await this.alertCtrl.create({
+      header: 'Retirer le participant',
+      message: `Êtes-vous sûr de vouloir retirer ${participant.userName} de l'événement ?`,
+      buttons: [
+        { text: 'Annuler', role: 'cancel' },
+        {
+          text: 'Retirer',
+          role: 'destructive',
+          handler: async () => {
+            const loading = await this.loadingCtrl.create({
+              message: 'Retrait en cours...'
+            });
+            await loading.present();
+            
+            try {
+              // ✅ Utiliser la nouvelle méthode synchronisée
+              await this.participantsService.removeParticipantByOrganizer(
+                this.eventId, 
+                participant.id!,
+                participant.userId
+              ).pipe(take(1)).toPromise();
+              
+              await loading.dismiss();
+              
+              const toast = await this.toastCtrl.create({
+                message: 'Participant retiré',
+                duration: 2000,
+                color: 'success'
+              });
+              await toast.present();
+              
+              // Recharger la liste
+              this.loadParticipants();
+              
+            } catch (error) {
+              await loading.dismiss();
+              
+              const toast = await this.toastCtrl.create({
+                message: 'Erreur lors du retrait',
+                duration: 3000,
+                color: 'danger'
+              });
+              await toast.present();
+              
+              console.error('❌ Erreur retrait participant:', error);
+            }
+          }
+        }
+      ]
+    });
+    
+    await alert.present();
+  }
+
   // ✅ NOUVELLE MÉTHODE : Confirmer l'annulation
   private confirmCancelInvitation(invitationId: string) {
     this.invitationsService.deleteInvitation(invitationId).subscribe({
@@ -264,5 +322,10 @@ export class ParticipantsSegmentComponent implements OnInit, OnDestroy {
 
   get canManageRequests(): boolean {
     return this.permissions?.canManageRequests && !this.isReadOnly;
+  }
+
+  // ✅ AJOUTER CE GETTER
+  get canManageParticipants(): boolean {
+    return this.permissions?.canManageParticipants && !this.isReadOnly;
   }
 }

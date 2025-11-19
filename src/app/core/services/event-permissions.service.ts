@@ -58,6 +58,7 @@ export class EventPermissionsService {
       canViewAnnouncements: this.canViewAnnouncements(event, role),
       canViewPhotos: this.canViewPhotos(event, role),
       canViewParticipants: this.canViewParticipants(event, role),
+      canManageParticipants: role === UserRole.ORGANIZER,
       
       // Actions événement
       canJoinEvent: this.canJoinEvent(event, role),

@@ -37,6 +37,7 @@ import { UsersService } from './users.service';
 import { NotificationsService } from './notifications.service';
 import { InvitationsService } from './invitations.service';
 import { NotificationType, createNotificationWithDefaults } from '../models/notification.model';
+import { writeBatch } from 'firebase/firestore';
 
 @Injectable({
   providedIn: 'root'
@@ -715,7 +716,61 @@ export class ParticipantsService {
   removeParticipant(participantId: string): Observable<void> {
     console.log('🗑️ removeParticipant:', participantId);
     const participantRef = doc(this.firestore, this.participantsCollection, participantId);
-    return from(deleteDoc(participantRef));
+    
+    // Récupérer d'abord les infos du participant pour la sync
+    return from(getDoc(participantRef)).pipe(
+      switchMap(participantDoc => {
+        if (!participantDoc.exists()) {
+          throw new Error('Participant non trouvé');
+        }
+        
+        const participant = participantDoc.data() as Participant;
+        const eventRef = doc(this.firestore, 'events', participant.eventId);
+        
+        // ✅ Utiliser un batch pour atomicité
+        const batch = writeBatch(this.firestore);
+        
+        // Supprimer le document participant
+        batch.delete(participantRef);
+        
+        // Synchroniser l'événement
+        const updateData: any = {
+          participants: arrayRemove(participant.userId),
+          updatedAt: serverTimestamp()
+        };
+        
+        // Décrémenter seulement si le participant était approuvé
+        if (participant.status === ParticipantStatus.APPROVED) {
+          updateData.currentParticipants = increment(-1);
+        }
+        
+        batch.update(eventRef, updateData);
+        
+        return from(batch.commit()).pipe(
+          switchMap(() => {
+            console.log('✅ Participant retiré et événement synchronisé');
+            
+            // Nettoyer les invitations et notifications
+            return from(
+              Promise.all([
+                this.invitationsService.deleteUserInvitation(participant.eventId, participant.userId)
+                  .catch(() => console.log('Pas d\'invitation à supprimer')),
+                this.notificationsService.deleteParticipationNotifications(participant.eventId, participant.userId)
+                  .catch(() => console.log('Pas de notifications à supprimer'))
+              ])
+            ).pipe(
+              map(() => void 0)
+            );
+          })
+        );
+      })
+    );
+  }
+
+  removeParticipantByOrganizer(eventId: string, participantId: string, userId: string): Observable<void> {
+    console.log(`🗑️ removeParticipantByOrganizer - event: ${eventId}, participant: ${participantId}`);
+    // Utiliser la méthode removeParticipant qui fait déjà tout
+    return this.removeParticipant(participantId);
   }
 
   /**
@@ -748,12 +803,26 @@ export class ParticipantsService {
             
             const event = eventDoc.data() as Event;
             
+            // ✅ MODIFICATION : Utiliser un batch pour atomicité
+            const batch = writeBatch(this.firestore);
+            
             // Mettre à jour le statut du participant
-            return from(updateDoc(participantRef, { status: ParticipantStatus.APPROVED })).pipe(
+            batch.update(participantRef, { status: ParticipantStatus.APPROVED });
+            
+            // ✅ AJOUT : Synchroniser l'événement
+            batch.update(eventRef, {
+              currentParticipants: increment(1),
+              participants: arrayUnion(participant.userId),
+              updatedAt: serverTimestamp()
+            });
+            
+            // Exécuter le batch
+            return from(batch.commit()).pipe(
               switchMap(() => {
-                console.log('✅ Participant approuvé');
+                console.log('✅ Participant approuvé et événement synchronisé');
                 
-                // ✅ NOUVEAU : Supprimer l'invitation DECLINED si elle existe
+                // ✅ RESTE DE VOTRE CODE EXISTANT SANS MODIFICATION
+                // NOUVEAU : Supprimer l'invitation DECLINED si elle existe
                 return from(
                   this.invitationsService.deleteUserInvitation(participant.eventId, participant.userId)
                 ).pipe(
@@ -964,10 +1033,23 @@ export class ParticipantsService {
             
             const event = eventDoc.data() as Event;
             
+            // ✅ MODIFICATION : Utiliser un batch pour atomicité
+            const batch = writeBatch(this.firestore);
+            
             // Mettre à jour le statut du participant
-            return from(updateDoc(participantRef, { status: ParticipantStatus.REJECTED })).pipe(
+            batch.update(participantRef, { status: ParticipantStatus.REJECTED });
+            
+            // ✅ AJOUT : S'assurer que l'utilisateur n'est pas dans participants[]
+            // (au cas où il y aurait eu une erreur précédente)
+            batch.update(eventRef, {
+              participants: arrayRemove(participant.userId),
+              updatedAt: serverTimestamp()
+            });
+            
+            // Exécuter le batch
+            return from(batch.commit()).pipe(
               switchMap(() => {
-                console.log('❌ Participant rejeté');
+                console.log('❌ Participant rejeté et événement synchronisé');
                 
                 // ✅ Supprimer anciennes notifications de décision
                 return from(
@@ -1042,29 +1124,40 @@ export class ParticipantsService {
                     );
                   }),
                   catchError((error) => {
-                    // Gestion d'erreur pour deleteParticipationDecisionNotifications
-                    console.error('⚠️ Erreur nettoyage notifications (non bloquant):', error);
+                    // ✅ Gestion d'erreur suppression notifications décision
+                    console.error('⚠️ Erreur suppression notifications décision (non bloquant):', error);
                     
-                    // Créer quand même la notification de refus
-                    const notification = createNotificationWithDefaults(
-                      NotificationType.EVENT_REQUEST_REJECTED,
-                      participant.userId,
-                      `Votre demande de participation à l'événement "${event.title}" a été refusée.`,
-                      {
-                        relatedEntityId: participant.eventId,
-                        relatedEntityType: 'event',
-                        actionUrl: `/tabs/events/${participant.eventId}`,
-                        senderUserId: event.organizerId,
-                        senderDisplayName: event.organizerName,
-                        senderPhotoURL: event.organizerPhoto
-                      }
+                    // Continuer avec la suppression de notification de demande
+                    return from(
+                      this.notificationsService.deleteParticipationRequestNotifications(
+                        participant.eventId,
+                        participant.userId
+                      )
+                    ).pipe(
+                      switchMap(() => {
+                        // Créer la notification de refus
+                        const notification = createNotificationWithDefaults(
+                          NotificationType.EVENT_REQUEST_REJECTED,
+                          participant.userId,
+                          `Votre demande de participation à l'événement "${event.title}" a été refusée.`,
+                          {
+                            relatedEntityId: participant.eventId,
+                            relatedEntityType: 'event',
+                            actionUrl: `/tabs/events/${participant.eventId}`,
+                            senderUserId: event.organizerId,
+                            senderDisplayName: event.organizerName,
+                            senderPhotoURL: event.organizerPhoto
+                          }
+                        );
+                        
+                        this.notificationsService.createNotification(notification).catch(err =>
+                          console.error('❌ Erreur envoi notification:', err)
+                        );
+                        
+                        return of(void 0);
+                      }),
+                      catchError(() => of(void 0))
                     );
-                    
-                    this.notificationsService.createNotification(notification).catch(err =>
-                      console.error('❌ Erreur envoi notification:', err)
-                    );
-                    
-                    return of(void 0);
                   })
                 );
               })
@@ -1145,6 +1238,39 @@ export class ParticipantsService {
         const participant = { id: doc.id, ...doc.data() } as Participant;
         console.log('🔍 getParticipantDocumentOneTime: document trouvé', participant.id);
         return participant;
+      })
+    );
+  }
+
+  deleteAllEventParticipants(eventId: string): Observable<void> {
+    console.log(`🗑️ Suppression de tous les participants pour l'événement ${eventId}`);
+    
+    const participantsRef = collection(this.firestore, this.participantsCollection);
+    const q = query(participantsRef, where('eventId', '==', eventId));
+    
+    return from(getDocs(q)).pipe(
+      switchMap(snapshot => {
+        if (snapshot.empty) {
+          console.log('ℹ️ Aucun participant à supprimer');
+          return of(void 0);
+        }
+        
+        // Utiliser un batch pour supprimer tous les documents
+        const batch = writeBatch(this.firestore);
+        snapshot.docs.forEach(doc => {
+          batch.delete(doc.ref);
+        });
+        
+        return from(batch.commit()).pipe(
+          map(() => {
+            console.log(`✅ ${snapshot.size} participant(s) supprimé(s)`);
+          })
+        );
+      }),
+      catchError(error => {
+        console.error('❌ Erreur suppression participants:', error);
+        // Ne pas bloquer le processus principal
+        return of(void 0);
       })
     );
   }
