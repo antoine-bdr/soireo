@@ -1,7 +1,7 @@
 // src/app/features/events/event-detail/components/announcements-segment/announcements-segment.component.ts
 // ✅ VERSION OPTIMISÉE avec Markdown, sanitization, trackBy
 
-import { Component, Input, Output, EventEmitter, OnInit, OnDestroy, inject, ChangeDetectionStrategy } from '@angular/core';
+import { Component, Input, Output, EventEmitter, OnInit, OnDestroy, inject, ChangeDetectionStrategy, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
@@ -44,6 +44,7 @@ export class AnnouncementsSegmentComponent implements OnInit, OnDestroy {
   private readonly alertCtrl = inject(AlertController);
   private readonly toastCtrl = inject(ToastController);
   private readonly sanitizer = inject(DomSanitizer);
+  private readonly cdr = inject(ChangeDetectorRef);
 
   announcements: EventAnnouncement[] = [];
   isLoading = true;
@@ -101,6 +102,7 @@ export class AnnouncementsSegmentComponent implements OnInit, OnDestroy {
     if (!this.showCreateForm) {
       this.resetForm();
     }
+    this.cdr.markForCheck(); // ← AJOUTER
   }
 
   async createAnnouncement() {
@@ -112,6 +114,7 @@ export class AnnouncementsSegmentComponent implements OnInit, OnDestroy {
     if (this.isCreating) return;
 
     this.isCreating = true;
+    this.cdr.markForCheck(); // ← AJOUTER
 
     this.announcementsService.createAnnouncement(
       this.eventId,
@@ -123,11 +126,13 @@ export class AnnouncementsSegmentComponent implements OnInit, OnDestroy {
         this.resetForm();
         this.showCreateForm = false;
         this.isCreating = false;
+        this.cdr.markForCheck(); // ← AJOUTER
       },
       error: (error) => {
         console.error('❌ Erreur création annonce:', error);
         this.showToast('Erreur lors de la publication', 'danger');
         this.isCreating = false;
+        this.cdr.markForCheck(); // ← AJOUTER
       }
     });
   }

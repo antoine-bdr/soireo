@@ -464,7 +464,6 @@
     }
 
     ion-badge {
-      position: absolute;
       top: 4px;
       right: 8px;
       font-size: 10px;
@@ -492,6 +491,53 @@
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+// ==========================================================================
+// STYLES POUR LES CARTES D'INVITATION
+// ==========================================================================
+
+.invitation-section,
+.participation-section {
+  padding: 16px;
+}
+
+.invitation-only-card,
+.invitation-received-card {
+  margin: 0;
+  
+  .invitation-message,
+  .invitation-received-message {
+    text-align: center;
+    padding: 24px 16px;
+
+    .large-icon {
+      font-size: 64px;
+      margin-bottom: 16px;
+    }
+
+    h2 {
+      margin: 16px 0 8px;
+      font-size: 20px;
+      font-weight: 600;
+    }
+
+    p {
+      margin: 8px 0 0;
+      font-size: 14px;
+    }
+  }
+
+  .invitation-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 24px;
+
+    ion-button {
+      margin: 0;
+    }
   }
 }
 
@@ -571,19 +617,12 @@ ion-chip {
   }
 }
 
-.invitation-section,
-.participation-section {
-  padding: 16px;
-}
+.pending-request-card {
+  margin: 16px;
 
-.invitation-only-card,
-.invitation-received-card {
-  margin: 0;
-  
-  .invitation-message,
-  .invitation-received-message {
+  .pending-message {
     text-align: center;
-    padding: 24px 16px;
+    padding: 24px 0;
 
     .large-icon {
       font-size: 64px;
@@ -591,25 +630,93 @@ ion-chip {
     }
 
     h2 {
-      margin: 16px 0 8px;
       font-size: 20px;
       font-weight: 600;
+      margin: 12px 0;
+      color: var(--ion-color-warning);
     }
 
     p {
-      margin: 8px 0 0;
-      font-size: 14px;
+      color: var(--ion-text-color-step-600);
+      margin: 8px 0;
+      line-height: 1.5;
     }
   }
+}
 
-  .invitation-buttons {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    margin-top: 24px;
-
-    ion-button {
-      margin: 0;
+.settings-button {
+  --ripple-color: transparent !important;
+  --background-focused: transparent !important;
+  --background-focused-opacity: 0 !important;
+  --background-hover: transparent !important;
+  --background-hover-opacity: 0 !important;
+  --border-radius: 0 !important;
+  
+  &::part(native) {
+    outline: none !important;
+    box-shadow: none !important;
+    border: none !important;
+    
+    &:focus,
+    &:active,
+    &:focus-visible,
+    &:hover {
+      outline: none !important;
+      box-shadow: none !important;
+      border: none !important;
+      background: transparent !important;
     }
+  }
+}
+
+// Forcer sur l'icône aussi
+.settings-button ion-icon {
+  outline: none !important;
+  border: none !important;
+}
+
+ion-header {
+  * {
+    &:focus,
+    &:active,
+    &:focus-visible {
+      outline: none !important;
+      box-shadow: none !important;
+      border: none !important;
+    }
+  }
+  
+  ion-button {
+    --ripple-color: transparent !important;
+    
+    * {
+      outline: none !important;
+      border: none !important;
+    }
+  }
+}
+
+.segment-label-with-badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  
+  ion-label {
+    margin: 0;
+  }
+  
+  ion-badge {
+    --background: var(--ion-color-primary, #FF2D55);
+    --color: #fff;
+    font-size: 10px;
+    font-weight: 600;
+    min-width: 18px;
+    height: 18px;
+    border-radius: 9px;
+    padding: 0 5px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
 }

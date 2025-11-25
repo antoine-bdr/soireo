@@ -83,8 +83,8 @@
       <!-- Nom et statut -->
       <ion-label>
         <h2>{{ friend.displayName }}</h2>
-        <p *ngIf="getFriendBadge(friend)" class="friend-status">
-          {{ getFriendBadge(friend)!.text }}
+        <p *ngIf="friend.disabledReason" class="friend-status">
+          {{ friend.disabledReason }}
         </p>
       </ion-label>
 
@@ -146,7 +146,7 @@
       [disabled]="selectedCount === 0"
       (click)="sendInvitations()">
       <ion-icon name="checkmark-circle-outline" slot="start"></ion-icon>
-      Envoyer {{ selectedCount > 0 ? '(' + selectedCount + ')' : '' }}
+      Envoyer{{ selectedCount > 0 ? ' (' + selectedCount + ')' : '' }}
     </ion-button>
   </div>
 </ion-toolbar>

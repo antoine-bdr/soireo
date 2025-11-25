@@ -1,11 +1,12 @@
-// src/app/features/events/event-detail/components/participants-segment/participants-segment.component.ts
+// src/app/features/events/event-detail/segments/participants-segment/participants-segment.component.ts
+// Version simplifiée - Les modaux se rechargent automatiquement
 
 import { Component, Input, Output, EventEmitter, OnInit, OnDestroy, inject, ChangeDetectionStrategy, ChangeDetectorRef  } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { 
   IonCard, IonCardContent, IonButton, IonIcon, IonSpinner, IonAvatar, IonBadge,
-  IonList, IonItem, IonLabel, IonSearchbar, AlertController, // ✅ Ajouter AlertController
+  IonList, IonItem, IonLabel, IonSearchbar, AlertController,
   ModalController, ToastController, LoadingController
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
@@ -17,15 +18,12 @@ import { Subject, takeUntil, take } from 'rxjs';
 
 import { EventWithConditionalLocation } from '../../../../../core/models/event.model';
 import { Participant, ParticipantStatus } from '../../../../../core/models/participant.model';
-import { EventInvitation } from '../../../../../core/models/invitation.model'; // ✅ Importer du modèle
+import { EventInvitation } from '../../../../../core/models/invitation.model';
 import { ParticipantsService } from '../../../../../core/services/participants.service';
 import { InvitationsService } from '../../../../../core/services/invitations.service';
 import { PendingRequestsModalComponent } from '../../../../../shared/components/pending-requests-modal/pending-requests-modal.component';
 import { InviteFriendsModalComponent } from '../../../../../shared/components/invite-friends-modal/invite-friends-modal.component';
 import { AddressDisplayInfo, EventPermissions } from 'src/app/core/models/event-permissions.model';
-
-// ❌ SUPPRIMER cette interface locale
-// interface EventInvitation { ... }
 
 @Component({
   selector: 'app-participants-segment',
@@ -58,7 +56,6 @@ export class ParticipantsSegmentComponent implements OnInit, OnDestroy {
   filteredParticipants: Participant[] = [];
   pendingCount = 0;
   
-  // ✅ Utiliser le type importé
   pendingInvitations: EventInvitation[] = [];
   invitationsCount = 0;
   
@@ -102,11 +99,13 @@ export class ParticipantsSegmentComponent implements OnInit, OnDestroy {
           this.filteredParticipants = [...this.participants];
           this.isLoading = false;
           this.participantCountChanged.emit(this.participants.length);
-          console.log(`👥 ${this.participants.length} participants chargés`);
+          this.cdr.markForCheck();
+          console.log(`✅ ${this.participants.length} participants chargés`);
         },
         error: (error) => {
           console.error('❌ Erreur chargement participants:', error);
           this.isLoading = false;
+          this.cdr.markForCheck();
         }
       });
   }
@@ -117,49 +116,34 @@ export class ParticipantsSegmentComponent implements OnInit, OnDestroy {
       .subscribe({
         next: (pending) => {
           this.pendingCount = pending.length;
-          console.log(`📋 ${this.pendingCount} demande(s) en attente`);
+          this.cdr.markForCheck();
         },
-        error: (error) => {
-          console.error('❌ Erreur chargement demandes:', error);
-        }
+        error: (error) => console.error('❌ Erreur compteur pending:', error)
       });
   }
 
   loadPendingInvitations() {
-    console.log('📧 Chargement des invitations pour l\'événement:', this.eventId);
-    
     this.invitationsService.getEventInvitations(this.eventId)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: (invitations) => {
-          console.log('📧 Invitations reçues:', invitations);
           this.pendingInvitations = invitations.filter(inv => inv.status === 'pending');
           this.invitationsCount = this.pendingInvitations.length;
-          this.cdr.markForCheck(); // ✅ FORCER LA DÉTECTION
-          console.log(`📧 ${this.invitationsCount} invitation(s) en attente`);
+          this.cdr.markForCheck();
+          console.log(`📨 ${this.invitationsCount} invitations en attente`);
         },
-        error: (error) => {
-          console.error('❌ Erreur chargement invitations:', error);
-          this.cdr.markForCheck(); // ✅ FORCER LA DÉTECTION
-        }
+        error: (error) => console.error('❌ Erreur chargement invitations:', error)
       });
   }
 
-  filterParticipants(event: any) {
-    const term = event?.target?.value?.toLowerCase() || '';
-    this.searchTerm = term;
-
-    if (!term.trim()) {
-      this.filteredParticipants = [...this.participants];
-      return;
-    }
-
-    this.filteredParticipants = this.participants.filter(participant => {
-      const name = participant.userName.toLowerCase();
-      const email = participant.userEmail.toLowerCase();
-      return name.includes(term) || email.includes(term);
-    });
-  }
+filterParticipants(event?: any) {
+  const term = this.searchTerm.toLowerCase();
+  this.filteredParticipants = this.participants.filter(participant => {
+    const name = participant.userName.toLowerCase();
+    const email = participant.userEmail.toLowerCase();
+    return name.includes(term) || email.includes(term);
+  });
+}
 
   async openPendingRequestsModal() {
     if (!this.event) return;
@@ -182,6 +166,8 @@ export class ParticipantsSegmentComponent implements OnInit, OnDestroy {
 
     const currentParticipantIds = this.participants.map(p => p.userId);
 
+    // ✅ Chaque appel crée une NOUVELLE instance du modal
+    // donc ngOnInit() se déclenchera et rechargera les données fraîches
     const modal = await this.modalCtrl.create({
       component: InviteFriendsModalComponent,
       componentProps: {
@@ -198,11 +184,10 @@ export class ParticipantsSegmentComponent implements OnInit, OnDestroy {
     
     if (data?.invitationsSent > 0) {
       this.showToast(`${data.invitationsSent} invitation(s) envoyée(s) !`, 'success');
-      this.loadPendingInvitations();
+      // Pas besoin de recharger, c'est déjà en temps réel
     }
   }
 
-  // ✅ CORRIGER : Utiliser AlertController au lieu de confirmAction custom
   async cancelInvitation(invitation: EventInvitation) {
     if (!invitation.id) return;
 
@@ -227,8 +212,39 @@ export class ParticipantsSegmentComponent implements OnInit, OnDestroy {
     await alert.present();
   }
 
+  private async confirmCancelInvitation(invitationId: string) {
+    const loading = await this.loadingCtrl.create({
+      message: 'Annulation en cours...'
+    });
+    await loading.present();
+
+    this.invitationsService.deleteInvitation(invitationId).subscribe({
+      next: async () => {
+        await loading.dismiss();
+        this.showToast('Invitation annulée', 'success');
+        
+        // ✅ Pas besoin de refresh manuel :
+        // - loadPendingInvitations() écoute déjà en temps réel
+        // - Le prochain modal ouvert sera une nouvelle instance avec données fraîches
+        
+        console.log('✅ Invitation supprimée - le prochain modal aura les données à jour');
+      },
+      error: async (error) => {
+        await loading.dismiss();
+        console.error('❌ Erreur annulation invitation:', error);
+        this.showToast('Erreur lors de l\'annulation', 'danger');
+      }
+    });
+  }
+
   async removeParticipant(participant: Participant) {
     if (!this.permissions?.canManageParticipants || !participant.id) return;
+    
+    // ✅ SÉCURITÉ : Empêcher la suppression de l'organisateur
+    if (participant.userId === this.event.organizerId) {
+      this.showToast('L\'organisateur ne peut pas être retiré de l\'événement', 'warning');
+      return;
+    }
     
     const alert = await this.alertCtrl.create({
       header: 'Retirer le participant',
@@ -245,7 +261,6 @@ export class ParticipantsSegmentComponent implements OnInit, OnDestroy {
             await loading.present();
             
             try {
-              // ✅ Utiliser la nouvelle méthode synchronisée
               await this.participantsService.removeParticipantByOrganizer(
                 this.eventId, 
                 participant.id!,
@@ -253,79 +268,52 @@ export class ParticipantsSegmentComponent implements OnInit, OnDestroy {
               ).pipe(take(1)).toPromise();
               
               await loading.dismiss();
-              
-              const toast = await this.toastCtrl.create({
-                message: 'Participant retiré',
-                duration: 2000,
-                color: 'success'
-              });
-              await toast.present();
-              
-              // Recharger la liste
-              this.loadParticipants();
-              
+              this.showToast(`${participant.userName} a été retiré`, 'success');
             } catch (error) {
               await loading.dismiss();
-              
-              const toast = await this.toastCtrl.create({
-                message: 'Erreur lors du retrait',
-                duration: 3000,
-                color: 'danger'
-              });
-              await toast.present();
-              
               console.error('❌ Erreur retrait participant:', error);
+              this.showToast('Erreur lors du retrait', 'danger');
             }
           }
         }
       ]
     });
-    
+
     await alert.present();
-  }
-
-  // ✅ NOUVELLE MÉTHODE : Confirmer l'annulation
-  private confirmCancelInvitation(invitationId: string) {
-    this.invitationsService.deleteInvitation(invitationId).subscribe({
-      next: () => {
-        this.showToast('Invitation annulée', 'success');
-        this.loadPendingInvitations();
-      },
-      error: (error) => {
-        console.error('❌ Erreur annulation invitation:', error);
-        this.showToast('Erreur lors de l\'annulation', 'danger');
-      }
-    });
-  }
-
-  trackById(index: number, participant: Participant): string {
-    return participant.id || participant.userId;
-  }
-
-  trackByInvitationId(index: number, invitation: EventInvitation): string {
-    return invitation.id || invitation.invitedUserId;
   }
 
   private async showToast(message: string, color: 'success' | 'danger' | 'warning' = 'success') {
     const toast = await this.toastCtrl.create({
       message,
-      duration: 2000,
+      duration: 3000,
       position: 'bottom',
       color
     });
     await toast.present();
   }
 
-  get canInviteFriends(): boolean {
-    return this.permissions?.canInviteFriends && !this.isReadOnly;
-  }
+      // Getters pour les permissions
+    get canManageRequests(): boolean {
+      return this.permissions?.canManageRequests && !this.isReadOnly;
+    }
 
-  get canManageRequests(): boolean {
-    return this.permissions?.canManageRequests && !this.isReadOnly;
-  }
+    get canInviteFriends(): boolean {
+      return this.permissions?.canInviteFriends && !this.isReadOnly;
+    }
 
-  // ✅ AJOUTER CE GETTER
-  get canManageParticipants(): boolean {
-    return this.permissions?.canManageParticipants && !this.isReadOnly;
-  }
+    get canManageParticipants(): boolean {
+      return this.permissions?.canManageParticipants && !this.isReadOnly;
+    }
+
+    trackById(index: number, participant: Participant): string {
+      return participant.id || index.toString();
+    }
+
+    trackByInvitationId(index: number, invitation: EventInvitation): string {
+      return invitation.id || index.toString();
+    }
+
+    isOrganizer(participant: Participant): boolean {
+      return participant.userId === this.event.organizerId;
+    }
 }

@@ -33,7 +33,6 @@ import { Event, EventAccessType } from '../models/event.model';
 import { NotificationsService } from './notifications.service';
 import { NotificationType, createNotificationWithDefaults } from '../models/notification.model';
 import { AuthenticationService } from './authentication.service';
-import { arrayUnion, increment } from 'firebase/firestore';
 import { ParticipantStatus } from '../models/participant.model';
 
 @Injectable({

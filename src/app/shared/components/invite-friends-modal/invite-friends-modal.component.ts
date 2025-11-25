@@ -1,4 +1,7 @@
-import { Component, Input, OnInit, inject } from '@angular/core';
+// src/app/shared/components/invite-friends-modal/invite-friends-modal.component.ts
+// Modal d'invitation d'amis - VERSION CORRIGÉE avec vérification réelle des participants
+
+import { Component, Input, OnInit, OnDestroy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import {
   IonHeader,
@@ -26,7 +29,9 @@ import {
   searchOutline,
   checkmarkCircleOutline,
   alertCircleOutline,
-  peopleOutline, personOutline } from 'ionicons/icons';
+  peopleOutline, 
+  personOutline 
+} from 'ionicons/icons';
 
 import { FriendsService } from '../../../core/services/friends.service';
 import { InvitationsService } from '../../../core/services/invitations.service';
@@ -35,6 +40,7 @@ import { AuthenticationService } from '../../../core/services/authentication.ser
 import { FriendListItem } from '../../../core/models/friend.model';
 import { Event } from '../../../core/models/event.model';
 import { Participant } from '../../../core/models/participant.model';
+import { Subject, Subscription, takeUntil, take, firstValueFrom } from 'rxjs';
 
 /**
  * Interface pour un ami avec infos d'invitation enrichies
@@ -71,9 +77,9 @@ interface FriendWithInviteStatus extends FriendListItem {
     IonSpinner
   ]
 })
-export class InviteFriendsModalComponent implements OnInit {
+export class InviteFriendsModalComponent implements OnInit, OnDestroy {
   @Input() event!: Event;                    // Événement pour lequel on invite
-  @Input() currentParticipants: string[] = []; // IDs des participants actuels
+  @Input() currentParticipants: string[] = []; // IDs des participants actuels (DEPRECATED - on vérifie Firestore)
   
   friends: FriendWithInviteStatus[] = [];
   filteredFriends: FriendWithInviteStatus[] = [];
@@ -85,6 +91,9 @@ export class InviteFriendsModalComponent implements OnInit {
   // Filtres
   hideParticipants: boolean = true;          // Masquer amis déjà participants
   hideInvited: boolean = true;               // Masquer amis déjà invités
+
+  private destroy$ = new Subject<void>();
+  private friendsSubscription?: Subscription;
 
   /**
    * 🔢 Compte total des amis
@@ -121,13 +130,22 @@ export class InviteFriendsModalComponent implements OnInit {
   }
 
   ngOnInit() {
+    console.log('📨 InviteFriendsModal init');
     this.loadFriendsWithStatus();
+  }
+
+  ngOnDestroy() {
+    this.destroy$.next();
+    this.destroy$.complete();
+    this.friendsSubscription?.unsubscribe();
+    console.log('🧹 InviteFriendsModal destroyed');
   }
 
   /**
    * 📋 Charge la liste des amis avec leur statut d'invitation
+   * ✅ CORRIGÉ : Vérifie l'état réel des participants dans Firestore
    */
-  async loadFriendsWithStatus() {
+  private async loadFriendsWithStatus() {
     this.isLoading = true;
 
     try {
@@ -138,51 +156,89 @@ export class InviteFriendsModalComponent implements OnInit {
         return;
       }
 
-      // 1. Charger la liste des amis
-      this.friendsService.getFriends(currentUserId).subscribe({
-        next: async (friends: FriendListItem[]) => {
-          // 2. Charger les invitations existantes
-          const invitedUserIds = await this.getInvitedFriends();
+      // 1. Charger les amis
+      const friends = await firstValueFrom(
+        this.friendsService.getFriends(currentUserId).pipe(take(1))
+      );
 
-          // 3. Enrichir chaque ami avec son statut
-          this.friends = friends.map((friend: FriendListItem) => {
-            const isParticipant = this.currentParticipants.includes(friend.userId);
-            const isInvited = invitedUserIds.has(friend.userId);
-            
-            let disabledReason: string | undefined;
-            if (isParticipant) {
-              disabledReason = 'Déjà participant';
-            } else if (isInvited) {
-              disabledReason = 'Déjà invité';
-            }
+      console.log(`👥 ${friends.length} amis chargés`);
+      
+      // 2. ✅ CORRECTION : Charger TOUS les participants existants depuis Firestore (pas juste les APPROVED)
+      const actualParticipantIds = await this.getActualParticipants();
+      console.log(`🎯 ${actualParticipantIds.size} participants réels détectés`);
 
-            return {
-              ...friend,
-              isParticipant,
-              isInvited,
-              isSelected: false,
-              isDisabled: isParticipant || isInvited,
-              disabledReason
-            };
-          });
+      // 3. Charger les invitations existantes
+      const invitedUserIds = await this.getInvitedFriends();
+      console.log(`📨 ${invitedUserIds.size} invitations en attente`);
 
-          this.applyFilters();
-          this.isLoading = false;
-        },
-        error: (error: any) => {
-          console.error('❌ Erreur chargement amis:', error);
-          this.isLoading = false;
-          this.showToast('Erreur lors du chargement des amis', 'danger');
+      // 4. Enrichir chaque ami avec son statut
+      this.friends = friends.map((friend: FriendListItem) => {
+        const isParticipant = actualParticipantIds.has(friend.userId);
+        const isInvited = invitedUserIds.has(friend.userId);
+        
+        let disabledReason: string | undefined;
+        if (isParticipant) {
+          disabledReason = 'Déjà participant';
+        } else if (isInvited) {
+          disabledReason = 'Déjà invité';
         }
+
+        return {
+          ...friend,
+          isParticipant,
+          isInvited,
+          isSelected: false,
+          isDisabled: isParticipant || isInvited,
+          disabledReason
+        };
       });
-    } catch (error) {
-      console.error('❌ Erreur:', error);
+
+      this.applyFilters();
       this.isLoading = false;
+      console.log(`✅ ${this.availableCount} amis disponibles pour invitation`);
+
+    } catch (error: any) {
+      console.error('❌ Erreur chargement amis:', error);
+      this.isLoading = false;
+      this.showToast('Erreur lors du chargement des amis', 'danger');
+    }
+  }
+
+  /**
+   * 🎯 Récupère les IDs de TOUS les participants actuels depuis Firestore
+   * ✅ Vérifie l'état réel, pas seulement le tableau @Input currentParticipants
+   */
+  private async getActualParticipants(): Promise<Set<string>> {
+    // Si l'événement n'existe pas encore (création), utiliser l'@Input
+    if (!this.event || !this.event.id) {
+      console.log('ℹ️ Mode création : utilisation de currentParticipants');
+      return new Set<string>(this.currentParticipants);
+    }
+
+    try {
+      // ✅ Charger TOUS les participants depuis Firestore (tous statuts)
+      const allParticipants = await firstValueFrom(
+        this.participantsService.getParticipants(this.event.id).pipe(take(1))
+      );
+
+      // Créer un Set avec tous les userId (quel que soit le statut)
+      const participantIds = new Set(
+        allParticipants.map(p => p.userId)
+      );
+
+      console.log(`🔍 Participants trouvés dans Firestore:`, Array.from(participantIds));
+      return participantIds;
+
+    } catch (error) {
+      console.error('❌ Erreur chargement participants réels:', error);
+      // Fallback sur l'@Input en cas d'erreur
+      return new Set<string>(this.currentParticipants);
     }
   }
 
   /**
    * 🔍 Récupère les IDs des amis déjà invités
+   * ✅ CORRIGÉ : Utilise take(1) + firstValueFrom pour données fraîches
    */
   private async getInvitedFriends(): Promise<Set<string>> {
     // ✅ Si l'événement n'existe pas encore (création), retourner Set vide
@@ -191,22 +247,24 @@ export class InviteFriendsModalComponent implements OnInit {
       return new Set<string>();
     }
   
-    return new Promise((resolve) => {
-      this.invitationsService.getEventInvitations(this.event.id!).subscribe({
-        next: (invitations) => {
-          const invitedIds = new Set(
-            invitations
-              .filter(inv => inv.status === 'pending')
-              .map(inv => inv.invitedUserId)
-          );
-          resolve(invitedIds);
-        },
-        error: (error) => {
-          console.error('❌ Erreur chargement invitations:', error);
-          resolve(new Set());
-        }
-      });
-    });
+    try {
+      // ✅ CORRECTION CRITIQUE : Utiliser take(1) pour avoir la PREMIÈRE valeur FRAÎCHE
+      const invitations = await firstValueFrom(
+        this.invitationsService.getEventInvitations(this.event.id!).pipe(take(1))
+      );
+
+      // ✅ Ne compter QUE les invitations PENDING (pas declined/accepted)
+      const invitedIds = new Set(
+        invitations
+          .filter(inv => inv.status === 'pending')
+          .map(inv => inv.invitedUserId)
+      );
+      
+      return invitedIds;
+    } catch (error) {
+      console.error('❌ Erreur chargement invitations:', error);
+      return new Set();
+    }
   }
 
   /**
@@ -357,81 +415,70 @@ export class InviteFriendsModalComponent implements OnInit {
   
     try {
       // Préparer les données des amis
-      const friendIds = selectedFriends.map(f => f.userId);
-      const friendsData = new Map(
-        selectedFriends.map(f => [
-          f.userId,
-          {
-            name: f.displayName,
-            photo: f.photoURL
-          }
-        ])
-      );
-  
+      const friendsData = new Map<string, { name: string; photo?: string }>();
+      selectedFriends.forEach(friend => {
+        friendsData.set(friend.userId, {
+          name: friend.displayName,
+          photo: friend.photoURL
+        });
+      });
+
       // Envoyer les invitations
+      const friendIds = selectedFriends.map(f => f.userId);
       const successCount = await this.invitationsService.sendInvitations(
         this.event.id!,
         this.event,
         friendIds,
         friendsData
       );
-  
+
       await loading.dismiss();
-  
+
       if (successCount > 0) {
-        this.showToast(
-          `${successCount} invitation(s) envoyée(s) avec succès !`,
-          'success'
-        );
-        this.dismiss(successCount);
+        this.showToast(`${successCount} invitation(s) envoyée(s) !`, 'success');
+        
+        // ✅ Fermer le modal avec le nombre d'invitations envoyées
+        this.modalCtrl.dismiss({
+          invitationsSent: successCount
+        });
       } else {
         this.showToast('Aucune invitation envoyée', 'warning');
       }
-    } catch (error) {
+    } catch (error: any) {
       await loading.dismiss();
       console.error('❌ Erreur envoi invitations:', error);
-      this.showToast('Erreur lors de l\'envoi des invitations', 'danger');
+      this.showToast(error.message || 'Erreur lors de l\'envoi des invitations', 'danger');
     }
-  }
-
-  returnSelectedFriends() {
-    const selectedFriends = this.friends
-      .filter(f => f.isSelected)
-      .map(f => ({
-        userId: f.userId,
-        displayName: f.displayName,
-        photoURL: f.photoURL
-      }));
-  
-    if (selectedFriends.length === 0) {
-      this.showToast('Veuillez sélectionner au moins un ami', 'warning');
-      return;
-    }
-  
-    console.log(`✅ ${selectedFriends.length} ami(s) sélectionné(s)`);
-    this.modalCtrl.dismiss({ 
-      selectedFriends: selectedFriends,
-      invitationsSent: 0 // Pas encore envoyées
-    });
   }
 
   /**
-   * 🚪 Ferme la modal
+   * 🎯 Mode création : retourne les amis sélectionnés au composant parent
    */
-  dismiss(invitationsSent: number = 0) {
-    this.modalCtrl.dismiss({ invitationsSent });
+  private returnSelectedFriends() {
+    const selectedFriends = this.friends.filter(f => f.isSelected);
+    this.modalCtrl.dismiss({
+      selectedFriends: selectedFriends,
+      mode: 'creation'
+    });
   }
 
   /**
    * 🍞 Affiche un toast
    */
-  private async showToast(message: string, color: string) {
+  private async showToast(message: string, color: 'success' | 'danger' | 'warning' | 'primary' = 'primary') {
     const toast = await this.toastCtrl.create({
       message,
-      duration: 2500,
-      color,
-      position: 'bottom'
+      duration: 3000,
+      position: 'bottom',
+      color
     });
     await toast.present();
+  }
+
+  /**
+   * 🚪 Ferme le modal
+   */
+  dismiss() {
+    this.modalCtrl.dismiss();
   }
 }

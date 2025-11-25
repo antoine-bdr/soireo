@@ -20,7 +20,8 @@ import {
   increment,
   arrayRemove,
   serverTimestamp,
-  getDoc
+  getDoc,
+  writeBatch
 } from '@angular/fire/firestore';
 import { Observable, from, map, switchMap, of, combineLatest } from 'rxjs';
 import { catchError, take } from 'rxjs/operators';
@@ -37,7 +38,6 @@ import { UsersService } from './users.service';
 import { NotificationsService } from './notifications.service';
 import { InvitationsService } from './invitations.service';
 import { NotificationType, createNotificationWithDefaults } from '../models/notification.model';
-import { writeBatch } from 'firebase/firestore';
 
 @Injectable({
   providedIn: 'root'
@@ -769,8 +769,27 @@ export class ParticipantsService {
 
   removeParticipantByOrganizer(eventId: string, participantId: string, userId: string): Observable<void> {
     console.log(`🗑️ removeParticipantByOrganizer - event: ${eventId}, participant: ${participantId}`);
-    // Utiliser la méthode removeParticipant qui fait déjà tout
-    return this.removeParticipant(participantId);
+    
+    // ✅ SÉCURITÉ : Récupérer l'événement pour vérifier que ce n'est pas l'organisateur
+    const eventRef = doc(this.firestore, 'events', eventId);
+    
+    return from(getDoc(eventRef)).pipe(
+      switchMap(eventDoc => {
+        if (!eventDoc.exists()) {
+          throw new Error('Événement non trouvé');
+        }
+        
+        const event = eventDoc.data() as Event;
+        
+        // ✅ Empêcher la suppression de l'organisateur
+        if (event.organizerId === userId) {
+          throw new Error('L\'organisateur ne peut pas être retiré de l\'événement');
+        }
+        
+        // Procéder à la suppression normale
+        return this.removeParticipant(participantId);
+      })
+    );
   }
 
   /**
